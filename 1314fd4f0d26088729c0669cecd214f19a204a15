@@ -1,0 +1,51 @@
+web/app/(auth)/login/page.tsx
+  fd75728ce1a5f3fd 4,8,11,15,20-29,69-71
+server/nest-api/src/modules/resources/resources.controller.ts
+  fd75728ce1a5f3fd 26
+server/nest-api/src/modules/assignments/entities/submission.entity.ts
+  fd75728ce1a5f3fd 37
+server/.env.example
+  fd75728ce1a5f3fd 10
+server/nest-api/src/modules/questions/questions.controller.ts
+  fd75728ce1a5f3fd 33
+server/nest-api/src/modules/users/users.controller.ts
+  fd75728ce1a5f3fd 18,24
+server/nest-api/src/modules/classes/classes.controller.ts
+  fd75728ce1a5f3fd 19,27
+server/database/seeds/seed.sql
+  fd75728ce1a5f3fd 1-89
+web/lib/api.ts
+  fd75728ce1a5f3fd 9-15,31-35,37-38,41
+web/lib/auth.ts
+  fd75728ce1a5f3fd 27-29,38-42,46-56
+server/nest-api/src/modules/assignments/assignments.controller.ts
+  fd75728ce1a5f3fd 21,45
+server/nest-api/src/common/guards/roles.guard.ts
+  fd75728ce1a5f3fd 1-32
+web/app/(dashboard)/layout.tsx
+  fd75728ce1a5f3fd 1-4,7,14-32
+server/docker-compose.yml
+  fd75728ce1a5f3fd 22,34
+server/nest-api/src/modules/practice/practice.controller.ts
+  fd75728ce1a5f3fd 20,37,47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "1314fd4f0d26088729c0669cecd214f19a204a15",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>",
+      "messages": [],
+      "total_additions": 214,
+      "total_deletions": 26,
+      "accepted_lines": 214,
+      "overriden_lines": 0
+    }
+  }
+}
