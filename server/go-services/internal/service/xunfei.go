@@ -183,7 +183,7 @@ func (c *XunfeiClient) Assess(audioData []byte, referenceText string) (*model.Pr
 		return nil, errors.New("讯飞 AppID 未配置")
 	}
 
-	authURL, err := c.buildAuthURL("wss://ise-api.xfyun.cn/v2/ise")
+	authURL, err := c.buildAuthURL("wss://ise-api.xfyun.cn/v2/open-ise")
 	if err != nil {
 		return nil, err
 	}
@@ -194,56 +194,78 @@ func (c *XunfeiClient) Assess(audioData []byte, referenceText string) (*model.Pr
 	}
 	defer conn.Close()
 
-	// 首帧：评测配置 + 参考文本 + 首段音频
-	chunkSize := 1280
-	firstChunk := audioData
-	if len(firstChunk) > chunkSize {
-		firstChunk = audioData[:chunkSize]
-	}
-
 	// 参考文本需要 UTF-8 BOM
 	refTextWithBOM := "\uFEFF" + referenceText
 
-	firstFrame := map[string]interface{}{
+	// === 阶段 1: SSB（配置参数 + 参考文本，不含音频）===
+	ssbFrame := map[string]interface{}{
 		"common": map[string]interface{}{
 			"app_id": c.appID,
 		},
 		"business": map[string]interface{}{
-			"category": "read_sentence", // 读句子模式
 			"sub":      "ise",
-			"ent":      "en_vip",        // 英文评测引擎
+			"ent":      "en_vip",
+			"category": "read_sentence",
 			"text":     refTextWithBOM,
 			"tte":      "utf-8",
-			"cmd":      "ssb",           // 开始评测
+			"cmd":      "ssb",
 			"auf":      "audio/L16;rate=16000",
 			"aue":      "raw",
-			"rstcd":    "utf8",          // 结果编码
+			"rstcd":    "utf8",
 		},
 		"data": map[string]interface{}{
-			"status": 0, // 首帧
-			"data":   base64.StdEncoding.EncodeToString(firstChunk),
+			"status": 0,
 		},
 	}
-	if err := conn.WriteJSON(firstFrame); err != nil {
-		return nil, fmt.Errorf("发送 ISE 首帧失败: %w", err)
+	if err := conn.WriteJSON(ssbFrame); err != nil {
+		return nil, fmt.Errorf("发送 ISE ssb 帧失败: %w", err)
 	}
 
-	// 发送剩余音频帧
-	for i := chunkSize; i < len(audioData); i += chunkSize {
+	// === 阶段 2: AUW（分帧上传音频数据）===
+	chunkSize := 1280
+	totalChunks := (len(audioData) + chunkSize - 1) / chunkSize
+	for i := 0; i < len(audioData); i += chunkSize {
 		end := min(i+chunkSize, len(audioData))
+		chunkIdx := i / chunkSize
+
+		// aus: 1=首段, 2=中间, 4=末段
+		aus := 2
+		if chunkIdx == 0 {
+			aus = 1
+		}
+		if chunkIdx == totalChunks-1 {
+			aus = 4
+		}
+
+		// data.status: 1=中间帧, 2=末帧
 		status := 1
-		if end >= len(audioData) {
+		if chunkIdx == totalChunks-1 {
 			status = 2
 		}
+
 		frame := map[string]interface{}{
+			"business": map[string]interface{}{
+				"cmd": "auw",
+				"aus": aus,
+			},
 			"data": map[string]interface{}{
 				"status": status,
 				"data":   base64.StdEncoding.EncodeToString(audioData[i:end]),
 			},
 		}
 		if err := conn.WriteJSON(frame); err != nil {
-			return nil, fmt.Errorf("发送 ISE 音频帧失败: %w", err)
+			return nil, fmt.Errorf("发送 ISE auw 帧失败: %w", err)
 		}
+	}
+
+	// === 阶段 3: TTP（请求返回评测结果）===
+	ttpFrame := map[string]interface{}{
+		"business": map[string]interface{}{
+			"cmd": "ttp",
+		},
+	}
+	if err := conn.WriteJSON(ttpFrame); err != nil {
+		return nil, fmt.Errorf("发送 ISE ttp 帧失败: %w", err)
 	}
 
 	// 接收评测结果（ISE 返回 base64 编码的 XML）
@@ -291,17 +313,19 @@ func parseISEScore(encoded string) *model.PronunciationScore {
 	}
 
 	xmlStr := string(xmlData)
-	overall := extractXMLAttr(xmlStr, "totalscore")
+	// read_chapter 标签中的属性（带下划线）
+	overall := extractXMLAttr(xmlStr, "total_score")
 	fluency := extractXMLAttr(xmlStr, "fluency_score")
 	integrity := extractXMLAttr(xmlStr, "integrity_score")
+	accuracy := extractXMLAttr(xmlStr, "accuracy_score")
 
 	// 各维度推算（ISE XML 中还有更细粒度的 phone 评分）
 	return &model.PronunciationScore{
 		Overall:    overall,
 		Fluency:    fluency,
 		Integrity:  integrity,
-		Stress:     overall * 0.9,     // 重音评分估算
-		Intonation: overall * 0.95,    // 语调评分估算
+		Stress:     accuracy,              // 准确度映射到重音
+		Intonation: overall * 0.95,        // 语调评分估算
 		Phonemes:   []model.PhonemeScore{}, // TODO: 解析音素级评分
 	}
 }
