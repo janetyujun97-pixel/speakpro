@@ -30,7 +30,7 @@ export class QuestionsController {
   }
 
   @Post()
-  async create(@Body() data: Partial<Question>, @Request() req): Promise<Question> {
+  async create(@Body() data: Partial<Question>, @Request() req: any): Promise<Question> {
     return this.questionsService.create({ ...data, createdBy: req.user.sub });
   }
 

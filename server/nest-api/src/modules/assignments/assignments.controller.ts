@@ -18,7 +18,7 @@ export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}
 
   @Post()
-  async create(@Body() data: any, @Request() req) {
+  async create(@Body() data: any, @Request() req: any) {
     return this.assignmentsService.create({
       ...data,
       teacherId: req.user.sub,
@@ -42,7 +42,7 @@ export class AssignmentsController {
   async submit(
     @Param('id') id: string,
     @Body() data: { sessionIds: string[] },
-    @Request() req,
+    @Request() req: any,
   ) {
     return this.assignmentsService.submit(id, req.user.sub, data);
   }

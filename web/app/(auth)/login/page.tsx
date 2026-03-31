@@ -1,20 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { login } from "@/lib/auth";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: 接入登录 API
-    setTimeout(() => setLoading(false), 1000);
+    setError("");
+
+    try {
+      await login({ email, password });
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "登录失败，请重试");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -54,6 +66,9 @@ export default function LoginPage() {
               required
             />
           </div>
+          {error && (
+            <p className="text-sm text-red-500">{error}</p>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "登录中..." : "登录"}
           </Button>

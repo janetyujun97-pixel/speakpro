@@ -16,7 +16,7 @@ export class ClassesController {
   constructor(private readonly classesService: ClassesService) {}
 
   @Post()
-  async create(@Body() data: any, @Request() req) {
+  async create(@Body() data: any, @Request() req: any) {
     return this.classesService.create({
       ...data,
       teacherId: req.user.sub,
@@ -24,7 +24,7 @@ export class ClassesController {
   }
 
   @Get()
-  async findAll(@Request() req) {
+  async findAll(@Request() req: any) {
     // 教师查看自己的班级，管理员查看全部
     const teacherId = req.user.role === 'admin' ? undefined : req.user.sub;
     return this.classesService.findAll(teacherId);

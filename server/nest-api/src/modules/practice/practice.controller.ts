@@ -17,7 +17,7 @@ export class PracticeController {
 
   @Post('start')
   async startSession(
-    @Request() req,
+    @Request() req: any,
     @Body() data: { questionId: string; mode: string },
   ) {
     return this.practiceService.startSession(req.user.sub, data);
@@ -34,7 +34,7 @@ export class PracticeController {
   }
 
   @Get('sessions')
-  async findSessions(@Request() req) {
+  async findSessions(@Request() req: any) {
     return this.practiceService.findSessions(req.user.sub);
   }
 
@@ -44,7 +44,7 @@ export class PracticeController {
   }
 
   @Get('stats')
-  async getStats(@Request() req) {
+  async getStats(@Request() req: any) {
     return this.practiceService.getStats(req.user.sub);
   }
 }

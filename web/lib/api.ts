@@ -6,6 +6,13 @@ function getAuthHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// NestJS 统一响应格式
+interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -21,12 +28,17 @@ async function request<T>(
     },
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `请求失败: ${response.status}`);
+  const json: ApiResponse<T> = await response.json().catch(() => ({
+    code: response.status,
+    message: `请求失败: ${response.status}`,
+    data: null as T,
+  }));
+
+  if (!response.ok || json.code !== 0) {
+    throw new Error(json.message || `请求失败: ${response.status}`);
   }
 
-  return response.json();
+  return json.data;
 }
 
 export const api = {

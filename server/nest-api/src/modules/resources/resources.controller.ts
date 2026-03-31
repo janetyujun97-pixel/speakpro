@@ -23,7 +23,7 @@ export class ResourcesController {
   }
 
   @Post()
-  async create(@Body() data: any, @Request() req) {
+  async create(@Body() data: any, @Request() req: any) {
     return this.resourcesService.create({
       ...data,
       uploadedBy: req.user.sub,

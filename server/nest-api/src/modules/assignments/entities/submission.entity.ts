@@ -34,7 +34,7 @@ export class Submission {
   status: 'pending' | 'submitted' | 'graded';
 
   @Column({ type: 'text', nullable: true, name: 'teacher_comment' })
-  teacherComment: string;
+  teacherComment: string | null;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, name: 'teacher_score' })
   teacherScore: number;
