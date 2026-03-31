@@ -53,7 +53,7 @@ func main() {
 		authorized.GET("/conversation/connect", convHandler.Connect)
 
 		// 发音评测
-		assessHandler := handler.NewAssessmentHandler(orchestrator)
+		assessHandler := handler.NewAssessmentHandler(orchestrator, xunfeiClient, qwenClient)
 		authorized.POST("/assessment/evaluate", assessHandler.Evaluate)
 		authorized.POST("/assessment/feedback", assessHandler.Feedback)
 

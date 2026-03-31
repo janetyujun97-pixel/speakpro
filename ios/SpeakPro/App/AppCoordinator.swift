@@ -39,16 +39,50 @@ final class AppCoordinator: ObservableObject {
 
     @Published var isAuthenticated: Bool = false
     @Published var selectedTab: Tab = .home
+    @Published var currentUser: UserInfo? = nil
 
-    // MARK: - Methods
+    // MARK: - Init — 从 Keychain 恢复登录态
 
+    init() {
+        // 如果 Keychain 中存在 access token，则认为已登录
+        if let token = APIClient.shared.accessToken, !token.isEmpty {
+            isAuthenticated = true
+            // 尝试从 UserDefaults 恢复用户信息
+            if let data = UserDefaults.standard.data(forKey: "speakpro_user"),
+               let user = try? JSONDecoder().decode(UserInfo.self, from: data) {
+                currentUser = user
+            }
+        }
+    }
+
+    // MARK: - Auth Methods
+
+    /// 登录成功后调用，保存用户信息并切换至主界面
+    func completeLogin(user: UserInfo) {
+        currentUser = user
+        isAuthenticated = true
+
+        // 持久化用户信息（非敏感数据）
+        if let data = try? JSONEncoder().encode(user) {
+            UserDefaults.standard.set(data, forKey: "speakpro_user")
+        }
+    }
+
+    /// 登出：清除 Token、用户信息，返回登录页
     func logout() {
-        // TODO: 清除 token、重置状态
-        isAuthenticated = false
+        APIClient.shared.accessToken  = nil
+        APIClient.shared.refreshToken = nil
+        UserDefaults.standard.removeObject(forKey: "speakpro_user")
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentUser = nil
+            isAuthenticated = false
+            selectedTab = .home
+        }
     }
 }
 
-// MARK: - ContentView (Tab Bar)
+// MARK: - ContentView (Tab Bar 主界面)
 
 struct ContentView: View {
     @EnvironmentObject var coordinator: AppCoordinator
@@ -62,13 +96,25 @@ struct ContentView: View {
                 }
                 .tag(AppCoordinator.Tab.home)
 
-            // 练习 Tab — 暂用占位视图
-            Text("练习入口")
-                .tabItem {
-                    Label(AppCoordinator.Tab.practice.title,
-                          systemImage: AppCoordinator.Tab.practice.icon)
+            // 练习 Tab — 暂用占位视图，Phase 2 实现
+            NavigationStack {
+                VStack(spacing: 16) {
+                    Image(systemName: "mic.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(Color.spAccent)
+                    Text("练习模式")
+                        .font(.title2.bold())
+                    Text("Phase 2 开发中...")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
-                .tag(AppCoordinator.Tab.practice)
+                .navigationTitle("练习")
+            }
+            .tabItem {
+                Label(AppCoordinator.Tab.practice.title,
+                      systemImage: AppCoordinator.Tab.practice.icon)
+            }
+            .tag(AppCoordinator.Tab.practice)
 
             HomeworkListView()
                 .tabItem {

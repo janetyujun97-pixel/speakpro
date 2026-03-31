@@ -9,10 +9,15 @@ export function getToken(): string | null {
 
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
+  // 同步写入 Cookie，供 Next.js middleware 服务端路由保护使用
+  // SameSite=Strict 防止 CSRF；不设置 HttpOnly 因为 JS 需要读取
+  document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Strict; max-age=${7 * 24 * 3600}`;
 }
 
 export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  // 同步清除 Cookie
+  document.cookie = `${TOKEN_KEY}=; path=/; SameSite=Strict; max-age=0`;
 }
 
 export function isAuthenticated(): boolean {
