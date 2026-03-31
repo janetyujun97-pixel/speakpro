@@ -1,0 +1,25 @@
+server/go-services/internal/service/xunfei.go
+  fd75728ce1a5f3fd 163-164,267-268,396-399
+server/nginx/nginx.conf
+  fd75728ce1a5f3fd 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "156f18e4c30b92db1979056eb20cc3e52d29c0a0",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 4,
+      "accepted_lines": 9,
+      "overriden_lines": 0
+    }
+  }
+}
