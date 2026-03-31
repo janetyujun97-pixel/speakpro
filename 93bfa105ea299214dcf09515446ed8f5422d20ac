@@ -1,0 +1,45 @@
+server/go-services/internal/handler/tts.go
+  fd75728ce1a5f3fd 4,20-21,24,36,38,40-41,44-52,54-55,60-65,69-74
+ios/SpeakPro/App/AppCoordinator.swift
+  fd75728ce1a5f3fd 42,44,46-56,58,60-71,73-81,85,99-109,111-117
+ios/SpeakPro/App/SpeakProApp.swift
+  fd75728ce1a5f3fd 9,14-36
+web/middleware.ts
+  fd75728ce1a5f3fd 1-49
+server/go-services/internal/service/xunfei.go
+  fd75728ce1a5f3fd 4-6,8-12,14,35-73,79-88,90-113,115-137,139-173,175,178-179,185-201,203-273,275-294,296-305,307-322,325-327,333-337,340-405,407
+server/go-services/internal/handler/assessment.go
+  fd75728ce1a5f3fd 4,13-14,17-18,21-22,34-40,42-51,53-60,62-70,76-77,82-83,86-88,93,98-103,108-116,122-124
+server/go-services/internal/handler/audio.go
+  fd75728ce1a5f3fd 4,19-20,26,34-51,53-60,62-70,77-78
+server/go-services/cmd/server/main.go
+  fd75728ce1a5f3fd 56
+ios/SpeakPro/Features/Auth/LoginViewModel.swift
+  fd75728ce1a5f3fd 1-111
+ios/SpeakPro/Features/Auth/LoginView.swift
+  fd75728ce1a5f3fd 1-168
+server/go-services/internal/service/qwen.go
+  fd75728ce1a5f3fd 4-5,7-11,17,20-22,27-31,35-117,123-124,126-133,135-160,162,164-166,169-170,176-204,207-208,210-218,220,223-225,231-266,269-270,272-278
+web/lib/auth.ts
+  fd75728ce1a5f3fd 12-14,19-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "93bfa105ea299214dcf09515446ed8f5422d20ac",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>",
+      "messages": [],
+      "total_additions": 1161,
+      "total_deletions": 94,
+      "accepted_lines": 1160,
+      "overriden_lines": 0
+    }
+  }
+}
