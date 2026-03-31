@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Class } from './entities/class.entity';
 import { User } from '../users/entities/user.entity';
+import { PracticeSession } from '../practice/entities/practice-session.entity';
+import { Submission } from '../assignments/entities/submission.entity';
 
 @Injectable()
 export class ClassesService {
@@ -11,6 +13,10 @@ export class ClassesService {
     private readonly classesRepository: Repository<Class>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(PracticeSession)
+    private readonly practiceRepository: Repository<PracticeSession>,
+    @InjectRepository(Submission)
+    private readonly submissionRepository: Repository<Submission>,
   ) {}
 
   async create(data: Partial<Class>): Promise<Class> {
@@ -60,13 +66,72 @@ export class ClassesService {
 
   async getAnalytics(classId: string) {
     const cls = await this.findById(classId);
+    const studentIds = cls.students.map((s) => s.id);
 
-    // TODO: 查询该班级所有学生的练习数据并进行聚合分析
+    if (studentIds.length === 0) {
+      return {
+        classId: cls.id,
+        className: cls.name,
+        studentCount: 0,
+        activeStudents: 0,
+        averageScore: 0,
+        totalSessions: 0,
+        assignmentCompletionRate: 0,
+        dimensions: { pronunciation: 0, fluency: 0, grammar: 0, content: 0 },
+      };
+    }
+
+    // 查询班级所有学生的练习数据
+    const sessions = await this.practiceRepository
+      .createQueryBuilder('ps')
+      .where('ps.student_id IN (:...ids)', { ids: studentIds })
+      .getMany();
+
+    const scoredSessions = sessions.filter((s) => s.overallScore != null);
+    const avgScore =
+      scoredSessions.reduce((sum, s) => sum + Number(s.overallScore), 0) /
+      (scoredSessions.length || 1);
+
+    // 活跃学生（最近 7 天有练习记录）
+    const now = new Date();
+    const recentStudents = new Set(
+      sessions
+        .filter((s) => now.getTime() - new Date(s.createdAt).getTime() < 7 * 24 * 3600 * 1000)
+        .map((s) => s.studentId),
+    );
+
+    // 作业完成率
+    const submissions = await this.submissionRepository
+      .createQueryBuilder('sub')
+      .where('sub.student_id IN (:...ids)', { ids: studentIds })
+      .getMany();
+    const gradedCount = submissions.filter((s) => s.status === 'graded' || s.status === 'submitted').length;
+    const completionRate = submissions.length > 0 ? gradedCount / submissions.length : 0;
+
+    // 各维度平均分
+    const avgDim = (field: string) => {
+      const vals = scoredSessions
+        .map((s) => (s as any)[field]?.overall ?? (s as any)[field]?.score)
+        .filter((v: any) => v != null);
+      return vals.length > 0
+        ? Math.round((vals.reduce((a: number, b: number) => a + b, 0) / vals.length) * 100) / 100
+        : 0;
+    };
+
     return {
       classId: cls.id,
       className: cls.name,
-      studentCount: cls.students.length,
-      // TODO: 添加平均分、完成率、各维度评分趋势等统计数据
+      studentCount: studentIds.length,
+      activeStudents: recentStudents.size,
+      averageScore: Math.round(avgScore * 100) / 100,
+      totalSessions: sessions.length,
+      assignmentCompletionRate: Math.round(completionRate * 100),
+      dimensions: {
+        pronunciation: avgDim('pronunciationScore'),
+        fluency: avgDim('fluencyScore'),
+        grammar: avgDim('grammarScore'),
+        content: avgDim('contentScore'),
+      },
     };
   }
 }

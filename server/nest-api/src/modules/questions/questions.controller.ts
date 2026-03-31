@@ -48,7 +48,7 @@ export class QuestionsController {
   }
 
   @Post('import')
-  async bulkImport(@Body() questions: Partial<Question>[]): Promise<Question[]> {
+  async bulkImport(@Body() questions: Partial<Question>[]) {
     return this.questionsService.bulkImport(questions);
   }
 }

@@ -55,8 +55,3 @@ export function logout(): void {
   localStorage.removeItem("speakpro_user");
   window.location.href = "/login";
 }
-
-export function logout(): void {
-  removeToken();
-  window.location.href = "/login";
-}

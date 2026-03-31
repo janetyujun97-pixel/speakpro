@@ -1,9 +1,92 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Users, BookOpen, BarChart3, CheckCircle } from "lucide-react";
+import { api } from "@/lib/api";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { ScoreTrendChart } from "@/components/dashboard/score-trend-chart";
 import { StudentRankTable } from "@/components/dashboard/student-rank-table";
 
+interface DashboardStats {
+  activeStudents: number;
+  totalSessions: number;
+  averageScore: number;
+  completionRate: string;
+}
+
+const DEFAULT_STATS: DashboardStats = {
+  activeStudents: 0,
+  totalSessions: 0,
+  averageScore: 0,
+  completionRate: "-",
+};
+
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats>(DEFAULT_STATS);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const result = { ...DEFAULT_STATS };
+
+      try {
+        // 获取练习统计
+        const practiceStats = await api.get<{
+          totalSessions: number;
+          averageScore: number;
+        }>("/practice/stats");
+        result.totalSessions = practiceStats.totalSessions || 0;
+        result.averageScore = practiceStats.averageScore || 0;
+      } catch {
+        // 练习统计接口不可用，保持默认值
+      }
+
+      try {
+        // 通过班级列表统计学生数
+        const classes = await api.get<
+          { students: { id: string }[] | null }[]
+        >("/classes");
+        const studentIds = new Set<string>();
+        for (const cls of classes) {
+          if (cls.students) {
+            for (const s of cls.students) {
+              studentIds.add(s.id);
+            }
+          }
+        }
+        result.activeStudents = studentIds.size;
+      } catch {
+        // 班级接口不可用，保持默认值
+      }
+
+      try {
+        // 通过作业列表计算完成率
+        const assignments = await api.get<
+          { submissions: { status: string }[] | null }[]
+        >("/assignments");
+        let totalSubs = 0;
+        let gradedSubs = 0;
+        for (const a of assignments) {
+          if (a.submissions) {
+            totalSubs += a.submissions.length;
+            gradedSubs += a.submissions.filter(
+              (s) => s.status === "graded" || s.status === "submitted"
+            ).length;
+          }
+        }
+        result.completionRate =
+          totalSubs > 0 ? `${Math.round((gradedSubs / totalSubs) * 100)}%` : "-";
+      } catch {
+        // 作业接口不可用，保持默认值
+      }
+
+      setStats(result);
+      setLoaded(true);
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-primary">数据看板</h1>
@@ -12,30 +95,26 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="活跃学生"
-          value={128}
-          trend="up"
-          trendValue="较上周 +12%"
+          value={loaded ? stats.activeStudents : "-"}
+          trend="neutral"
           icon={Users}
         />
         <StatsCard
-          title="本周练习"
-          value={356}
-          trend="up"
-          trendValue="较上周 +8%"
+          title="练习总数"
+          value={loaded ? stats.totalSessions : "-"}
+          trend="neutral"
           icon={BookOpen}
         />
         <StatsCard
           title="平均分"
-          value={82.5}
-          trend="up"
-          trendValue="较上周 +3.2"
+          value={loaded ? (stats.averageScore > 0 ? stats.averageScore.toFixed(1) : "-") : "-"}
+          trend="neutral"
           icon={BarChart3}
         />
         <StatsCard
           title="作业完成率"
-          value="94%"
+          value={loaded ? stats.completionRate : "-"}
           trend="neutral"
-          trendValue="与上周持平"
           icon={CheckCircle}
         />
       </div>
