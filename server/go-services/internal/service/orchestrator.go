@@ -1,6 +1,10 @@
 package service
 
-import "github.com/speakpro/go-services/internal/model"
+import (
+	"log"
+
+	"github.com/speakpro/go-services/internal/model"
+)
 
 // Orchestrator AI 编排服务 - 协调多个 AI 服务完成完整评测流水线
 //
@@ -24,23 +28,34 @@ func (o *Orchestrator) EvaluateAudio(audioData []byte, referenceText string) (*m
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[Orchestrator] ASR 转写完成: %q", transcript)
 
-	// 步骤 2: 发音评测
+	// 步骤 2: 发音评测（ISE 不可用时降级为估算分数）
 	pronScore, err := o.xunfei.Assess(audioData, referenceText)
 	if err != nil {
-		return nil, err
+		log.Printf("[Orchestrator] ISE 评测失败，使用降级评分: %v", err)
+		pronScore = &model.PronunciationScore{
+			Overall:    0,
+			Fluency:    0,
+			Integrity:  0,
+			Stress:     0,
+			Intonation: 0,
+			Phonemes:   []model.PhonemeScore{},
+		}
 	}
 
 	// 步骤 3: AI 语法纠错 + 评分
 	grammarResult, err := o.qwen.CorrectGrammar(transcript)
 	if err != nil {
-		return nil, err
+		log.Printf("[Orchestrator] 语法纠错失败: %v", err)
+		grammarResult = &model.GrammarScore{Score: 0, Errors: []model.GramError{}, Corrections: []string{}}
 	}
 
 	// 步骤 4: AI 内容评分 + 综合反馈
 	feedback, err := o.qwen.GenerateFeedback(transcript, referenceText, pronScore)
 	if err != nil {
-		return nil, err
+		log.Printf("[Orchestrator] 反馈生成失败: %v", err)
+		feedback = "AI 反馈暂不可用"
 	}
 
 	// 组装综合结果
@@ -62,5 +77,14 @@ func (o *Orchestrator) GenerateExaminerResponse(history []model.ConversationMess
 
 func calculateOverall(pron *model.PronunciationScore, gram *model.GrammarScore) float64 {
 	// 加权平均：发音 40%, 语法 20%, 流利度 20%, 内容 20%
-	return pron.Overall*0.4 + gram.Score*0.2 + pron.Fluency*0.2 + pron.Overall*0.2
+	pronScore := pron.Overall
+	gramScore := gram.Score * 10 // gram.Score 是 0-10，转为百分制
+	fluencyScore := pron.Fluency
+
+	// 若 ISE 不可用（分数为 0），只用语法评分
+	if pronScore == 0 && fluencyScore == 0 {
+		return gramScore
+	}
+
+	return pronScore*0.4 + gramScore*0.2 + fluencyScore*0.2 + pronScore*0.2
 }

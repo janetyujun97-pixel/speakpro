@@ -35,7 +35,7 @@ func (h *TTSHandler) Synthesize(c *gin.Context) {
 
 	// 默认参数
 	if req.Voice == "" {
-		req.Voice = "x4_enus_luna_assist" // 英文女声
+		req.Voice = "x4_lingxiaolu_oral" // 默认音色（支持中英文）
 	}
 	if req.Speed <= 0 || req.Speed > 100 {
 		req.Speed = 50 // 中等语速

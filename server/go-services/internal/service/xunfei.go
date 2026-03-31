@@ -209,18 +209,19 @@ func (c *XunfeiClient) Assess(audioData []byte, referenceText string) (*model.Pr
 			"app_id": c.appID,
 		},
 		"business": map[string]interface{}{
-			"category": "read_sentence",   // 读句子模式
+			"category": "read_sentence", // 读句子模式
 			"sub":      "ise",
-			"ent":      "en_us-isesub01",  // 英文评测引擎
+			"ent":      "en_vip",        // 英文评测引擎
 			"text":     refTextWithBOM,
 			"tte":      "utf-8",
-			"is_end":   0,
-			"cmd":      "ssb",
+			"cmd":      "ssb",           // 开始评测
+			"auf":      "audio/L16;rate=16000",
+			"aue":      "raw",
+			"rstcd":    "utf8",          // 结果编码
 		},
 		"data": map[string]interface{}{
-			"status":   0, // 首帧
-			"encoding": "raw",
-			"audio":    base64.StdEncoding.EncodeToString(firstChunk),
+			"status": 0, // 首帧
+			"data":   base64.StdEncoding.EncodeToString(firstChunk),
 		},
 	}
 	if err := conn.WriteJSON(firstFrame); err != nil {
@@ -236,9 +237,8 @@ func (c *XunfeiClient) Assess(audioData []byte, referenceText string) (*model.Pr
 		}
 		frame := map[string]interface{}{
 			"data": map[string]interface{}{
-				"status":   status,
-				"encoding": "raw",
-				"audio":    base64.StdEncoding.EncodeToString(audioData[i:end]),
+				"status": status,
+				"data":   base64.StdEncoding.EncodeToString(audioData[i:end]),
 			},
 		}
 		if err := conn.WriteJSON(frame); err != nil {
@@ -333,7 +333,7 @@ func (c *XunfeiClient) Synthesize(text string, voice string, speed int) ([]byte,
 	}
 
 	if voice == "" {
-		voice = "x4_enus_luna_assist" // 默认英文女声
+		voice = "x4_lingxiaolu_oral" // 默认音色（支持中英文）
 	}
 	if speed <= 0 || speed > 100 {
 		speed = 50 // 默认中等语速
