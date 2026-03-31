@@ -160,7 +160,8 @@ func (c *XunfeiClient) Recognize(audioData []byte) (string, error) {
 			return "", fmt.Errorf("读取 ASR 结果失败: %w", err)
 		}
 		if result.Code != 0 {
-			return "", fmt.Errorf("讯飞 ASR 错误 %d: %s", result.Code, result.Message)
+			// 11200=服务未开通, 请前往 https://console.xfyun.cn 开通"实时语音转写"
+			return "", fmt.Errorf("讯飞 ASR 错误 %d: %s (请确认已开通实时语音转写能力)", result.Code, result.Message)
 		}
 		for _, ws := range result.Data.Result.Ws {
 			for _, cw := range ws.Cw {
@@ -263,7 +264,8 @@ func (c *XunfeiClient) Assess(audioData []byte, referenceText string) (*model.Pr
 			return nil, fmt.Errorf("读取 ISE 结果失败: %w", err)
 		}
 		if frame.Code != 0 {
-			return nil, fmt.Errorf("讯飞 ISE 错误 %d: %s", frame.Code, frame.Message)
+			// 11200=服务未开通, 请前往 https://console.xfyun.cn 开通"语音评测"
+			return nil, fmt.Errorf("讯飞 ISE 错误 %d: %s (请确认已开通语音评测能力)", frame.Code, frame.Message)
 		}
 		if frame.Data.Data != "" {
 			lastData = frame.Data.Data
@@ -391,7 +393,10 @@ func (c *XunfeiClient) Synthesize(text string, voice string, speed int) ([]byte,
 			return nil, fmt.Errorf("读取 TTS 音频帧失败: %w", err)
 		}
 		if frame.Code != 0 {
-			return nil, fmt.Errorf("讯飞 TTS 错误 %d: %s", frame.Code, frame.Message)
+			// 错误码说明: 11200=授权失败(服务未开通), 10313=AppID与Key不匹配
+			// 10014=参数错误, 11201=日期格式错误
+			// 请前往 https://console.xfyun.cn 确认已开通 TTS 能力
+			return nil, fmt.Errorf("讯飞 TTS 错误 %d: %s (请确认讯飞控制台已开通语音合成能力)", frame.Code, frame.Message)
 		}
 		if frame.Data.Audio != "" {
 			chunk, err := base64.StdEncoding.DecodeString(frame.Data.Audio)
