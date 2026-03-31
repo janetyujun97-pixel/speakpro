@@ -1,0 +1,63 @@
+# === Dependencies ===
+node_modules/
+.pnp
+.pnp.js
+
+# === Build outputs ===
+dist/
+build/
+.next/
+out/
+
+# === Environment ===
+.env
+.env.local
+.env.*.local
+
+# === IDE ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Go ===
+server/go-services/tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# === iOS / Xcode ===
+ios/SpeakPro/SpeakPro.xcodeproj/xcuserdata/
+ios/SpeakPro/SpeakPro.xcodeproj/project.xcworkspace/xcuserdata/
+ios/**/xcuserdata/
+ios/**/*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+ios/DerivedData/
+ios/build/
+ios/**/*.ipa
+ios/**/*.dSYM.zip
+ios/**/*.dSYM
+ios/Pods/
+
+# === Test & Coverage ===
+coverage/
+*.lcov
+.nyc_output/
+
+# === Logs ===
+*.log
+npm-debug.log*
+
+# === Docker ===
+server/data/
+
+# === Misc ===
+*.tgz
+.cache/
+.turbo/
