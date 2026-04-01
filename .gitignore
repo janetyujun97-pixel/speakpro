@@ -61,3 +61,4 @@ server/data/
 *.tgz
 .cache/
 .turbo/
+.github/workflows/
