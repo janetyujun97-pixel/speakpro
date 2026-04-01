@@ -27,4 +27,7 @@ extension Color {
 
     /// Text Secondary — 次要文本色
     static let spTextSecondary = Color(red: 0x6B / 255.0, green: 0x72 / 255.0, blue: 0x80 / 255.0)
+
+    /// Surface — 卡片/容器表面色 #F3F4F6
+    static let spSurface = Color(red: 0xF3 / 255.0, green: 0xF4 / 255.0, blue: 0xF6 / 255.0)
 }
