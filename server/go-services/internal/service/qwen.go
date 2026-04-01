@@ -149,21 +149,37 @@ func (c *QwenClient) Chat(history []model.ConversationMessage, examType string, 
 	return c.callQwen(messages)
 }
 
-// buildExaminerPrompt 构建 IELTS/TOEFL 考官角色提示词
+// buildExaminerPrompt 使用 prompts.go 中按 section 分流的专业模板
 func buildExaminerPrompt(examType, section string) string {
-	basePrompt := `You are an experienced %s speaking examiner. Your role is to:
-1. Ask relevant, natural follow-up questions based on the student's responses
-2. Keep questions concise (1-2 sentences max)
-3. Maintain a professional but encouraging tone
-4. Stay focused on the %s topic/section
-5. Never correct grammar during the conversation — save feedback for after
-6. Ask only ONE question at a time
+	return GetExaminerPrompt(examType, section)
+}
 
-Current section: %s
+// ScoreContent 内容评分 — 使用 Qwen 分析回答的相关性、词汇、连贯性
+func (c *QwenClient) ScoreContent(transcript, question, examType, section string) (*model.ContentScore, error) {
+	if c.apiKey == "" {
+		return nil, errors.New("通义千问 API Key 未配置")
+	}
 
-Begin or continue the speaking test naturally.`
+	prompt := fmt.Sprintf(ContentScoringPrompt, question, transcript, examType, section)
 
-	return fmt.Sprintf(basePrompt, examType, examType, section)
+	messages := []qwenMessage{
+		{Role: "system", Content: "You are an expert IELTS/TOEFL speaking evaluator. Always respond with valid JSON only."},
+		{Role: "user", Content: prompt},
+	}
+
+	respStr, err := c.callQwen(messages)
+	if err != nil {
+		return nil, err
+	}
+
+	respStr = cleanJSONResponse(respStr)
+
+	var result model.ContentScore
+	if err := json.Unmarshal([]byte(respStr), &result); err != nil {
+		return &model.ContentScore{Score: 60, Relevance: 60, Vocabulary: 60, Coherence: 60}, nil
+	}
+
+	return &result, nil
 }
 
 // CorrectGrammar 语法纠错 — 对 ASR 转写文本进行详细语法分析

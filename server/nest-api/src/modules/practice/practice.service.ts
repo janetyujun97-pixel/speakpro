@@ -108,6 +108,39 @@ export class PracticeService {
     };
   }
 
+  // Go 服务回写评测结果
+  async updateScores(
+    sessionId: string,
+    scores: {
+      pronunciationScore?: Record<string, any>;
+      fluencyScore?: Record<string, any>;
+      grammarScore?: Record<string, any>;
+      contentScore?: Record<string, any>;
+      overallScore?: number;
+      aiFeedback?: string;
+      transcript?: string;
+    },
+  ): Promise<PracticeSession> {
+    const session = await this.findById(sessionId);
+
+    if (scores.pronunciationScore !== undefined)
+      session.pronunciationScore = scores.pronunciationScore;
+    if (scores.fluencyScore !== undefined)
+      session.fluencyScore = scores.fluencyScore;
+    if (scores.grammarScore !== undefined)
+      session.grammarScore = scores.grammarScore;
+    if (scores.contentScore !== undefined)
+      session.contentScore = scores.contentScore;
+    if (scores.overallScore !== undefined)
+      session.overallScore = scores.overallScore;
+    if (scores.aiFeedback !== undefined)
+      session.aiFeedback = scores.aiFeedback;
+    if (scores.transcript !== undefined)
+      session.transcript = scores.transcript;
+
+    return this.practiceRepository.save(session);
+  }
+
   private avgJsonScore(
     sessions: PracticeSession[],
     field: 'pronunciationScore' | 'fluencyScore' | 'grammarScore' | 'contentScore',

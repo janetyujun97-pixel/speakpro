@@ -15,7 +15,7 @@ struct ChatMessage: Identifiable {
     }
 }
 
-/// AI 对话练习视图模型
+/// AI 对话练习视图模型 —— 通过 WebSocket 与 Go 服务实时交互
 final class ConversationViewModel: ObservableObject {
 
     // MARK: - Published
@@ -23,7 +23,16 @@ final class ConversationViewModel: ObservableObject {
     @Published var messages: [ChatMessage] = []
     @Published var isRecording = false
     @Published var scores: [String: Double] = [:]
-    @Published var remainingTime: TimeInterval = 120  // 默认 2 分钟
+    @Published var remainingTime: TimeInterval = 120
+    @Published var isConnecting = false
+    @Published var currentTranscript: String = ""
+    @Published var processingStatus: String = ""
+    @Published var errorMessage: String?
+
+    // MARK: - Configuration
+
+    var examType: String = "IELTS"
+    var section: String = "Part1"
 
     // MARK: - Dependencies
 
@@ -31,6 +40,8 @@ final class ConversationViewModel: ObservableObject {
     private let wsManager = WebSocketManager()
     private var timer: Timer?
     private var cancellables = Set<AnyCancellable>()
+    private var sessionId: String?
+    private var audioSequence = 0
 
     var formattedRemainingTime: String {
         let minutes = Int(remainingTime) / 60
@@ -40,42 +51,127 @@ final class ConversationViewModel: ObservableObject {
 
     init() {
         setupWebSocketHandlers()
-
-        // 添加考官的开场白
-        messages.append(ChatMessage(
-            text: "Good afternoon. My name is the AI examiner. Can you tell me your full name please?",
-            isExaminer: true
-        ))
     }
 
     // MARK: - WebSocket Setup
 
     private func setupWebSocketHandlers() {
-        wsManager.onMessage = { [weak self] message in
-            switch message {
-            case .text(let text):
-                // TODO: 解析服务器返回的 JSON，提取考官回复和评分
-                self?.handleServerMessage(text)
-            case .data:
-                break
-            }
+        wsManager.onTypedMessage = { [weak self] message in
+            self?.handleServerMessage(message)
+        }
+
+        wsManager.onDisconnect = { [weak self] error in
+            self?.handleDisconnect(error)
         }
     }
 
-    private func handleServerMessage(_ text: String) {
-        // TODO: 解析 JSON 消息
-        // 暂时直接作为考官回复
-        let reply = ChatMessage(text: text, isExaminer: true)
-        messages.append(reply)
+    private func handleServerMessage(_ message: WSServerMessage) {
+        switch message {
+        case .sessionReady(let payload):
+            isConnecting = false
+            remainingTime = TimeInterval(payload.timeLimitSec)
+            // 替换/添加考官开场白
+            if messages.isEmpty {
+                messages.append(ChatMessage(text: payload.examinerGreeting, isExaminer: true))
+            }
+            startTimer()
+
+        case .transcript(let payload):
+            currentTranscript = payload.text
+            if payload.isFinal {
+                // 替换 "[语音消息]" 占位为真实转写文本
+                if let lastIndex = messages.lastIndex(where: { !$0.isExaminer && $0.text == "[语音消息]" }) {
+                    messages[lastIndex] = ChatMessage(text: payload.text, isExaminer: false)
+                }
+                currentTranscript = ""
+            }
+
+        case .examiner(let payload):
+            messages.append(ChatMessage(text: payload.text, isExaminer: true))
+            processingStatus = ""
+            // TODO: 如果有 ttsAudioB64，可以自动播放考官语音
+
+        case .scoreUpdate(let payload):
+            scores = [:]
+            if let pron = payload.pronunciation?.overall {
+                scores["发音"] = pron
+            }
+            if let flu = payload.pronunciation?.fluency {
+                scores["流利度"] = flu
+            }
+            if let gram = payload.grammar?.score {
+                scores["语法"] = gram * 10 // 0-10 → 0-100
+            }
+            scores["总分"] = payload.overall
+            processingStatus = ""
+
+        case .error(let payload):
+            errorMessage = "\(payload.code): \(payload.message)"
+            processingStatus = ""
+
+        case .processing(let payload):
+            processingStatus = payload.message
+
+        case .ping:
+            // 自动处理 pong（在 WebSocketManager 中）
+            break
+
+        case .unknown(let raw):
+            print("[ConversationVM] 未知消息: \(raw)")
+        }
+    }
+
+    private func handleDisconnect(_ error: Error?) {
+        if let error = error {
+            errorMessage = "连接断开: \(error.localizedDescription)"
+        }
+        isConnecting = false
     }
 
     // MARK: - Conversation Lifecycle
 
+    /// 开始对话：创建 session → 连接 WebSocket → 发送 session_init
     func startConversation() {
-        // TODO: 调用 API 创建 session，获取 sessionId
-        let sessionId = UUID().uuidString
-        wsManager.connect(sessionId: sessionId)
-        startTimer()
+        isConnecting = true
+        errorMessage = nil
+
+        Task { @MainActor in
+            do {
+                // 1. 通过 NestJS 创建 practice session
+                let response: APIResponse<SessionResponse> = try await APIClient.shared.post(
+                    Endpoints.Practice.start,
+                    body: StartSessionRequest(questionId: nil, mode: "conversation")
+                )
+
+                guard let session = response.data else {
+                    errorMessage = "创建会话失败"
+                    isConnecting = false
+                    return
+                }
+
+                self.sessionId = session.id
+
+                // 2. 连接 WebSocket
+                wsManager.connect(sessionId: session.id)
+
+                // 3. 稍延迟后发送 session_init（等待连接建立）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    guard let self = self else { return }
+                    self.wsManager.sendJSON(WSClientMessage(
+                        type: .sessionInit,
+                        data: SessionInitData(
+                            sessionId: session.id,
+                            examType: self.examType,
+                            section: self.section,
+                            mode: "conversation"
+                        )
+                    ))
+                }
+            } catch {
+                errorMessage = "连接失败: \(error.localizedDescription)"
+                isConnecting = false
+            }
+        }
     }
 
     func endConversation() {
@@ -85,39 +181,58 @@ final class ConversationViewModel: ObservableObject {
             _ = audioRecorder.stopRecording()
             isRecording = false
         }
+        processingStatus = ""
     }
 
     // MARK: - Recording
 
     func startRecording() {
+        guard !isRecording else { return }
+        errorMessage = nil
+        audioSequence = 0
+
+        // 设置音频流式推送回调
+        audioRecorder.onAudioBuffer = { [weak self] int16Data in
+            guard let self = self else { return }
+            self.audioSequence += 1
+            let b64 = int16Data.base64EncodedString()
+            self.wsManager.sendJSON(WSClientMessage(
+                type: .audioChunk,
+                data: AudioChunkData(
+                    sequence: self.audioSequence,
+                    audioB64: b64,
+                    isFinal: false
+                )
+            ))
+        }
+
         do {
             try audioRecorder.startRecording()
             isRecording = true
         } catch {
-            print("[ConversationVM] 录音启动失败: \(error)")
+            errorMessage = "录音启动失败: \(error.localizedDescription)"
         }
     }
 
     func stopAndSendAudio() {
-        guard let audioURL = audioRecorder.stopRecording() else { return }
+        guard isRecording else { return }
+
+        // 停止录音
+        _ = audioRecorder.stopRecording()
         isRecording = false
-        sendAudio(fileURL: audioURL)
-    }
+        audioRecorder.onAudioBuffer = nil
 
-    func sendAudio(fileURL: URL) {
-        // TODO: 读取音频文件数据，通过 WebSocket 发送给服务器
-        guard let data = try? Data(contentsOf: fileURL) else { return }
-        wsManager.send(data: data)
-
-        // 添加用户占位消息
+        // 添加占位消息
         messages.append(ChatMessage(text: "[语音消息]", isExaminer: false))
 
-        // TODO: 模拟评分反馈（实际应从服务器接收）
-        scores = [
-            "发音": 7.5,
-            "流利度": 6.0,
-            "语法": 7.0
-        ]
+        // 发送 audio_complete 信号
+        guard let sessionId = sessionId else { return }
+        wsManager.sendJSON(WSClientMessage(
+            type: .audioComplete,
+            data: AudioCompleteData(sessionId: sessionId, referenceText: nil)
+        ))
+
+        processingStatus = "正在处理..."
     }
 
     // MARK: - Timer
@@ -141,4 +256,16 @@ final class ConversationViewModel: ObservableObject {
     deinit {
         stopTimer()
     }
+}
+
+// MARK: - API 模型
+
+private struct StartSessionRequest: Encodable {
+    let questionId: String?
+    let mode: String
+}
+
+private struct SessionResponse: Decodable {
+    let id: String
+    let mode: String
 }

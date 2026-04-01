@@ -65,11 +65,18 @@ final class AudioRecorder: ObservableObject {
             // 2. 写入本地文件
             try? self.audioFile?.write(from: buffer)
 
-            // 3. 流式推送音频数据（转换为 PCM Data）
+            // 3. 流式推送音频数据（float32 → int16 PCM，讯飞要求 16kHz 16-bit mono）
             if let channelData = buffer.floatChannelData?[0] {
                 let frameCount = Int(buffer.frameLength)
-                let data = Data(bytes: channelData, count: frameCount * MemoryLayout<Float>.size)
-                self.onAudioBuffer?(data)
+                var int16Data = Data(count: frameCount * MemoryLayout<Int16>.size)
+                int16Data.withUnsafeMutableBytes { rawBuffer in
+                    let int16Buffer = rawBuffer.bindMemory(to: Int16.self)
+                    for i in 0..<frameCount {
+                        let sample = max(-1.0, min(1.0, channelData[i]))
+                        int16Buffer[i] = Int16(sample * 32767)
+                    }
+                }
+                self.onAudioBuffer?(int16Data)
             }
         }
 

@@ -48,10 +48,11 @@ func (h *Hub) Run() {
 
 // Client 表示单个 WebSocket 连接
 type Client struct {
-	hub    *Hub
-	conn   *websocket.Conn
-	UserID string
-	Send   chan []byte
+	hub       *Hub
+	conn      *websocket.Conn
+	UserID    string
+	SessionID string // 关联的练习会话 ID
+	Send      chan []byte
 }
 
 func NewClient(hub *Hub, conn *websocket.Conn, userID string) *Client {
@@ -70,7 +71,7 @@ func (c *Client) ReadPump(handler func(msgType int, data []byte)) {
 		c.conn.Close()
 	}()
 
-	c.conn.SetReadLimit(512 * 1024) // 512KB
+	c.conn.SetReadLimit(1024 * 1024) // 1MB（支持 base64 音频块）
 	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	c.conn.SetPongHandler(func(string) error {
 		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))

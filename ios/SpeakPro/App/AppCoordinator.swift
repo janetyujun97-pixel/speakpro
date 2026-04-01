@@ -96,20 +96,7 @@ struct ContentView: View {
                 }
                 .tag(AppCoordinator.Tab.home)
 
-            // 练习 Tab — 暂用占位视图，Phase 2 实现
-            NavigationStack {
-                VStack(spacing: 16) {
-                    Image(systemName: "mic.circle.fill")
-                        .font(.system(size: 60))
-                        .foregroundStyle(Color.spAccent)
-                    Text("练习模式")
-                        .font(.title2.bold())
-                    Text("Phase 2 开发中...")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .navigationTitle("练习")
-            }
+            PracticeListView()
             .tabItem {
                 Label(AppCoordinator.Tab.practice.title,
                       systemImage: AppCoordinator.Tab.practice.icon)

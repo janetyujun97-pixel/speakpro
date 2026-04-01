@@ -49,8 +49,8 @@ func main() {
 		authorized.POST("/practice/audio", audioHandler.Upload)
 
 		// WebSocket AI 对话
-		convHandler := handler.NewConversationHandler(hub, orchestrator)
-		authorized.GET("/conversation/connect", convHandler.Connect)
+		convHandler := handler.NewConversationHandler(hub, orchestrator, xunfeiClient, qwenClient)
+		authorized.GET("/conversation/ws/:sessionId", convHandler.Connect)
 
 		// 发音评测
 		assessHandler := handler.NewAssessmentHandler(orchestrator, xunfeiClient, qwenClient)

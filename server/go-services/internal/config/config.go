@@ -26,6 +26,9 @@ type Config struct {
 	QwenAPIKey string
 	QwenModel  string
 
+	// NestJS 内部回调地址
+	NestAPIBaseURL string
+
 	// OSS
 	OSSRegion          string
 	OSSBucket          string
@@ -50,6 +53,7 @@ func Load() *Config {
 		XunfeiAPISecret:    getEnv("XUNFEI_API_SECRET", ""),
 		QwenAPIKey:         getEnv("QWEN_API_KEY", ""),
 		QwenModel:          getEnv("QWEN_MODEL", "qwen-max"),
+		NestAPIBaseURL:     getEnv("NEST_API_BASE_URL", "http://localhost:3000/api/v1"),
 		OSSRegion:          getEnv("OSS_REGION", "oss-cn-hangzhou"),
 		OSSBucket:          getEnv("OSS_BUCKET", "speakpro"),
 		OSSAccessKeyID:     getEnv("OSS_ACCESS_KEY_ID", ""),

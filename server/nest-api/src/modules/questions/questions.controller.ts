@@ -24,9 +24,19 @@ export class QuestionsController {
     @Query('exam_type') examType?: string,
     @Query('section') section?: string,
     @Query('difficulty') difficulty?: number,
-  ): Promise<Question[]> {
-    const filters: QuestionFilters = { examType, section, difficulty };
-    return this.questionsService.findAll(filters);
+    @Query('limit') limit?: number,
+  ): Promise<{ items: Question[]; total: number }> {
+    const filters: QuestionFilters = { examType, section, difficulty, limit };
+    const items = await this.questionsService.findAll(filters);
+    return { items, total: items.length };
+  }
+
+  @Get('random')
+  async findRandom(
+    @Query('exam_type') examType?: string,
+    @Query('section') section?: string,
+  ): Promise<Question | null> {
+    return this.questionsService.findRandom({ examType, section });
   }
 
   @Post()

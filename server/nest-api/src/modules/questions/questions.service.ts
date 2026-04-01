@@ -7,6 +7,7 @@ export interface QuestionFilters {
   examType?: string;
   section?: string;
   difficulty?: number;
+  limit?: number;
 }
 
 @Injectable()
@@ -30,7 +31,24 @@ export class QuestionsService {
     }
 
     query.orderBy('q.created_at', 'DESC');
+    if (filters.limit) {
+      query.limit(Number(filters.limit));
+    }
     return query.getMany();
+  }
+
+  async findRandom(filters: { examType?: string; section?: string }): Promise<Question | null> {
+    const query = this.questionsRepository.createQueryBuilder('q');
+
+    if (filters.examType) {
+      query.andWhere('q.exam_type = :examType', { examType: filters.examType });
+    }
+    if (filters.section) {
+      query.andWhere('q.section = :section', { section: filters.section });
+    }
+
+    query.orderBy('RANDOM()').limit(1);
+    return query.getOne();
   }
 
   async findById(id: string): Promise<Question> {

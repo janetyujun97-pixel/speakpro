@@ -25,8 +25,11 @@ final class WebSocketManager: ObservableObject {
     private let maxReconnectAttempts = 5
     private var currentSessionId: String?
 
-    /// 收到消息时的回调
+    /// 收到原始消息时的回调
     var onMessage: ((WSMessage) -> Void)?
+
+    /// 收到类型化服务端消息时的回调
+    var onTypedMessage: ((WSServerMessage) -> Void)?
 
     /// 连接断开时的回调
     var onDisconnect: ((Error?) -> Void)?
@@ -94,6 +97,19 @@ final class WebSocketManager: ObservableObject {
         }
     }
 
+    /// 发送类型化的 JSON 消息
+    func sendJSON<T: Encodable>(_ message: T) {
+        guard connectionState == .connected else { return }
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        guard let data = try? encoder.encode(message),
+              let jsonString = String(data: data, encoding: .utf8) else {
+            print("[WebSocket] JSON 编码失败")
+            return
+        }
+        send(message: jsonString)
+    }
+
     // MARK: - Receive (recursive)
 
     private func receiveMessage() {
@@ -105,6 +121,13 @@ final class WebSocketManager: ObservableObject {
                 case .string(let text):
                     DispatchQueue.main.async {
                         self.onMessage?(.text(text))
+                        // 自动解析为类型化消息
+                        let parsed = WSMessageParser.parse(text)
+                        self.onTypedMessage?(parsed)
+                        // 收到 ping 自动回复 pong
+                        if case .ping = parsed {
+                            self.sendJSON(WSClientMessage<String?>(type: .pong, data: nil))
+                        }
                     }
                 case .data(let data):
                     DispatchQueue.main.async {
