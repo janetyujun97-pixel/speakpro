@@ -1,0 +1,47 @@
+web/components/ui/skeleton.tsx
+  fd75728ce1a5f3fd 1-66
+web/lib/query-client.tsx
+  fd75728ce1a5f3fd 1-29
+web/app/(dashboard)/layout.tsx
+  fd75728ce1a5f3fd 8,35-43,45
+ios/SpeakPro/DesignSystem/Colors.swift
+  fd75728ce1a5f3fd 30-32
+ios/SpeakPro/Features/Practice/MockExam/MockExamView.swift
+  fd75728ce1a5f3fd 3,10-54,56-91,93-97,100-112,114-127,129-145,150,152-153,155,157-161,163-168,171-176,179,182-212,214-215,217-218,232-242
+ios/SpeakPro/Core/Network/NetworkMonitor.swift
+  fd75728ce1a5f3fd 1-46
+ios/SpeakPro/Features/Practice/MockExam/MockExamViewModel.swift
+  fd75728ce1a5f3fd 3,6-15,18,25,35-37,42-65,83,108,124,129-141,148,150,224-233,236-245,249,255,276,278,292,294
+web/tailwind.config.ts
+  fd75728ce1a5f3fd 24-42
+ios/SpeakPro/Core/Storage/LocalCache.swift
+  fd75728ce1a5f3fd 1-104
+ios/SpeakPro/Features/Practice/MockExam/MockExamSummaryView.swift
+  fd75728ce1a5f3fd 1-142
+ios/SpeakPro/DesignSystem/Animations.swift
+  fd75728ce1a5f3fd 1-66
+web/next.config.ts
+  fd75728ce1a5f3fd 3-34
+web/components/ui/empty-state.tsx
+  fd75728ce1a5f3fd 1-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.3",
+  "base_commit_sha": "c6c96453ff3b8465966a3611c644f2829b8204bb",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 896,
+      "total_deletions": 91,
+      "accepted_lines": 895,
+      "overriden_lines": 0
+    }
+  }
+}
