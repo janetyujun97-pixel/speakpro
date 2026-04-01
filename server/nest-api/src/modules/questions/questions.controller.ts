@@ -25,10 +25,13 @@ export class QuestionsController {
     @Query('section') section?: string,
     @Query('difficulty') difficulty?: number,
     @Query('limit') limit?: number,
-  ): Promise<{ items: Question[]; total: number }> {
-    const filters: QuestionFilters = { examType, section, difficulty, limit };
+    @Query('page') page?: number,
+    @Query('page_size') pageSize?: number,
+    @Query('search') search?: string,
+  ): Promise<{ items: Question[]; total: number; page?: number; pageSize?: number }> {
+    const filters: QuestionFilters = { examType, section, difficulty, limit, page, pageSize, search };
     const items = await this.questionsService.findAll(filters);
-    return { items, total: items.length };
+    return { items, total: items.length, page, pageSize };
   }
 
   @Get('random')
@@ -37,6 +40,11 @@ export class QuestionsController {
     @Query('section') section?: string,
   ): Promise<Question | null> {
     return this.questionsService.findRandom({ examType, section });
+  }
+
+  @Get(':id')
+  async findById(@Param('id') id: string): Promise<Question> {
+    return this.questionsService.findById(id);
   }
 
   @Post()

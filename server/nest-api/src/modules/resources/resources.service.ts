@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { createHmac } from 'crypto';
 import { Resource } from './entities/resource.entity';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class ResourcesService {
     const bucket = this.configService.get<string>('OSS_BUCKET', 'speakpro');
     const region = this.configService.get<string>('OSS_REGION', 'oss-cn-hangzhou');
     const accessKeyId = this.configService.get<string>('OSS_ACCESS_KEY_ID', '');
+    const accessKeySecret = this.configService.get<string>('OSS_ACCESS_KEY_SECRET', '');
     const endpoint = this.configService.get<string>('OSS_ENDPOINT', `https://${region}.aliyuncs.com`);
 
     const folder = data.folder || 'uploads';
@@ -36,17 +38,19 @@ export class ResourcesService {
     };
     const policy = Buffer.from(JSON.stringify(policyObj)).toString('base64');
 
-    // 注意：生产环境需要用 accessKeySecret 计算 HMAC-SHA1 签名
-    // 当前返回 policy 和 key，前端使用 STS Token 方式上传
+    // HMAC-SHA1 签名计算
+    const signature = accessKeySecret
+      ? createHmac('sha1', accessKeySecret).update(policy).digest('base64')
+      : '';
+
     return {
       uploadUrl,
       key,
       policy,
       accessKeyId,
+      signature,
       contentType: data.contentType,
       expiresIn: 3600,
-      // 生产环境应使用 STS 临时凭证或服务端签名
-      // signature: hmacSha1(accessKeySecret, policy),
     };
   }
 
@@ -67,5 +71,13 @@ export class ResourcesService {
 
     query.orderBy('r.created_at', 'DESC');
     return query.getMany();
+  }
+
+  async delete(id: string): Promise<void> {
+    const resource = await this.resourcesRepository.findOne({ where: { id } });
+    if (!resource) {
+      throw new NotFoundException('资源不存在');
+    }
+    await this.resourcesRepository.delete(id);
   }
 }

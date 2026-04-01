@@ -19,7 +19,9 @@ export class AssignmentsService {
   }
 
   async findAll(filters?: { classId?: string; teacherId?: string }): Promise<Assignment[]> {
-    const query = this.assignmentsRepository.createQueryBuilder('a');
+    const query = this.assignmentsRepository.createQueryBuilder('a')
+      .leftJoinAndSelect('a.submissions', 'submissions')
+      .leftJoinAndSelect('a.teacher', 'teacher');
     if (filters?.classId) {
       query.andWhere('a.class_id = :classId', { classId: filters.classId });
     }
@@ -28,6 +30,16 @@ export class AssignmentsService {
     }
     query.orderBy('a.created_at', 'DESC');
     return query.getMany();
+  }
+
+  async getSubmissionDetail(assignmentId: string, submissionId: string) {
+    const submission = await this.submissionsRepository.findOne({
+      where: { id: submissionId, assignmentId },
+    });
+    if (!submission) {
+      throw new NotFoundException('提交记录不存在');
+    }
+    return submission;
   }
 
   async findById(id: string): Promise<Assignment> {

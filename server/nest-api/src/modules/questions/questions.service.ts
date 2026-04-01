@@ -8,6 +8,9 @@ export interface QuestionFilters {
   section?: string;
   difficulty?: number;
   limit?: number;
+  page?: number;
+  pageSize?: number;
+  search?: string;
 }
 
 @Injectable()
@@ -30,8 +33,21 @@ export class QuestionsService {
       query.andWhere('q.difficulty = :difficulty', { difficulty: filters.difficulty });
     }
 
+    if (filters.search) {
+      query.andWhere(
+        '(q.prompt_text ILIKE :search OR q.topic ILIKE :search)',
+        { search: `%${filters.search}%` },
+      );
+    }
+
     query.orderBy('q.created_at', 'DESC');
-    if (filters.limit) {
+
+    // 分页
+    if (filters.page && filters.pageSize) {
+      const page = Number(filters.page);
+      const pageSize = Number(filters.pageSize);
+      query.skip((page - 1) * pageSize).take(pageSize);
+    } else if (filters.limit) {
       query.limit(Number(filters.limit));
     }
     return query.getMany();

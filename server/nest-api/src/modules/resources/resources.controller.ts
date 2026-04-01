@@ -2,7 +2,9 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
+  Param,
   Query,
   UseGuards,
   Request,
@@ -36,5 +38,10 @@ export class ResourcesController {
     @Query('type') type?: string,
   ) {
     return this.resourcesService.findAll({ examType, type });
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    return this.resourcesService.delete(id);
   }
 }

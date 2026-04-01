@@ -38,6 +38,14 @@ export class AssignmentsController {
     return this.assignmentsService.findById(id);
   }
 
+  @Get(':id/submissions/:sid')
+  async getSubmissionDetail(
+    @Param('id') id: string,
+    @Param('sid') sid: string,
+  ) {
+    return this.assignmentsService.getSubmissionDetail(id, sid);
+  }
+
   @Post(':id/submit')
   async submit(
     @Param('id') id: string,

@@ -2,34 +2,49 @@ import Foundation
 
 // MARK: - Models
 
-struct HomeworkAssignment: Identifiable {
+struct HomeworkAssignment: Identifiable, Decodable {
     let id: String
     let title: String
-    let teacherName: String
-    let deadline: Date
-    let isCompleted: Bool
-    let score: Double?
-    let questions: [HomeworkQuestion]
+    let description: String?
+    let questionIds: [String]?
+    let dueDate: String?
+    let submissions: [SubmissionInfo]?
+    let teacher: TeacherInfo?
+    let createdAt: String?
 
-    static let sample = HomeworkAssignment(
-        id: "hw_1",
-        title: "Unit 5 口语话题练习",
-        teacherName: "王老师",
-        deadline: Date().addingTimeInterval(86400),
-        isCompleted: false,
-        score: nil,
-        questions: [
-            HomeworkQuestion(text: "Describe your favorite place to relax.", isCompleted: true, score: 78),
-            HomeworkQuestion(text: "Talk about a skill you'd like to learn.", isCompleted: false, score: nil),
-            HomeworkQuestion(text: "Describe a book that influenced you.", isCompleted: false, score: nil)
-        ]
-    )
+    var teacherName: String { teacher?.name ?? "未知教师" }
+    var isCompleted: Bool { mySubmission?.status == "graded" }
+    var isSubmitted: Bool { mySubmission?.status == "submitted" || isCompleted }
+    var score: Double? { mySubmission?.teacherScore }
+
+    // 当前用户的提交（简化处理：取第一个）
+    var mySubmission: SubmissionInfo? { submissions?.first }
+
+    var deadline: Date? {
+        guard let dateStr = dueDate else { return nil }
+        let fmt = ISO8601DateFormatter()
+        return fmt.date(from: dateStr)
+    }
 }
 
-struct HomeworkQuestion {
+struct SubmissionInfo: Decodable {
+    let id: String
+    let status: String
+    let teacherScore: Double?
+    let teacherComment: String?
+}
+
+struct TeacherInfo: Decodable {
+    let id: String
+    let name: String
+}
+
+struct HomeworkQuestion: Identifiable {
+    let id: String
     let text: String
-    let isCompleted: Bool
-    let score: Double?
+    var isCompleted: Bool
+    var score: Double?
+    var sessionId: String?
 }
 
 // MARK: - ViewModel
@@ -45,72 +60,67 @@ final class HomeworkViewModel: ObservableObject {
 
     @Published var assignments: [HomeworkAssignment] = []
     @Published var selectedTab: HomeworkTab = .pending
+    @Published var isLoading = false
     @Published var isSubmitting = false
+    @Published var errorMessage: String?
 
     var filteredAssignments: [HomeworkAssignment] {
         switch selectedTab {
         case .pending:
-            return assignments.filter { !$0.isCompleted }
+            return assignments.filter { !$0.isCompleted && !$0.isSubmitted }
         case .completed:
-            return assignments.filter { $0.isCompleted }
+            return assignments.filter { $0.isCompleted || $0.isSubmitted }
         }
     }
 
-    // MARK: - Fetch
+    // MARK: - 获取作业列表
 
     func fetchAssignments() async {
-        // TODO: 调用 API 获取作业列表
-        await MainActor.run {
-            assignments = [
-                HomeworkAssignment(
-                    id: "hw_1",
-                    title: "Unit 5 口语话题练习",
-                    teacherName: "王老师",
-                    deadline: Date().addingTimeInterval(86400),
-                    isCompleted: false,
-                    score: nil,
-                    questions: [
-                        HomeworkQuestion(text: "Describe your favorite place.", isCompleted: true, score: 78),
-                        HomeworkQuestion(text: "Talk about a skill you'd like to learn.", isCompleted: false, score: nil)
-                    ]
-                ),
-                HomeworkAssignment(
-                    id: "hw_2",
-                    title: "模考练习 - Set 3",
-                    teacherName: "李老师",
-                    deadline: Date().addingTimeInterval(172800),
-                    isCompleted: false,
-                    score: nil,
-                    questions: [
-                        HomeworkQuestion(text: "Part 1 questions", isCompleted: false, score: nil)
-                    ]
-                ),
-                HomeworkAssignment(
-                    id: "hw_3",
-                    title: "Unit 4 跟读作业",
-                    teacherName: "王老师",
-                    deadline: Date().addingTimeInterval(-86400),
-                    isCompleted: true,
-                    score: 82,
-                    questions: [
-                        HomeworkQuestion(text: "Follow-read passage 1", isCompleted: true, score: 85),
-                        HomeworkQuestion(text: "Follow-read passage 2", isCompleted: true, score: 79)
-                    ]
-                )
-            ]
+        await MainActor.run { isLoading = true; errorMessage = nil }
+
+        do {
+            let response: APIResponse<[HomeworkAssignment]> = try await APIClient.shared.get(
+                Endpoints.Assignments.list
+            )
+
+            await MainActor.run {
+                assignments = response.data ?? []
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                errorMessage = "加载失败: \(error.localizedDescription)"
+                // 无数据时保持空列表
+            }
         }
     }
 
-    // MARK: - Submit
+    // MARK: - 提交作业
 
-    func submitAssignment(id: String) async {
-        // TODO: 调用 API 提交作业
-        isSubmitting = true
-        // 模拟网络延迟
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
-        await MainActor.run {
-            isSubmitting = false
-            // TODO: 刷新列表
+    func submitAssignment(id: String, sessionIds: [String]) async {
+        await MainActor.run { isSubmitting = true; errorMessage = nil }
+
+        do {
+            let _: APIResponse<SubmissionInfo> = try await APIClient.shared.post(
+                Endpoints.Assignments.submit(id: id),
+                body: SubmitBody(sessionIds: sessionIds)
+            )
+
+            // 刷新列表
+            await fetchAssignments()
+            await MainActor.run { isSubmitting = false }
+        } catch {
+            await MainActor.run {
+                isSubmitting = false
+                errorMessage = "提交失败: \(error.localizedDescription)"
+            }
         }
     }
+}
+
+// MARK: - 请求模型
+
+private struct SubmitBody: Encodable {
+    let sessionIds: [String]
 }
