@@ -1,0 +1,67 @@
+ios/SpeakPro/Core/Network/WebSocketManager.swift
+  fd75728ce1a5f3fd 28,31-32,100-112,124-130
+server/go-services/internal/service/prompts.go
+  fd75728ce1a5f3fd 1-151
+server/nest-api/src/modules/questions/questions.controller.ts
+  fd75728ce1a5f3fd 27-39
+ios/SpeakPro/Features/Practice/ReadAloud/ReadAloudViewModel.swift
+  fd75728ce1a5f3fd 3,8-9,13,15,24,26-80,83-126,129,134-141,145-148,151-170,172-191,194-251
+ios/SpeakPro/Core/Audio/AudioRecorder.swift
+  fd75728ce1a5f3fd 68,71-79
+ios/SpeakPro/Features/Practice/Conversation/ConversationViewModel.swift
+  fd75728ce1a5f3fd 18,26-30,32-35,43-44,59-86,88-97,99-120,124-128,133,135-174,184,190-208,213,218,220-223,225,228-233,235,260-270
+server/go-services/internal/service/qwen.go
+  fd75728ce1a5f3fd 152,154-173,175,177-180,182
+server/nest-api/src/modules/practice/practice.controller.ts
+  fd75728ce1a5f3fd 5,19,28,39,45,51,55-71
+ios/SpeakPro/Core/Network/WSMessages.swift
+  fd75728ce1a5f3fd 1-190
+server/go-services/internal/service/session.go
+  fd75728ce1a5f3fd 1-128
+ios/SpeakPro/App/AppCoordinator.swift
+  fd75728ce1a5f3fd 99
+server/nest-api/src/modules/practice/practice.service.ts
+  fd75728ce1a5f3fd 111-143
+server/go-services/pkg/ws/hub.go
+  fd75728ce1a5f3fd 51-55,74
+server/go-services/cmd/server/main.go
+  fd75728ce1a5f3fd 52-53
+server/go-services/internal/config/config.go
+  fd75728ce1a5f3fd 29-31,56
+ios/SpeakPro/Features/Practice/FollowRead/FollowReadViewModel.swift
+  fd75728ce1a5f3fd 3,8,10,15,24-25,27,29-32,35,38-66,69,72-75,79-87,90-97,100-101,103-109,111-140,143-144,147-156,160-163,165-170,172-221,223-284
+ios/SpeakPro/Features/Practice/MockExam/MockExamViewModel.swift
+  fd75728ce1a5f3fd 3,15-23,27-28,30,39,42-90,93,99-107,111-114,117-162,165,168,180-187,196,220-264
+server/nest-api/src/modules/questions/questions.service.ts
+  fd75728ce1a5f3fd 10,34-36,40-51
+ios/SpeakPro/Features/Practice/PracticeListView.swift
+  fd75728ce1a5f3fd 1-99
+ios/SpeakPro/Features/Home/HomeViewModel.swift
+  fd75728ce1a5f3fd 3,8,11,13,15,18-77,80-105,107,109-138
+server/go-services/internal/model/ws_messages.go
+  fd75728ce1a5f3fd 1-113
+server/go-services/internal/handler/conversation.go
+  fd75728ce1a5f3fd 4-8,14-15,24,26-31,34-43,48-53,56,63,66,71-223,225-366,368-418
+ios/SpeakPro/Features/Progress/ProgressViewModel.swift
+  fd75728ce1a5f3fd 10,19,21,24-40,43-68,71-78,80-96,98-122,124,126-158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "4760a6cb5a79ed1646f8970dc25a1ba99122269f",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>",
+      "messages": [],
+      "total_additions": 2296,
+      "total_deletions": 212,
+      "accepted_lines": 2294,
+      "overriden_lines": 0
+    }
+  }
+}
