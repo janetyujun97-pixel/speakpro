@@ -1,0 +1,49 @@
+server/.env.production.example
+  fd75728ce1a5f3fd 1-43
+scripts/db-backup.sh
+  fd75728ce1a5f3fd 1-39
+server/go-services/internal/middleware/ratelimit.go
+  fd75728ce1a5f3fd 1-68
+server/nest-api/src/main.ts
+  fd75728ce1a5f3fd 4,11,14-30
+server/nest-api/src/app.module.ts
+  fd75728ce1a5f3fd 4-5,13,28,31-35,43-50
+server/nest-api/src/modules/auth/auth.service.spec.ts
+  fd75728ce1a5f3fd 1-124
+server/database/migrations/003_analytics_table.sql
+  fd75728ce1a5f3fd 1-24
+server/nest-api/src/modules/analytics/analytics.entity.ts
+  fd75728ce1a5f3fd 1-25
+server/nest-api/src/modules/analytics/analytics.controller.ts
+  fd75728ce1a5f3fd 1-39
+server/nest-api/src/modules/analytics/analytics.module.ts
+  fd75728ce1a5f3fd 1-13
+ios/SpeakPro/Core/Analytics/EventTracker.swift
+  fd75728ce1a5f3fd 1-128
+server/nest-api/src/modules/analytics/analytics.service.ts
+  fd75728ce1a5f3fd 1-95
+server/database/migrations/002_add_indexes.sql
+  fd75728ce1a5f3fd 1-27
+web/app/(dashboard)/analytics/page.tsx
+  fd75728ce1a5f3fd 1-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.3",
+  "base_commit_sha": "44edc94f0c223a18b885051d646417e8fa0df401",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 793,
+      "total_deletions": 4,
+      "accepted_lines": 793,
+      "overriden_lines": 0
+    }
+  }
+}
