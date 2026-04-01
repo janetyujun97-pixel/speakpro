@@ -1,0 +1,51 @@
+web/app/(dashboard)/settings/page.tsx
+  fd75728ce1a5f3fd 1-6,8-61,63-139
+server/nest-api/src/modules/assignments/assignments.controller.ts
+  fd75728ce1a5f3fd 41-48
+web/app/(dashboard)/resources/questions/[id]/edit/page.tsx
+  fd75728ce1a5f3fd 1-233
+server/nest-api/src/modules/assignments/assignments.service.ts
+  fd75728ce1a5f3fd 22-24,35-42
+web/lib/upload.ts
+  fd75728ce1a5f3fd 3,5,7-11,14-16,21,27-29,36-41,44,50,53,56-58
+web/components/ui/pagination.tsx
+  fd75728ce1a5f3fd 1-86
+web/app/(dashboard)/resources/library/page.tsx
+  fd75728ce1a5f3fd 1-32,34-98,100-108,110-158,160-194
+web/components/ui/file-upload.tsx
+  fd75728ce1a5f3fd 1-117
+server/nest-api/src/modules/resources/resources.service.ts
+  fd75728ce1a5f3fd 1,5,20,41-45,51,75-82
+server/nest-api/src/modules/resources/resources.controller.ts
+  fd75728ce1a5f3fd 5,7,42-46
+ios/SpeakPro/Features/Homework/HomeworkViewModel.swift
+  fd75728ce1a5f3fd 5,8-39,42-43,45-47,63,65,70,72,76,79-95,99-102,104-117,121-125
+server/nest-api/src/modules/questions/questions.controller.ts
+  fd75728ce1a5f3fd 28-32,34,45-49
+server/nest-api/src/modules/questions/questions.service.ts
+  fd75728ce1a5f3fd 11-13,36-42,44-50
+web/app/(dashboard)/classes/[id]/students/[sid]/page.tsx
+  fd75728ce1a5f3fd 1-65,68-129
+web/app/(dashboard)/assignments/[id]/grade/page.tsx
+  fd75728ce1a5f3fd 1-92,94-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.3",
+  "base_commit_sha": "84307e3c37be5b0935dfbed874b01905b64b4fd8",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 1302,
+      "total_deletions": 125,
+      "accepted_lines": 1302,
+      "overriden_lines": 0
+    }
+  }
+}
