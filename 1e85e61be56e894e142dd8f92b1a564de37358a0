@@ -1,0 +1,59 @@
+web/app/(dashboard)/assignments/page.tsx
+  fd75728ce1a5f3fd 7,99,132-139
+web/app/(dashboard)/classes/[id]/students/page.tsx
+  fd75728ce1a5f3fd 1-180
+server/nest-api/src/modules/classes/classes.service.ts
+  fd75728ce1a5f3fd 50-68,156-238
+web/app/(dashboard)/page.tsx
+  fd75728ce1a5f3fd 17-32,42-43,47,49,51,59,63,68,72-74,91-94,97-114,118,141-147,161-162
+web/components/dashboard/score-trend-chart.tsx
+  fd75728ce1a5f3fd 15-21,23-32,40-90
+web/components/dashboard/student-rank-table.tsx
+  fd75728ce1a5f3fd 6,8,11-13,15,22-38,40-72
+web/app/(dashboard)/classes/page.tsx
+  fd75728ce1a5f3fd 9,37-40,150-172,174-207,209,211,213-216,219-221
+web/components/grading/score-adjuster.tsx
+  fd75728ce1a5f3fd 3,6,14,16,20,28-32,37-40,44,47-54
+web/app/(dashboard)/classes/[id]/students/[sid]/page.tsx
+  fd75728ce1a5f3fd 3,5-8,10,12,15-19,24-25,29-37,40-41,44-52,54-61,63-69,71-77,81,83-105,107-128,130-132,134-139,141-170,173,175-177,179-180,182-183,189-192
+web/components/grading/audio-player.tsx
+  fd75728ce1a5f3fd 3-4,13,16-20,22-84,87,93,102-104,106-121,124,127-130,134-136,144-147,152,154,161-162,164,168,173-181
+web/app/(dashboard)/assignments/[id]/grade/page.tsx
+  fd75728ce1a5f3fd 6-8,10,31-43,45-70,78-79,81,84-85,88,106-107,109,111-128,131,138,144,150-157,165,171,175,179,182-213,219,221-255,258-275,277-278,281-284,286-288,291-304,306-316,319-325,330,339,341
+server/nest-api/src/modules/classes/classes.controller.ts
+  fd75728ce1a5f3fd 5-6,35-45,54-59,66-75
+web/components/grading/transcript-viewer.tsx
+  fd75728ce1a5f3fd 3,9,16,27,30-38,59
+ios/SpeakPro/Features/Practice/PracticeReportView.swift
+  fd75728ce1a5f3fd 1-152
+server/nest-api/src/modules/users/users.service.ts
+  fd75728ce1a5f3fd 1,4,38-59
+server/nest-api/src/modules/practice/practice.service.ts
+  fd75728ce1a5f3fd 3,111-120
+ios/SpeakPro/Features/Practice/PracticeReportViewModel.swift
+  fd75728ce1a5f3fd 1-118
+server/nest-api/src/modules/users/users.controller.ts
+  fd75728ce1a5f3fd 6,30-45
+server/nest-api/src/modules/practice/practice.controller.ts
+  fd75728ce1a5f3fd 56-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.3",
+  "base_commit_sha": "1e85e61be56e894e142dd8f92b1a564de37358a0",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 1444,
+      "total_deletions": 440,
+      "accepted_lines": 1443,
+      "overriden_lines": 0
+    }
+  }
+}
