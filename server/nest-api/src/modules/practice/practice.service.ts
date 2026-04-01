@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { PracticeSession } from './entities/practice-session.entity';
 
 @Injectable()
@@ -106,6 +106,16 @@ export class PracticeService {
       },
       recent: { last7Days, last30Days },
     };
+  }
+
+  // 批量查询 sessions（用于作业批改页加载学生练习详情）
+  async findBySessionIds(ids: string[]): Promise<PracticeSession[]> {
+    if (!ids || ids.length === 0) return [];
+    return this.practiceRepository.find({
+      where: { id: In(ids) },
+      relations: ['question'],
+      order: { createdAt: 'ASC' },
+    });
   }
 
   // Go 服务回写评测结果

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, ClipboardCheck } from "lucide-react";
 
 interface Submission {
   id: string;
@@ -96,6 +96,7 @@ export default function AssignmentsPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">题目数</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">截止日期</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">提交情况</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -127,6 +128,14 @@ export default function AssignmentsPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {submissionSummary(a.submissions)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link href={`/assignments/${a.id}/grade`}>
+                      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                        <ClipboardCheck className="h-3.5 w-3.5" />
+                        批改
+                      </button>
+                    </Link>
                   </td>
                 </tr>
               ))}

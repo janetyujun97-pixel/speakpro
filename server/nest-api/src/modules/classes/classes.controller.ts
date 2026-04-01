@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -30,6 +32,17 @@ export class ClassesController {
     return this.classesService.findAll(teacherId);
   }
 
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() data: { name?: string; examType?: string }) {
+    return this.classesService.update(id, data);
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    await this.classesService.delete(id);
+    return { message: '班级已删除' };
+  }
+
   @Post(':id/students')
   async addStudent(
     @Param('id') id: string,
@@ -38,8 +51,26 @@ export class ClassesController {
     return this.classesService.addStudent(id, studentId);
   }
 
+  @Delete(':id/students/:studentId')
+  async removeStudent(
+    @Param('id') id: string,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.classesService.removeStudent(id, studentId);
+  }
+
   @Get(':id/analytics')
   async getAnalytics(@Param('id') id: string) {
     return this.classesService.getAnalytics(id);
+  }
+
+  @Get(':id/score-trends')
+  async getScoreTrends(@Param('id') id: string) {
+    return this.classesService.getScoreTrends(id);
+  }
+
+  @Get(':id/leaderboard')
+  async getStudentLeaderboard(@Param('id') id: string) {
+    return this.classesService.getStudentLeaderboard(id);
   }
 }

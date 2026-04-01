@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Users, Loader2, X } from "lucide-react";
+import { Plus, Users, Loader2, X, Pencil, Trash2 } from "lucide-react";
 
 interface ClassUser {
   id: string;
@@ -33,6 +33,10 @@ export default function ClassesPage() {
   const [formName, setFormName] = useState("");
   const [formExamType, setFormExamType] = useState<string>("TOEFL");
   const [creating, setCreating] = useState(false);
+
+  // 编辑状态
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   const fetchClasses = async () => {
     try {
@@ -143,28 +147,78 @@ export default function ClassesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {classes.map((cls) => (
-            <Link key={cls.id} href={`/classes/${cls.id}/students`}>
-              <Card className="cursor-pointer transition-shadow hover:shadow-md">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
+            <Card key={cls.id} className="transition-shadow hover:shadow-md">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <Link href={`/classes/${cls.id}/students`} className="space-y-1 flex-1">
+                    {editingId === cls.id ? (
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === "Enter" && editName.trim()) {
+                            await api.put(`/classes/${cls.id}`, { name: editName.trim() });
+                            setEditingId(null);
+                            setLoading(true);
+                            await fetchClasses();
+                          }
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        onBlur={() => setEditingId(null)}
+                        autoFocus
+                        className="text-base font-semibold border-b-2 border-blue-500 outline-none bg-transparent"
+                        onClick={(e) => e.preventDefault()}
+                      />
+                    ) : (
                       <h3 className="text-base font-semibold text-primary">{cls.name}</h3>
-                      <span className="inline-block rounded bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-                        {cls.examType}
-                      </span>
-                    </div>
-                    <div className="rounded-lg bg-muted p-2">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                    </div>
+                    )}
+                    <span className="inline-block rounded bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                      {cls.examType}
+                    </span>
+                  </Link>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setEditingId(cls.id);
+                        setEditName(cls.name);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-blue-600 rounded"
+                      title="编辑"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (!confirm(`确认删除班级 "${cls.name}"？此操作不可恢复。`)) return;
+                        try {
+                          await api.delete(`/classes/${cls.id}`);
+                          setLoading(true);
+                          await fetchClasses();
+                        } catch {
+                          alert("删除失败");
+                        }
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-red-600 rounded"
+                      title="删除"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
+                </div>
 
+                <Link href={`/classes/${cls.id}/students`}>
                   <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{cls.students?.length || 0} 名学生</span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      {cls.students?.length || 0} 名学生
+                    </span>
                     <span>{cls.teacher?.name || "未分配教师"}</span>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </Link>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

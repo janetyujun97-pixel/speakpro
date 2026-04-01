@@ -1,59 +1,21 @@
 import { cn } from "@/lib/utils";
 
-interface TranscriptWord {
+export interface TranscriptWord {
   text: string;
   isError?: boolean;
   errorType?: "pronunciation" | "grammar" | "vocabulary";
 }
 
-interface TranscriptSegment {
+export interface TranscriptSegment {
   speaker: "student" | "system";
   words: TranscriptWord[];
   timestamp: string;
 }
 
 interface TranscriptViewerProps {
-  segments?: TranscriptSegment[];
+  segments: TranscriptSegment[];
   className?: string;
 }
-
-const sampleSegments: TranscriptSegment[] = [
-  {
-    speaker: "system",
-    timestamp: "0:00",
-    words: [
-      { text: "Please" },
-      { text: "describe" },
-      { text: "your" },
-      { text: "favorite" },
-      { text: "holiday" },
-      { text: "destination." },
-    ],
-  },
-  {
-    speaker: "student",
-    timestamp: "0:05",
-    words: [
-      { text: "My" },
-      { text: "favorite" },
-      { text: "holiday" },
-      { text: "destination" },
-      { text: "is" },
-      { text: "Japan." },
-      { text: "I" },
-      { text: "have" },
-      { text: "went", isError: true, errorType: "grammar" },
-      { text: "there" },
-      { text: "last" },
-      { text: "year." },
-      { text: "The" },
-      { text: "food" },
-      { text: "is" },
-      { text: "very" },
-      { text: "delicous.", isError: true, errorType: "pronunciation" },
-    ],
-  },
-];
 
 const errorColors = {
   pronunciation: "bg-data-red/10 text-data-red border-b-2 border-data-red",
@@ -62,9 +24,18 @@ const errorColors = {
 };
 
 export function TranscriptViewer({
-  segments = sampleSegments,
+  segments,
   className,
 }: TranscriptViewerProps) {
+  if (!segments || segments.length === 0) {
+    return (
+      <div className={cn("rounded-xl border border-border bg-white p-4", className)}>
+        <h3 className="font-semibold text-primary mb-2">语音转写</h3>
+        <p className="text-sm text-muted-foreground text-center py-6">暂无转写数据</p>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("rounded-xl border border-border bg-white p-4 space-y-4", className)}>
       <div className="flex items-center justify-between">
@@ -85,7 +56,7 @@ export function TranscriptViewer({
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 max-h-80 overflow-y-auto">
         {segments.map((segment, i) => (
           <div key={i} className="flex gap-3">
             <div className="flex flex-col items-center">

@@ -53,6 +53,13 @@ export class PracticeController {
     return this.practiceService.getStats(req.user.sub);
   }
 
+  // 批量查询 sessions（用于批改页加载练习详情）
+  @Post('sessions/batch')
+  @UseGuards(JwtAuthGuard)
+  async findBySessionIds(@Body() body: { sessionIds: string[] }) {
+    return this.practiceService.findBySessionIds(body.sessionIds);
+  }
+
   // Go 服务内部回调接口 —— 回写评测结果（无需 JWT 认证）
   @Patch('sessions/:id/scores')
   async updateScores(

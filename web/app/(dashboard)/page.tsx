@@ -14,6 +14,22 @@ interface DashboardStats {
   completionRate: string;
 }
 
+interface TrendDataPoint {
+  date: string;
+  pronunciation: number;
+  fluency: number;
+  grammar: number;
+  overall: number;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  email: string;
+  avgScore: number;
+  totalSessions: number;
+}
+
 const DEFAULT_STATS: DashboardStats = {
   activeStudents: 0,
   totalSessions: 0,
@@ -23,44 +39,41 @@ const DEFAULT_STATS: DashboardStats = {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(DEFAULT_STATS);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAll = async () => {
       const result = { ...DEFAULT_STATS };
+      let firstClassId: string | null = null;
 
+      // 1) KPI 统计
       try {
-        // 获取练习统计
         const practiceStats = await api.get<{
           totalSessions: number;
           averageScore: number;
         }>("/practice/stats");
         result.totalSessions = practiceStats.totalSessions || 0;
         result.averageScore = practiceStats.averageScore || 0;
-      } catch {
-        // 练习统计接口不可用，保持默认值
-      }
+      } catch {}
 
       try {
-        // 通过班级列表统计学生数
         const classes = await api.get<
-          { students: { id: string }[] | null }[]
+          { id: string; students: { id: string }[] | null }[]
         >("/classes");
         const studentIds = new Set<string>();
         for (const cls of classes) {
           if (cls.students) {
-            for (const s of cls.students) {
-              studentIds.add(s.id);
-            }
+            for (const s of cls.students) studentIds.add(s.id);
           }
         }
         result.activeStudents = studentIds.size;
-      } catch {
-        // 班级接口不可用，保持默认值
-      }
+        // 记住第一个班级 ID 用于图表数据
+        if (classes.length > 0) firstClassId = classes[0].id;
+      } catch {}
 
       try {
-        // 通过作业列表计算完成率
         const assignments = await api.get<
           { submissions: { status: string }[] | null }[]
         >("/assignments");
@@ -75,16 +88,34 @@ export default function DashboardPage() {
           }
         }
         result.completionRate =
-          totalSubs > 0 ? `${Math.round((gradedSubs / totalSubs) * 100)}%` : "-";
-      } catch {
-        // 作业接口不可用，保持默认值
-      }
+          totalSubs > 0
+            ? `${Math.round((gradedSubs / totalSubs) * 100)}%`
+            : "-";
+      } catch {}
 
       setStats(result);
+
+      // 2) 图表数据：使用第一个班级
+      if (firstClassId) {
+        try {
+          const trends = await api.get<TrendDataPoint[]>(
+            `/classes/${firstClassId}/score-trends`
+          );
+          setTrendData(trends);
+        } catch {}
+
+        try {
+          const board = await api.get<LeaderboardEntry[]>(
+            `/classes/${firstClassId}/leaderboard`
+          );
+          setLeaderboard(board);
+        } catch {}
+      }
+
       setLoaded(true);
     };
 
-    fetchStats();
+    fetchAll();
   }, []);
 
   return (
@@ -107,7 +138,13 @@ export default function DashboardPage() {
         />
         <StatsCard
           title="平均分"
-          value={loaded ? (stats.averageScore > 0 ? stats.averageScore.toFixed(1) : "-") : "-"}
+          value={
+            loaded
+              ? stats.averageScore > 0
+                ? stats.averageScore.toFixed(1)
+                : "-"
+              : "-"
+          }
           trend="neutral"
           icon={BarChart3}
         />
@@ -121,8 +158,8 @@ export default function DashboardPage() {
 
       {/* Charts & Tables */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <ScoreTrendChart />
-        <StudentRankTable />
+        <ScoreTrendChart data={trendData} />
+        <StudentRankTable students={leaderboard} />
       </div>
     </div>
   );

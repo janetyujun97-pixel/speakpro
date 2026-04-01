@@ -3,6 +3,7 @@ import {
   Get,
   Put,
   Body,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -25,5 +26,22 @@ export class UsersController {
     @Body() updateData: { name?: string; phone?: string; avatarUrl?: string },
   ) {
     return this.usersService.update(req.user.sub, updateData);
+  }
+
+  @Put('password')
+  async changePassword(
+    @Request() req: any,
+    @Body() data: { currentPassword: string; newPassword: string },
+  ) {
+    await this.usersService.changePassword(req.user.sub, data.currentPassword, data.newPassword);
+    return { message: '密码修改成功' };
+  }
+
+  @Get()
+  async findByRole(@Query('role') role?: string) {
+    if (role) {
+      return this.usersService.findByRole(role);
+    }
+    return [];
   }
 }
