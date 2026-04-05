@@ -65,6 +65,65 @@ type ContentScore struct {
 	Coherence  float64 `json:"coherence"`
 }
 
+// ========================
+// 完整评测（模考用）
+// ========================
+
+// FullEvaluateRequest 完整评测请求
+type FullEvaluateRequest struct {
+	AudioB64      string `json:"audioB64"`
+	ReferenceText string `json:"referenceText"`
+	ExamType      string `json:"examType"`
+	Section       string `json:"section"`
+	QuestionID    string `json:"questionId,omitempty"`
+}
+
+// FullEvaluateResult 完整评测结果
+type FullEvaluateResult struct {
+	Transcript         string              `json:"transcript"`
+	WordCount          int                 `json:"wordCount"`
+	SentenceCount      int                 `json:"sentenceCount"`
+	PronunciationScore *PronunciationScore `json:"pronunciationScore"`
+	GrammarScore       *GrammarScore       `json:"grammarScore"`
+	ContentScore       *ContentScore       `json:"contentScore,omitempty"`
+	OverallScore       float64             `json:"overallScore"`
+	AIFeedback         string              `json:"aiFeedback"`
+	RevisedAnswer      *RevisedAnswer      `json:"revisedAnswer"`
+	MindMap            *MindMapData        `json:"mindMap"`
+	Keywords           []KeywordItem       `json:"keywords"`
+	SampleAnswers      []string            `json:"sampleAnswers"`
+	RevisedAudioB64    string              `json:"revisedAudioB64,omitempty"`
+}
+
+// RevisedAnswer 修订后的答案
+type RevisedAnswer struct {
+	Text          string `json:"text"`
+	WordCount     int    `json:"wordCount"`
+	SentenceCount int    `json:"sentenceCount"`
+}
+
+// MindMapData 思维导图
+type MindMapData struct {
+	Title    string        `json:"title"`
+	Children []MindMapNode `json:"children"`
+}
+
+// MindMapNode 思维导图节点
+type MindMapNode struct {
+	Label    string        `json:"label"`
+	Detail   string        `json:"detail,omitempty"`
+	Children []MindMapNode `json:"children,omitempty"`
+}
+
+// KeywordItem 关键词
+type KeywordItem struct {
+	Word            string `json:"word"`
+	Phonetic        string `json:"phonetic"`
+	PartOfSpeech    string `json:"partOfSpeech"`
+	Definition      string `json:"definition"`
+	ExampleSentence string `json:"exampleSentence"`
+}
+
 // ConversationMessage WebSocket 对话消息
 type ConversationMessage struct {
 	Type string      `json:"type"` // audio_chunk, transcript, examiner, score_update

@@ -15,7 +15,7 @@ struct PracticeListView: View {
                             .font(.spTitleLarge)
                             .foregroundColor(.spTextPrimary)
                         Text("每天坚持练习，口语能力稳步提升")
-                            .font(.spBody)
+                            .font(.spBodyMedium)
                             .foregroundColor(.spTextSecondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

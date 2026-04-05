@@ -23,7 +23,8 @@ func main() {
 	// 初始化 AI 服务
 	xunfeiClient := service.NewXunfeiClient(cfg)
 	qwenClient := service.NewQwenClient(cfg)
-	orchestrator := service.NewOrchestrator(xunfeiClient, qwenClient)
+	fishTTSClient := service.NewFishTTSClient(cfg)
+	orchestrator := service.NewOrchestrator(xunfeiClient, qwenClient, fishTTSClient)
 
 	// WebSocket 管理器
 	hub := ws.NewHub()
@@ -49,16 +50,17 @@ func main() {
 		authorized.POST("/practice/audio", audioHandler.Upload)
 
 		// WebSocket AI 对话
-		convHandler := handler.NewConversationHandler(hub, orchestrator, xunfeiClient, qwenClient)
+		convHandler := handler.NewConversationHandler(hub, orchestrator, xunfeiClient, qwenClient, fishTTSClient)
 		authorized.GET("/conversation/ws/:sessionId", convHandler.Connect)
 
 		// 发音评测
 		assessHandler := handler.NewAssessmentHandler(orchestrator, xunfeiClient, qwenClient)
 		authorized.POST("/assessment/evaluate", assessHandler.Evaluate)
+		authorized.POST("/assessment/full-evaluate", assessHandler.FullEvaluate)
 		authorized.POST("/assessment/feedback", assessHandler.Feedback)
 
-		// TTS 语音合成
-		ttsHandler := handler.NewTTSHandler(xunfeiClient)
+		// TTS 语音合成（优先 Fish Audio，回退讯飞）
+		ttsHandler := handler.NewTTSHandler(xunfeiClient, fishTTSClient)
 		authorized.POST("/tts/synthesize", ttsHandler.Synthesize)
 	}
 

@@ -1,9 +1,23 @@
 import Foundation
+import Combine
 
 /// 跟读练习视图模型 —— TTS 参考音播放 + 录音 + ISE 评测
 final class FollowReadViewModel: ObservableObject {
 
+    /// 跟读练习的阶段
+    enum Phase {
+        case ready       // 初始：准备播放参考音
+        case listening   // 播放参考音中
+        case recording   // 录音中
+        case evaluating  // 评测中
+        case result      // 显示评测结果
+    }
+
+    private var cancellables = Set<AnyCancellable>()
+
     // MARK: - Published
+
+    @Published var phase: Phase = .ready
 
     @Published var currentSentence: String = ""
     @Published var currentSentenceIndex: Int = 0
@@ -15,14 +29,26 @@ final class FollowReadViewModel: ObservableObject {
     @Published var hasScore = false
 
     @Published var phonemeErrors: [String] = []
+    @Published var isCompleted = false  // 所有句子完成
 
     @Published var referenceWaveform: [Float] = []
     @Published var studentWaveform: [Float] = []
 
+    // 每句评分历史（用于最终报告）
+    struct SentenceScore {
+        let sentence: String
+        let pronunciation: Double
+        let intonation: Double
+        let fluency: Double
+    }
+    @Published var scoreHistory: [SentenceScore] = []
+
     @Published var isRecording = false
     @Published var isPlayingReference = false
+    @Published var isPlayingStudent = false
     @Published var isEvaluating = false
     @Published var errorMessage: String?
+    @Published var lastRecordingURL: URL?
 
     // MARK: - Dependencies
 
@@ -73,6 +99,7 @@ final class FollowReadViewModel: ObservableObject {
         currentSentenceIndex += 1
         resetScores()
         loadCurrentSentence()
+        phase = .ready
     }
 
     func previousSentence() {
@@ -97,9 +124,39 @@ final class FollowReadViewModel: ObservableObject {
         referenceWaveform = []
     }
 
+    // MARK: - 重录
+
+    func retryRecording() {
+        hasScore = false
+        pronunciationScore = 0
+        intonationScore = 0
+        fluencyScore = 0
+        phonemeErrors = []
+        studentWaveform = []
+        phase = .ready
+    }
+
+    // MARK: - 播放参考音并自动进入录音阶段
+
+    func playReferenceAndTransition() {
+        phase = .listening
+        errorMessage = nil
+        playReference { [weak self] in
+            guard let self = self else { return }
+            if self.errorMessage != nil {
+                DispatchQueue.main.async { self.phase = .ready }
+                return
+            }
+            // 播放完成后进入录音准备阶段（等待用户点击录音按钮）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.phase = .recording
+            }
+        }
+    }
+
     // MARK: - TTS 参考音播放
 
-    func playReference() {
+    func playReference(completion: (() -> Void)? = nil) {
         if isPlayingReference {
             audioPlayer.stop()
             isPlayingReference = false
@@ -117,56 +174,100 @@ final class FollowReadViewModel: ObservableObject {
                 )
 
                 guard let ttsData = response.data,
-                      let pcmData = Data(base64Encoded: ttsData.audioB64) else {
+                      let audioData = Data(base64Encoded: ttsData.audioB64) else {
                     isPlayingReference = false
+                    errorMessage = "TTS 返回数据为空"
+                    completion?()
                     return
                 }
 
-                let tempURL = AudioFileManager.shared.createTempFileURL(extension: "pcm")
-                try pcmData.write(to: tempURL)
+                // 根据格式选择文件扩展名（Fish Audio 返回 mp3，讯飞返回 pcm）
+                let ext = ttsData.format ?? "mp3"
+                let tempURL = AudioFileManager.shared.createTempFileURL(extension: ext)
+                try audioData.write(to: tempURL)
 
                 // 生成参考波形
-                let waveform = WaveformGenerator.generateWaveform(from: tempURL, samples: 60)
+                let waveform = WaveformGenerator.generateWaveform(from: tempURL, samplesCount: 60)
                 referenceWaveform = waveform
 
                 audioPlayer.play(url: tempURL)
-                audioPlayer.onPlaybackFinished = { [weak self] in
-                    self?.isPlayingReference = false
-                }
+                audioPlayer.$isPlaying
+                    .dropFirst()
+                    .filter { !$0 }
+                    .first()
+                    .sink { [weak self] _ in
+                        self?.isPlayingReference = false
+                        completion?()
+                    }
+                    .store(in: &cancellables)
             } catch {
                 isPlayingReference = false
                 errorMessage = "参考音播放失败"
+                completion?()
             }
         }
+    }
+
+    // MARK: - 播放学生录音
+
+    func playStudentRecording() {
+        guard let url = lastRecordingURL else { return }
+        if isPlayingStudent {
+            audioPlayer.stop()
+            isPlayingStudent = false
+            return
+        }
+        isPlayingStudent = true
+        audioPlayer.play(url: url)
+        audioPlayer.$isPlaying
+            .dropFirst()
+            .filter { !$0 }
+            .first()
+            .sink { [weak self] _ in self?.isPlayingStudent = false }
+            .store(in: &cancellables)
     }
 
     // MARK: - 录音
 
     func startRecording() {
-        isRecording = true
         hasScore = false
         errorMessage = nil
         studentWaveform = []
 
-        do {
-            try audioRecorder.startRecording()
-        } catch {
-            isRecording = false
-            errorMessage = "录音启动失败"
+        Task { @MainActor in
+            do {
+                try await audioRecorder.requestAndStartRecording()
+                isRecording = true
+            } catch {
+                isRecording = false
+                errorMessage = "录音启动失败: \(error.localizedDescription)"
+            }
         }
     }
 
     func stopRecording() {
         guard let audioURL = audioRecorder.stopRecording() else {
             isRecording = false
+            phase = .ready
+            errorMessage = "录音文件保存失败"
             return
         }
         isRecording = false
-
-        // 捕获学生波形
+        lastRecordingURL = audioURL
+        // stopRecording 后波形数据仍保留在 audioRecorder 中
         studentWaveform = audioRecorder.waveformData
 
-        // 发送评测
+        // 检查文件是否有数据
+        let fileSize = (try? FileManager.default.attributesOfItem(atPath: audioURL.path)[.size] as? Int) ?? 0
+        print("[FollowRead] 停止录音: file=\(audioURL.lastPathComponent), size=\(fileSize) bytes, waveform_points=\(studentWaveform.count)")
+
+        if fileSize < 100 {
+            phase = .result
+            errorMessage = "录音时间太短（\(fileSize) 字节），请重试"
+            return
+        }
+
+        phase = .evaluating
         evaluateAudio(fileURL: audioURL)
     }
 
@@ -177,11 +278,14 @@ final class FollowReadViewModel: ObservableObject {
 
         Task { @MainActor in
             do {
-                guard let audioData = try? Data(contentsOf: fileURL) else {
+                guard let audioData = try? Data(contentsOf: fileURL), audioData.count > 100 else {
                     isEvaluating = false
-                    errorMessage = "无法读取录音"
+                    phase = .result
+                    errorMessage = "录音文件为空（\(((try? Data(contentsOf: fileURL))?.count ?? 0)) 字节），请重试"
                     return
                 }
+
+                print("[FollowRead] 录音文件大小: \(audioData.count) 字节, URL: \(fileURL)")
 
                 // 调用发音评测接口
                 let evalResp: APIResponse<EvalResponse> = try await APIClient.shared.post(
@@ -197,26 +301,46 @@ final class FollowReadViewModel: ObservableObject {
                     pronunciationScore = result.pronunciationScore?.overall ?? 0
                     intonationScore = result.pronunciationScore?.intonation ?? 0
                     fluencyScore = result.pronunciationScore?.fluency ?? 0
-                }
 
-                // 获取 AI 反馈（音素级纠错）
-                let feedbackResp: APIResponse<FeedbackResponse> = try await APIClient.shared.post(
-                    Endpoints.Assessment.feedback,
-                    body: FeedbackRequestBody(
-                        sessionId: sessionId ?? "",
-                        transcript: currentSentence,
-                        referenceText: currentSentence
-                    )
-                )
-
-                if let feedback = feedbackResp.data {
-                    phonemeErrors = feedback.corrections ?? []
+                    // 保存到评分历史
+                    scoreHistory.append(SentenceScore(
+                        sentence: currentSentence,
+                        pronunciation: pronunciationScore,
+                        intonation: intonationScore,
+                        fluency: fluencyScore
+                    ))
                 }
 
                 isEvaluating = false
+                phase = .result
+
+                // 检查是否全部完成
+                if currentSentenceIndex >= totalSentences - 1 {
+                    isCompleted = true
+                }
+
+                // AI 反馈（可选，失败不影响评分）
+                if let sid = sessionId, !sid.isEmpty {
+                    do {
+                        let feedbackResp: APIResponse<FeedbackResponse> = try await APIClient.shared.post(
+                            Endpoints.Assessment.feedback,
+                            body: FeedbackRequestBody(
+                                sessionId: sid,
+                                transcript: currentSentence,
+                                referenceText: currentSentence
+                            )
+                        )
+                        if let feedback = feedbackResp.data {
+                            phonemeErrors = feedback.corrections ?? []
+                        }
+                    } catch {
+                        print("[FollowRead] AI 反馈获取失败（不影响评分）: \(error)")
+                    }
+                }
             } catch {
                 isEvaluating = false
-                errorMessage = "评测失败: \(error.localizedDescription)"
+                phase = .result
+                errorMessage = "评测失败: \(error)"
             }
         }
     }
@@ -255,6 +379,8 @@ private struct TTSRequestBody: Encodable {
 
 private struct TTSResponseData: Decodable {
     let audioB64: String
+    let format: String?
+    let sampleRate: Int?
 }
 
 private struct EvalRequestBody: Encodable {

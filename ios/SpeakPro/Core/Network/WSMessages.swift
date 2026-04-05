@@ -72,6 +72,7 @@ struct SessionReadyPayload: Decodable {
     let sessionId: String
     let examinerGreeting: String
     let timeLimitSec: Int
+    let greetingTtsB64: String?
 }
 
 struct TranscriptPayload: Decodable {
@@ -182,9 +183,11 @@ enum WSMessageParser {
         as type: T.Type,
         decoder: JSONDecoder
     ) -> T? {
-        struct Wrapper<Inner: Decodable>: Decodable {
-            let data: Inner
-        }
-        return try? decoder.decode(Wrapper<T>.self, from: jsonData).data
+        return try? decoder.decode(WSDataWrapper<T>.self, from: jsonData).data
     }
+}
+
+/// WebSocket 消息 data 字段包装器（需要在顶层定义以兼容 Swift 6 泛型规则）
+private struct WSDataWrapper<T: Decodable>: Decodable {
+    let data: T
 }

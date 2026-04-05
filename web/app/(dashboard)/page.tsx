@@ -83,7 +83,7 @@ export default function DashboardPage() {
           if (a.submissions) {
             totalSubs += a.submissions.length;
             gradedSubs += a.submissions.filter(
-              (s) => s.status === "graded" || s.status === "submitted"
+              (s) => s.status === "graded"
             ).length;
           }
         }

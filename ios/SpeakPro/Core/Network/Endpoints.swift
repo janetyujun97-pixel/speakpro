@@ -3,7 +3,19 @@ import Foundation
 /// API 端点常量
 enum Endpoints {
 
-    static let baseURL = "http://localhost/api/v1"
+    // NestJS CRUD 服务
+    #if DEBUG
+    static let baseURL = "http://localhost:3000/api/v1"
+    #else
+    static let baseURL = "https://api.speakpro.com/api/v1"
+    #endif
+
+    // Go AI 服务（WebSocket/音频/评测/TTS）
+    #if DEBUG
+    static let goBaseURL = "http://localhost:8081/api/v1"
+    #else
+    static let goBaseURL = "https://api.speakpro.com/api/v1"
+    #endif
 
     // MARK: - Auth
 
@@ -22,12 +34,12 @@ enum Endpoints {
         static let stats    = "/practice/stats"
     }
 
-    // MARK: - Conversation (WebSocket)
+    // MARK: - Conversation (WebSocket → Go 服务)
 
     enum Conversation {
-        /// 返回完整的 WebSocket URL
+        /// 返回完整的 WebSocket URL（连接 Go 服务）
         static func wsConnect(sessionId: String) -> String {
-            let wsBase = baseURL
+            let wsBase = goBaseURL
                 .replacingOccurrences(of: "http://", with: "ws://")
                 .replacingOccurrences(of: "https://", with: "wss://")
             return "\(wsBase)/conversation/ws/\(sessionId)"
@@ -56,16 +68,17 @@ enum Endpoints {
         }
     }
 
-    // MARK: - Assessment
+    // MARK: - Assessment（Go 服务）
 
     enum Assessment {
-        static let evaluate = "/assessment/evaluate"
-        static let feedback = "/assessment/feedback"
+        static var evaluate: String { goBaseURL + "/assessment/evaluate" }
+        static var fullEvaluate: String { goBaseURL + "/assessment/full-evaluate" }
+        static var feedback: String { goBaseURL + "/assessment/feedback" }
     }
 
-    // MARK: - TTS
+    // MARK: - TTS（Go 服务）
 
     enum TTS {
-        static let synthesize = "/tts/synthesize"
+        static var synthesize: String { goBaseURL + "/tts/synthesize" }
     }
 }

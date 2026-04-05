@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Loader2 } from "lucide-react";
 
 interface Question {
   id: string;
@@ -44,8 +44,9 @@ export default function QuestionsPage() {
       if (examType) params.set("exam_type", examType);
       if (section) params.set("section", section);
       const qs = params.toString();
-      const data = await api.get<Question[]>(`/questions${qs ? `?${qs}` : ""}`);
-      setQuestions(data);
+      const data = await api.get<any>(`/questions${qs ? `?${qs}` : ""}`);
+      // 后端返回 { items, total } 或直接数组，兼容两种格式
+      setQuestions(Array.isArray(data) ? data : (data.items || []));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "加载题目失败");
     } finally {
@@ -172,19 +173,26 @@ export default function QuestionsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(q.id)}
-                      disabled={deleting === q.id}
-                      className="text-data-red hover:text-data-red"
-                    >
-                      {deleting === q.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Link href={`/resources/questions/${q.id}/edit`}>
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(q.id)}
+                        disabled={deleting === q.id}
+                        className="text-data-red hover:text-data-red"
+                      >
+                        {deleting === q.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

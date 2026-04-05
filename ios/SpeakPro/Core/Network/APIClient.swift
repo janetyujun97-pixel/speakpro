@@ -95,7 +95,9 @@ final class APIClient {
         queryItems: [URLQueryItem]? = nil
     ) async throws -> APIResponse<T> {
 
-        guard var components = URLComponents(string: baseURL + path) else {
+        // 如果 path 已经是完整 URL（以 http 开头），直接使用；否则拼接 baseURL
+        let fullURLString = path.hasPrefix("http") ? path : (baseURL + path)
+        guard var components = URLComponents(string: fullURLString) else {
             throw APIError.invalidURL
         }
         components.queryItems = queryItems
@@ -107,6 +109,11 @@ final class APIClient {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = method.rawValue
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // full-evaluate 等 AI 密集型端点需要更长超时
+        if path.contains("full-evaluate") {
+            urlRequest.timeoutInterval = 120 // 2 分钟
+        }
 
         // 自动附加 Authorization header
         if let token = accessToken {

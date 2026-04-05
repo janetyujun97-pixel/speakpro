@@ -1,5 +1,13 @@
 import Foundation
 
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let switchToPendingHomework = Notification.Name("switchToPendingHomework")
+}
+
+// MARK: - Date Extensions
+
 extension Date {
 
     /// 相对时间描述，例如 "2小时前"、"刚刚"

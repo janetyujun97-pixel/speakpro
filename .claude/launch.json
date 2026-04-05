@@ -1,0 +1,27 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nest-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:dev"],
+      "port": 3000,
+      "cwd": "server/nest-api"
+    },
+    {
+      "name": "go-services",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "cmd/server/main.go"],
+      "port": 8081,
+      "autoPort": false,
+      "cwd": "server/go-services"
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3001"],
+      "port": 3001,
+      "cwd": "web"
+    }
+  ]
+}

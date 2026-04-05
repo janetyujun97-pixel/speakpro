@@ -150,7 +150,7 @@ export default function ClassesPage() {
             <Card key={cls.id} className="transition-shadow hover:shadow-md">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
-                  <Link href={`/classes/${cls.id}/students`} className="space-y-1 flex-1">
+                  <div className="space-y-1 flex-1">
                     {editingId === cls.id ? (
                       <input
                         value={editName}
@@ -166,16 +166,17 @@ export default function ClassesPage() {
                         }}
                         onBlur={() => setEditingId(null)}
                         autoFocus
-                        className="text-base font-semibold border-b-2 border-blue-500 outline-none bg-transparent"
-                        onClick={(e) => e.preventDefault()}
+                        className="text-base font-semibold border-b-2 border-blue-500 outline-none bg-transparent w-full"
                       />
                     ) : (
-                      <h3 className="text-base font-semibold text-primary">{cls.name}</h3>
+                      <Link href={`/classes/${cls.id}/students`}>
+                        <h3 className="text-base font-semibold text-primary hover:underline">{cls.name}</h3>
+                      </Link>
                     )}
                     <span className="inline-block rounded bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
                       {cls.examType}
                     </span>
-                  </Link>
+                  </div>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={(e) => {

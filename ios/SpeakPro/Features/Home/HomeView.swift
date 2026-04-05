@@ -3,10 +3,12 @@ import SwiftUI
 /// 首页视图
 struct HomeView: View {
 
+    @EnvironmentObject private var coordinator: AppCoordinator
     @StateObject private var viewModel = HomeViewModel()
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
 
@@ -30,6 +32,18 @@ struct HomeView: View {
             }
             .background(Color.spBackground)
             .navigationTitle("SpeakPro")
+            .navigationDestination(for: PracticeMode.self) { mode in
+                switch mode {
+                case .conversation:
+                    ConversationView()
+                case .readAloud:
+                    ReadAloudView()
+                case .followRead:
+                    FollowReadView()
+                case .mockExam:
+                    MockExamView()
+                }
+            }
             .task {
                 await viewModel.fetchHomeData()
             }
@@ -80,7 +94,7 @@ struct HomeView: View {
                     .foregroundColor(.spAccent)
             }
 
-            ProgressView(value: viewModel.todayProgress)
+            SwiftUI.ProgressView(value: viewModel.todayProgress)
                 .tint(.spAccent)
                 .scaleEffect(y: 2)
                 .clipShape(Capsule())
@@ -103,17 +117,17 @@ struct HomeView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
-                quickEntryButton(title: "AI 对话", icon: "bubble.left.and.bubble.right.fill", color: .spAccent)
-                quickEntryButton(title: "跟读", icon: "waveform.and.mic", color: .spSuccess)
-                quickEntryButton(title: "朗读", icon: "text.bubble.fill", color: .spPrimary)
-                quickEntryButton(title: "模考", icon: "clock.badge.checkmark.fill", color: .spWarning)
+                quickEntryButton(title: "AI 对话", icon: "bubble.left.and.bubble.right.fill", color: .spAccent, mode: .conversation)
+                quickEntryButton(title: "跟读", icon: "waveform.and.mic", color: .spSuccess, mode: .followRead)
+                quickEntryButton(title: "朗读", icon: "text.bubble.fill", color: .spPrimary, mode: .readAloud)
+                quickEntryButton(title: "模考", icon: "clock.badge.checkmark.fill", color: .spWarning, mode: .mockExam)
             }
         }
     }
 
-    private func quickEntryButton(title: String, icon: String, color: Color) -> some View {
+    private func quickEntryButton(title: String, icon: String, color: Color, mode: PracticeMode) -> some View {
         Button {
-            // TODO: 导航到对应练习页面
+            navigationPath.append(mode)
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: icon)
@@ -142,23 +156,30 @@ struct HomeView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(viewModel.recommendedPractices, id: \.self) { practice in
-                        recommendedCard(title: practice)
+                    ForEach(viewModel.recommendedItems) { item in
+                        Button {
+                            navigationPath.append(item.mode)
+                        } label: {
+                            recommendedCard(item: item)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
         }
     }
 
-    private func recommendedCard(title: String) -> some View {
+    private func recommendedCard(item: RecommendedItem) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "sparkles")
+            Image(systemName: item.mode.iconName)
                 .font(.system(size: 20))
                 .foregroundColor(.spAccent)
 
-            Text(title)
+            Text(item.title)
                 .font(.spBodyMedium)
                 .foregroundColor(.spTextPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
 
             Text("点击开始练习")
                 .font(.spCaption)
@@ -187,20 +208,27 @@ struct HomeView: View {
                     .padding(.vertical, 24)
             } else {
                 ForEach(viewModel.pendingHomework, id: \.self) { homework in
-                    HStack {
-                        Image(systemName: "doc.text.fill")
-                            .foregroundColor(.spWarning)
-                        Text(homework)
-                            .font(.spBodyMedium)
-                            .foregroundColor(.spTextPrimary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.spCaption)
-                            .foregroundColor(.spTextSecondary)
+                    Button {
+                        // 切换到作业 Tab 并确保显示"待完成"列表
+                        NotificationCenter.default.post(name: .switchToPendingHomework, object: nil)
+                        coordinator.selectedTab = .homework
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(.spWarning)
+                            Text(homework)
+                                .font(.spBodyMedium)
+                                .foregroundColor(.spTextPrimary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.spCaption)
+                                .foregroundColor(.spTextSecondary)
+                        }
+                        .padding(12)
+                        .background(Color.white)
+                        .cornerRadius(10)
                     }
-                    .padding(12)
-                    .background(Color.white)
-                    .cornerRadius(10)
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -209,4 +237,5 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
+        .environmentObject(AppCoordinator())
 }

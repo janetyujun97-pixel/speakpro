@@ -3,28 +3,33 @@ import AVFoundation
 import Combine
 
 /// 录音管理器 — 基于 AVAudioEngine，支持波形可视化 + 流式推送
+/// 硬件采样率（48kHz）→ AVAudioConverter 重采样为 16kHz mono PCM
 final class AudioRecorder: ObservableObject {
 
     @Published var isRecording = false
     @Published var waveformData: [Float] = []
+    @Published var permissionDenied = false
 
     private var audioEngine: AVAudioEngine?
     private var inputNode: AVAudioInputNode?
-    private var audioFile: AVAudioFile?
+    private var audioConverter: AVAudioConverter?
     private var recordingURL: URL?
 
-    // MARK: - 音频格式 (讯飞要求: 16kHz, 16-bit, mono PCM)
+    // 收集所有 PCM 数据，停止时写入文件
+    private var collectedPCMData = Data()
+    // 在音频线程同步收集波形（不依赖主线程 async）
+    private var rawWaveformSamples: [Float] = []
+    private let waveformLock = NSLock()
 
-    private var recordingFormat: AVAudioFormat? {
-        AVAudioFormat(
-            commonFormat: .pcmFormatInt16,
-            sampleRate: 16000,
-            channels: 1,
-            interleaved: true
-        )
+    // MARK: - 目标格式（讯飞: 16kHz, 16-bit, mono）
+    private let targetSampleRate: Double = 16000
+    private let targetChannels: AVAudioChannelCount = 1
+
+    private var targetFloatFormat: AVAudioFormat? {
+        AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: targetSampleRate, channels: targetChannels, interleaved: false)
     }
 
-    /// 流式音频数据回调（用于实时推送到 WebSocket / ASR）
+    /// 流式音频数据回调
     var onAudioBuffer: ((Data) -> Void)?
 
     // MARK: - Permission
@@ -37,47 +42,56 @@ final class AudioRecorder: ObservableObject {
         }
     }
 
+    // MARK: - Audio Session
+
+    private func configureAudioSession() throws {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+        try session.setActive(true, options: .notifyOthersOnDeactivation)
+    }
+
     // MARK: - Start Recording
 
     func startRecording() throws {
-        let engine = AVAudioEngine()
-        let input = engine.inputNode
-
-        // 准备本地文件缓存
-        let url = AudioFileManager.shared.createTempFileURL(extension: "wav")
-        recordingURL = url
-
-        guard let format = recordingFormat else {
-            print("[AudioRecorder] 无法创建录音格式")
-            return
+        let permissionStatus = AVAudioApplication.shared.recordPermission
+        switch permissionStatus {
+        case .undetermined:
+            throw RecordingError.permissionNotDetermined
+        case .denied:
+            DispatchQueue.main.async { self.permissionDenied = true }
+            throw RecordingError.permissionDenied
+        case .granted:
+            break
+        @unknown default:
+            break
         }
 
-        audioFile = try AVAudioFile(forWriting: url, settings: format.settings)
+        try configureAudioSession()
+        collectedPCMData = Data()
+        waveformLock.lock()
+        rawWaveformSamples = []
+        waveformLock.unlock()
+        waveformData = []
 
-        // 安装 tap 获取音频缓冲区
-        let inputFormat = input.outputFormat(forBus: 0)
-        input.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
-            guard let self = self else { return }
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+        let hardwareFormat = input.outputFormat(forBus: 0)
 
-            // 1. 提取波形可视化数据
-            self.extractWaveformData(from: buffer)
+        guard let targetFmt = targetFloatFormat else { return }
 
-            // 2. 写入本地文件
-            try? self.audioFile?.write(from: buffer)
+        // 创建格式转换器
+        guard let converter = AVAudioConverter(from: hardwareFormat, to: targetFmt) else {
+            print("[AudioRecorder] 无法创建转换器")
+            return
+        }
+        audioConverter = converter
 
-            // 3. 流式推送音频数据（float32 → int16 PCM，讯飞要求 16kHz 16-bit mono）
-            if let channelData = buffer.floatChannelData?[0] {
-                let frameCount = Int(buffer.frameLength)
-                var int16Data = Data(count: frameCount * MemoryLayout<Int16>.size)
-                int16Data.withUnsafeMutableBytes { rawBuffer in
-                    let int16Buffer = rawBuffer.bindMemory(to: Int16.self)
-                    for i in 0..<frameCount {
-                        let sample = max(-1.0, min(1.0, channelData[i]))
-                        int16Buffer[i] = Int16(sample * 32767)
-                    }
-                }
-                self.onAudioBuffer?(int16Data)
-            }
+        // 准备文件路径
+        recordingURL = AudioFileManager.shared.createTempFileURL(extension: "wav")
+
+        // 安装 tap
+        input.installTap(onBus: 0, bufferSize: 4096, format: hardwareFormat) { [weak self] buffer, _ in
+            self?.processBuffer(buffer, converter: converter, targetFormat: targetFmt)
         }
 
         engine.prepare()
@@ -85,40 +99,141 @@ final class AudioRecorder: ObservableObject {
 
         audioEngine = engine
         inputNode = input
-        isRecording = true
+        DispatchQueue.main.async { self.isRecording = true }
+    }
+
+    func requestAndStartRecording() async throws {
+        let granted = await requestMicrophonePermission()
+        guard granted else {
+            await MainActor.run { permissionDenied = true }
+            throw RecordingError.permissionDenied
+        }
+        try startRecording()
+    }
+
+    // MARK: - Process Buffer（实时线程，只做转换和推送，不写文件）
+
+    private func processBuffer(_ buffer: AVAudioPCMBuffer, converter: AVAudioConverter, targetFormat: AVAudioFormat) {
+        let ratio = targetFormat.sampleRate / buffer.format.sampleRate
+        let outputFrameCount = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
+        guard outputFrameCount > 0 else { return }
+
+        guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputFrameCount) else { return }
+
+        var error: NSError?
+        var consumed = false
+        converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
+            if consumed {
+                outStatus.pointee = .noDataNow
+                return nil
+            }
+            consumed = true
+            outStatus.pointee = .haveData
+            return buffer
+        }
+
+        guard convertedBuffer.frameLength > 0, let channelData = convertedBuffer.floatChannelData?[0] else { return }
+        let frameCount = Int(convertedBuffer.frameLength)
+
+        // 波形可视化 — 同步收集到 rawWaveformSamples（线程安全）
+        var sum: Float = 0
+        for i in 0..<frameCount { sum += abs(channelData[i]) }
+        let avg = sum / Float(max(frameCount, 1))
+
+        waveformLock.lock()
+        rawWaveformSamples.append(avg)
+        if rawWaveformSamples.count > 200 {
+            rawWaveformSamples.removeFirst(rawWaveformSamples.count - 200)
+        }
+        waveformLock.unlock()
+
+        // 同时更新 @Published（UI 用）
+        DispatchQueue.main.async {
+            self.waveformData.append(avg)
+            if self.waveformData.count > 200 { self.waveformData.removeFirst(self.waveformData.count - 200) }
+        }
+
+        // Float32 → Int16 PCM
+        var int16Data = Data(count: frameCount * 2)
+        int16Data.withUnsafeMutableBytes { raw in
+            let ptr = raw.bindMemory(to: Int16.self)
+            for i in 0..<frameCount {
+                ptr[i] = Int16(max(-1, min(1, channelData[i])) * 32767)
+            }
+        }
+
+        // 收集用于保存文件
+        collectedPCMData.append(int16Data)
+
+        // 流式推送给讯飞
+        onAudioBuffer?(int16Data)
     }
 
     // MARK: - Stop Recording
 
-    @discardableResult
+    /// 停止录音，返回 (文件URL, 波形数据)
     func stopRecording() -> URL? {
         inputNode?.removeTap(onBus: 0)
         audioEngine?.stop()
         audioEngine = nil
-        audioFile = nil
+        audioConverter = nil
+
+        // 从线程安全的 rawWaveformSamples 获取完整波形
+        waveformLock.lock()
+        let savedWaveform = rawWaveformSamples
+        waveformLock.unlock()
+
+        // 同步更新 @Published waveformData
+        waveformData = savedWaveform
         isRecording = false
+
+        // 将收集的 PCM 数据写为 WAV 文件
+        if let url = recordingURL, !collectedPCMData.isEmpty {
+            let wavData = createWAV(pcmData: collectedPCMData, sampleRate: Int(targetSampleRate), channels: 1, bitsPerSample: 16)
+            try? wavData.write(to: url)
+        }
+
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         return recordingURL
     }
 
-    // MARK: - Waveform Extraction
+    // MARK: - WAV 文件生成
 
-    private func extractWaveformData(from buffer: AVAudioPCMBuffer) {
-        guard let channelData = buffer.floatChannelData?[0] else { return }
-        let frameCount = Int(buffer.frameLength)
+    private func createWAV(pcmData: Data, sampleRate: Int, channels: Int, bitsPerSample: Int) -> Data {
+        let byteRate = sampleRate * channels * bitsPerSample / 8
+        let blockAlign = channels * bitsPerSample / 8
+        let dataSize = pcmData.count
+        let fileSize = 36 + dataSize
 
-        // 取平均振幅作为一个可视化样本
-        var sum: Float = 0
-        for i in 0..<frameCount {
-            sum += abs(channelData[i])
-        }
-        let average = sum / Float(frameCount)
+        var wav = Data()
+        wav.append(contentsOf: "RIFF".utf8)
+        wav.append(contentsOf: withUnsafeBytes(of: UInt32(fileSize).littleEndian) { Array($0) })
+        wav.append(contentsOf: "WAVE".utf8)
+        wav.append(contentsOf: "fmt ".utf8)
+        wav.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Array($0) })
+        wav.append(contentsOf: withUnsafeBytes(of: UInt16(1).littleEndian) { Array($0) })
+        wav.append(contentsOf: withUnsafeBytes(of: UInt16(channels).littleEndian) { Array($0) })
+        wav.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate).littleEndian) { Array($0) })
+        wav.append(contentsOf: withUnsafeBytes(of: UInt32(byteRate).littleEndian) { Array($0) })
+        wav.append(contentsOf: withUnsafeBytes(of: UInt16(blockAlign).littleEndian) { Array($0) })
+        wav.append(contentsOf: withUnsafeBytes(of: UInt16(bitsPerSample).littleEndian) { Array($0) })
+        wav.append(contentsOf: "data".utf8)
+        wav.append(contentsOf: withUnsafeBytes(of: UInt32(dataSize).littleEndian) { Array($0) })
+        wav.append(pcmData)
+        return wav
+    }
+}
 
-        DispatchQueue.main.async {
-            self.waveformData.append(average)
-            // 保留最近的 200 个样本用于显示
-            if self.waveformData.count > 200 {
-                self.waveformData.removeFirst(self.waveformData.count - 200)
-            }
+// MARK: - 错误类型
+
+enum RecordingError: LocalizedError {
+    case permissionDenied
+    case permissionNotDetermined
+
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied: return "麦克风权限被拒绝，请在设置中开启"
+        case .permissionNotDetermined: return "需要先授权麦克风权限"
         }
     }
 }

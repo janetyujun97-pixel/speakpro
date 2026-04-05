@@ -27,17 +27,19 @@ type ConversationHandler struct {
 	orchestrator   *service.Orchestrator
 	xunfei         *service.XunfeiClient
 	qwen           *service.QwenClient
+	fishTTS        *service.FishTTSClient
 	sessionManager *service.SessionManager
 	nestBaseURL    string
 }
 
-func NewConversationHandler(hub *ws.Hub, orch *service.Orchestrator, xunfei *service.XunfeiClient, qwen *service.QwenClient) *ConversationHandler {
+func NewConversationHandler(hub *ws.Hub, orch *service.Orchestrator, xunfei *service.XunfeiClient, qwen *service.QwenClient, fishTTS *service.FishTTSClient) *ConversationHandler {
 	cfg := config.Load()
 	return &ConversationHandler{
 		hub:            hub,
 		orchestrator:   orch,
 		xunfei:         xunfei,
 		qwen:           qwen,
+		fishTTS:        fishTTS,
 		sessionManager: service.NewSessionManager(),
 		nestBaseURL:    cfg.NestAPIBaseURL,
 	}
@@ -124,6 +126,15 @@ func (h *ConversationHandler) handleSessionInit(client *ws.Client, rawData json.
 	// 计算时间限制
 	timeLimit := h.getTimeLimit(initData.ExamType, initData.Section)
 
+	// TTS 合成开场白语音
+	var greetingTTSB64 string
+	ttsBytes, ttsErr := h.synthesizeTTS(greeting)
+	if ttsErr != nil {
+		log.Printf("[Conversation] 开场白 TTS 失败（降级为纯文本）: %v", ttsErr)
+	} else if len(ttsBytes) > 0 {
+		greetingTTSB64 = base64.StdEncoding.EncodeToString(ttsBytes)
+	}
+
 	// 发送 session_ready 响应
 	_ = client.SendJSON(model.WSServerMessage{
 		Type: model.MsgTypeSessionReady,
@@ -131,6 +142,7 @@ func (h *ConversationHandler) handleSessionInit(client *ws.Client, rawData json.
 			SessionID:        initData.SessionID,
 			ExaminerGreeting: greeting,
 			TimeLimitSec:     timeLimit,
+			GreetingTTSB64:   greetingTTSB64,
 		},
 	})
 }
@@ -265,9 +277,22 @@ func (h *ConversationHandler) runEvaluationPipeline(client *ws.Client, sessionID
 		// 记录考官回复
 		h.sessionManager.AppendMessage(sessionID, "examiner", examinerReply)
 
+		// TTS 合成考官语音
+		var ttsB64 string
+		ttsBytes, ttsErr := h.synthesizeTTS(examinerReply)
+		if ttsErr != nil {
+			log.Printf("[Conversation] TTS 合成失败（降级为纯文本）: %v", ttsErr)
+		} else if len(ttsBytes) > 0 {
+			ttsB64 = base64.StdEncoding.EncodeToString(ttsBytes)
+			log.Printf("[Conversation] TTS 合成成功: %d bytes", len(ttsBytes))
+		}
+
 		_ = client.SendJSON(model.WSServerMessage{
 			Type: model.MsgTypeExaminer,
-			Data: model.ExaminerData{Text: examinerReply},
+			Data: model.ExaminerData{
+				Text:        examinerReply,
+				TTSAudioB64: ttsB64,
+			},
 		})
 	}
 
@@ -393,6 +418,18 @@ func (h *ConversationHandler) generateGreeting(examType, section string) string 
 	default:
 		return "Hello! Welcome to SpeakPro. Let's start your speaking practice."
 	}
+}
+
+// synthesizeTTS 合成语音 — 优先 Fish Audio，失败回退讯飞
+func (h *ConversationHandler) synthesizeTTS(text string) ([]byte, error) {
+	if h.fishTTS != nil && h.fishTTS.IsConfigured() {
+		data, err := h.fishTTS.Synthesize(text, 1.0)
+		if err == nil {
+			return data, nil
+		}
+		log.Printf("[Conversation] Fish Audio TTS 失败，回退讯飞: %v", err)
+	}
+	return h.xunfei.Synthesize(text, "", 50)
 }
 
 // getTimeLimit 获取不同考试类型/部分的时间限制（秒）

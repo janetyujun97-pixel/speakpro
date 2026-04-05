@@ -26,6 +26,11 @@ type Config struct {
 	QwenAPIKey string
 	QwenModel  string
 
+	// Fish Audio TTS
+	FishAudioAPIKey string
+	FishAudioModel  string
+	FishAudioVoiceID string
+
 	// NestJS 内部回调地址
 	NestAPIBaseURL string
 
@@ -53,6 +58,9 @@ func Load() *Config {
 		XunfeiAPISecret:    getEnv("XUNFEI_API_SECRET", ""),
 		QwenAPIKey:         getEnv("QWEN_API_KEY", ""),
 		QwenModel:          getEnv("QWEN_MODEL", "qwen-max"),
+		FishAudioAPIKey:    getEnv("FISH_AUDIO_API_KEY", ""),
+		FishAudioModel:     getEnv("FISH_AUDIO_MODEL", "s2-pro"),
+		FishAudioVoiceID:   getEnv("FISH_AUDIO_VOICE_ID", ""),
 		NestAPIBaseURL:     getEnv("NEST_API_BASE_URL", "http://localhost:3000/api/v1"),
 		OSSRegion:          getEnv("OSS_REGION", "oss-cn-hangzhou"),
 		OSSBucket:          getEnv("OSS_BUCKET", "speakpro"),

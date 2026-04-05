@@ -13,6 +13,10 @@ struct MockExamView: View {
                 loadingView
             case .sectionTransition:
                 sectionTransitionView
+            case .evaluating:
+                evaluatingView
+            case .showingResult:
+                resultView
             case .finished:
                 MockExamSummaryView(
                     overallScore: viewModel.overallScore,
@@ -30,78 +34,64 @@ struct MockExamView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if viewModel.phase != .finished {
-                    Button("结束考试") {
-                        viewModel.endExam()
-                    }
-                    .foregroundColor(.spError)
+                if viewModel.phase == .inProgress || viewModel.phase == .ready {
+                    Button("结束考试") { viewModel.endExam() }
+                        .foregroundColor(.spAccent)
                 }
             }
         }
     }
 
-    // MARK: - 加载中
+    // MARK: - Loading
 
     private var loadingView: some View {
         VStack(spacing: 16) {
             SwiftUI.ProgressView()
-                .scaleEffect(1.2)
-            Text("正在加载考试题目...")
+                .scaleEffect(1.5)
+            Text("正在加载题目...")
                 .font(.spBodyMedium)
                 .foregroundColor(.spTextSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - 部分过渡屏
-
-    private var sectionTransitionView: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 64))
-                .foregroundColor(.spSuccess)
-
-            Text("Part \(viewModel.transitionFromPart) 完成！")
-                .font(.spTitleLarge)
-                .foregroundColor(.spTextPrimary)
-
-            Text("即将进入 Part \(viewModel.transitionToPart)")
-                .font(.spBodyLarge)
-                .foregroundColor(.spTextSecondary)
-
-            Spacer()
-
-            Button {
-                viewModel.continueAfterTransition()
-            } label: {
-                Text("继续")
-                    .font(.spBodyMedium)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.spAccent)
-                    .cornerRadius(12)
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 40)
-        }
-    }
-
-    // MARK: - 考试内容
+    // MARK: - Exam Content (Ready + InProgress)
 
     private var examContentView: some View {
         VStack(spacing: 0) {
-            // 顶部状态栏
-            examHeader
+            // 进度条 + 计时器
+            HStack {
+                Text("题目 \(viewModel.currentQuestionIndex + 1)/\(viewModel.totalQuestions)")
+                    .font(.spCaption)
+                    .foregroundColor(.spTextSecondary)
+
+                Spacer()
+
+                // 暂停按钮
+                Button { viewModel.togglePause() } label: {
+                    Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.spTextSecondary)
+                }
+
+                // 计时
+                HStack(spacing: 4) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 12))
+                    Text(viewModel.formattedTime)
+                        .font(.spBodyMedium)
+                        .monospacedDigit()
+                }
+                .foregroundColor(viewModel.remainingTime < 30 ? .spError : .spTextSecondary)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
 
             // 进度条
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle()
-                        .fill(Color.spSurface)
+                        .fill(Color(.systemGray5))
                         .frame(height: 3)
                     Rectangle()
                         .fill(Color.spAccent)
@@ -111,102 +101,157 @@ struct MockExamView: View {
             }
             .frame(height: 3)
 
-            // 暂停遮罩
-            if viewModel.isPaused {
-                pauseOverlay
-            } else {
-                // 题目显示
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Part \(viewModel.currentPart)")
-                            .font(.spCaption)
-                            .foregroundColor(.spAccent)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.spAccent.opacity(0.1))
-                            .cornerRadius(6)
+            // 题目内容
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Part \(viewModel.currentPart)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.spAccent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.spAccent.opacity(0.1))
+                        .cornerRadius(4)
 
-                        Text(viewModel.currentQuestion)
-                            .font(.spBodyLarge)
-                            .foregroundColor(.spTextPrimary)
-                            .lineSpacing(6)
+                    Text(viewModel.currentQuestion)
+                        .font(.spBodyLarge)
+                        .foregroundColor(.spTextPrimary)
+                        .lineSpacing(6)
 
-                        if !viewModel.subQuestions.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                ForEach(viewModel.subQuestions, id: \.self) { sub in
-                                    HStack(alignment: .top, spacing: 8) {
-                                        Circle()
-                                            .fill(Color.spTextSecondary)
-                                            .frame(width: 6, height: 6)
-                                            .padding(.top, 6)
-                                        Text(sub)
-                                            .font(.spBodyMedium)
-                                            .foregroundColor(.spTextSecondary)
-                                    }
-                                }
+                    if !viewModel.subQuestions.isEmpty {
+                        ForEach(viewModel.subQuestions, id: \.self) { sub in
+                            HStack(alignment: .top, spacing: 8) {
+                                Text("•")
+                                    .foregroundColor(.spAccent)
+                                Text(sub)
+                                    .font(.spBodyMedium)
+                                    .foregroundColor(.spTextSecondary)
                             }
                         }
                     }
-                    .padding(20)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white)
+                .padding(20)
+            }
 
-                Spacer()
+            Spacer()
 
-                // 录音控制区
-                VStack(spacing: 16) {
-                    Text(viewModel.statusText)
-                        .font(.spBodyMedium)
-                        .foregroundColor(.spTextSecondary)
+            // 错误提示
+            if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(.spCaption)
+                    .foregroundColor(.spError)
+                    .padding(.horizontal, 20)
+            }
 
-                    RecordButton(isRecording: $viewModel.isRecording) {
-                        if viewModel.isRecording {
-                            viewModel.stopRecording()
-                        } else {
-                            viewModel.startRecording()
+            // 录音波形
+            if viewModel.isRecording {
+                WaveformView(data: viewModel.audioRecorder.waveformData, barColor: .spAccent)
+                    .frame(height: 30)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+            }
+
+            // 录音按钮
+            RecordButton(isRecording: $viewModel.isRecording) {
+                if viewModel.isRecording {
+                    viewModel.stopRecording()
+                } else {
+                    viewModel.startRecording()
+                }
+            }
+            .disabled(viewModel.isPaused)
+            .opacity(viewModel.isPaused ? 0.5 : 1)
+            .padding(.bottom, 32)
+        }
+        .overlay {
+            if viewModel.isPaused {
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                    .overlay {
+                        VStack(spacing: 16) {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.white)
+                            Text("考试已暂停")
+                                .font(.spTitleMedium)
+                                .foregroundColor(.white)
+                            Button("继续") { viewModel.togglePause() }
+                                .font(.spBodyMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.spAccent)
+                                .padding(.horizontal, 40)
+                                .padding(.vertical, 12)
+                                .background(Color.white)
+                                .cornerRadius(12)
                         }
                     }
-
-                    if viewModel.canProceed {
-                        Button("下一题") {
-                            viewModel.nextQuestion()
-                        }
-                        .font(.spBodyMedium)
-                        .foregroundColor(.spAccent)
-                    }
-                }
-                .padding(.bottom, 32)
             }
         }
     }
 
-    // MARK: - 暂停遮罩
+    // MARK: - Evaluating
 
-    private var pauseOverlay: some View {
+    private var evaluatingView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            SwiftUI.ProgressView()
+                .scaleEffect(1.5)
+            Text(viewModel.evaluationProgress)
+                .font(.spBodyMedium)
+                .foregroundColor(.spTextSecondary)
+            Text("请稍候，AI 正在全面分析您的回答...")
+                .font(.spCaption)
+                .foregroundColor(.spTextSecondary.opacity(0.7))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Result View
+
+    private var resultView: some View {
+        MockExamResultView(
+            question: viewModel.currentQuestion,
+            part: viewModel.currentPart,
+            result: viewModel.currentResult ?? FullEvaluateResult(
+                transcript: nil, wordCount: nil, sentenceCount: nil,
+                pronunciationScore: nil, grammarScore: nil, contentScore: nil,
+                overallScore: 0, aiFeedback: nil, revisedAnswer: nil,
+                mindMap: nil, keywords: nil, sampleAnswers: nil, revisedAudioB64: nil
+            ),
+            audioURL: viewModel.currentAudioURL,
+            questionIndex: viewModel.currentQuestionIndex + 1,
+            totalQuestions: viewModel.totalQuestions,
+            onNext: { viewModel.dismissResult() },
+            onRedo: { viewModel.redoCurrentQuestion() }
+        )
+    }
+
+    // MARK: - Section Transition
+
+    private var sectionTransitionView: some View {
         VStack(spacing: 24) {
             Spacer()
 
-            Image(systemName: "pause.circle.fill")
-                .font(.system(size: 64))
+            Image(systemName: "arrow.right.circle.fill")
+                .font(.system(size: 56))
                 .foregroundColor(.spAccent)
 
-            Text("考试已暂停")
+            Text("Part \(viewModel.transitionFromPart) 完成")
                 .font(.spTitleMedium)
                 .foregroundColor(.spTextPrimary)
 
-            Text("剩余时间: \(viewModel.formattedTime)")
+            Text("即将进入 Part \(viewModel.transitionToPart)")
                 .font(.spBodyMedium)
                 .foregroundColor(.spTextSecondary)
 
             Button {
-                viewModel.togglePause()
+                viewModel.continueAfterTransition()
             } label: {
-                Text("继续考试")
+                Text("继续")
                     .font(.spBodyMedium)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
-                    .frame(width: 200)
+                    .padding(.horizontal, 48)
                     .padding(.vertical, 14)
                     .background(Color.spAccent)
                     .cornerRadius(12)
@@ -214,45 +259,6 @@ struct MockExamView: View {
 
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.spBackground)
-    }
-
-    // MARK: - Exam Header
-
-    private var examHeader: some View {
-        HStack {
-            // 进度
-            Text("题目 \(viewModel.currentQuestionIndex + 1)/\(viewModel.totalQuestions)")
-                .font(.spBodySmall)
-                .foregroundColor(.spTextSecondary)
-
-            Spacer()
-
-            // 暂停按钮
-            Button {
-                viewModel.togglePause()
-            } label: {
-                Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
-                    .font(.spBodySmall)
-                    .foregroundColor(.spTextSecondary)
-                    .padding(6)
-                    .background(Color.spSurface)
-                    .cornerRadius(6)
-            }
-
-            // 计时器
-            HStack(spacing: 4) {
-                Image(systemName: "timer")
-                Text(viewModel.formattedTime)
-                    .monospacedDigit()
-            }
-            .font(.spBodyMedium)
-            .foregroundColor(viewModel.remainingTime < 30 ? .spError : .spTextPrimary)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .background(Color.white)
     }
 }
 

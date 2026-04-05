@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Music, FileText, Video, BookOpen, Trash2, Loader2, Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import FileUpload from "@/components/ui/file-upload";
+import { Button } from "@/components/ui/button";
 
 interface ResourceItem {
   id: string;
@@ -23,11 +25,11 @@ const TYPE_OPTIONS = [
   { value: "wordlist", label: "词表" },
 ];
 
-const TYPE_ICONS: Record<string, string> = {
-  audio: "🎵",
-  document: "📄",
-  video: "🎬",
-  wordlist: "📝",
+const TYPE_ICONS: Record<string, any> = {
+  audio: Music,
+  document: FileText,
+  video: Video,
+  wordlist: BookOpen,
 };
 
 export default function LibraryPage() {
@@ -171,7 +173,14 @@ export default function LibraryPage() {
             <div key={r.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{TYPE_ICONS[r.type] || "📁"}</span>
+                  {(() => {
+                    const Icon = TYPE_ICONS[r.type] || FileText;
+                    return (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+                        <Icon className="h-5 w-5 text-accent" />
+                      </div>
+                    );
+                  })()}
                   <div>
                     <h3 className="font-medium text-gray-800 line-clamp-1">{r.title}</h3>
                     <p className="text-xs text-gray-400 mt-0.5">

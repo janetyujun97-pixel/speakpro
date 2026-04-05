@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -87,6 +88,9 @@ func (c *XunfeiClient) Recognize(audioData []byte) (string, error) {
 	}
 	defer conn.Close()
 
+	// 自动去除 WAV 头
+	audioData = stripWAVHeader(audioData)
+
 	// 首帧：携带业务配置 + 首段音频
 	chunkSize := 1280
 	firstChunk := audioData
@@ -136,8 +140,14 @@ func (c *XunfeiClient) Recognize(audioData []byte) (string, error) {
 		}
 	}
 
-	// 接收识别结果并拼接
-	var fullTranscript strings.Builder
+	// 接收识别结果 — 处理 wpgs 动态修正模式
+	// wpgs 模式下，每次返回的 result 有 pgs 字段：
+	//   pgs="apd" → 追加（append），将本次 ws 追加到已有结果
+	//   pgs="rpl" → 替换（replace），用本次 ws 替换 rg 指定范围的旧结果
+	// 我们用 segments 数组按句子编号(sn)存储，最后拼接
+	segments := make(map[int]string)
+	var maxSN int
+
 	for {
 		var result struct {
 			Code    int    `json:"code"`
@@ -145,7 +155,10 @@ func (c *XunfeiClient) Recognize(audioData []byte) (string, error) {
 			Data    struct {
 				Status int `json:"status"`
 				Result struct {
-					Ws []struct {
+					Pgs string `json:"pgs"` // apd=追加, rpl=替换
+					Rg  []int  `json:"rg"`  // 替换范围 [start, end]
+					Sn  int    `json:"sn"`  // 句子编号
+					Ws  []struct {
 						Cw []struct {
 							W string `json:"w"`
 						} `json:"cw"`
@@ -160,20 +173,46 @@ func (c *XunfeiClient) Recognize(audioData []byte) (string, error) {
 			return "", fmt.Errorf("读取 ASR 结果失败: %w", err)
 		}
 		if result.Code != 0 {
-			// 11200=服务未开通, 请前往 https://console.xfyun.cn 开通"实时语音转写"
 			return "", fmt.Errorf("讯飞 ASR 错误 %d: %s (请确认已开通实时语音转写能力)", result.Code, result.Message)
 		}
+
+		// 拼接当前帧的文本
+		var segText strings.Builder
 		for _, ws := range result.Data.Result.Ws {
 			for _, cw := range ws.Cw {
-				fullTranscript.WriteString(cw.W)
+				segText.WriteString(cw.W)
 			}
 		}
+
+		sn := result.Data.Result.Sn
+		pgs := result.Data.Result.Pgs
+
+		if pgs == "rpl" && len(result.Data.Result.Rg) == 2 {
+			// 替换模式：删除 rg 范围内的旧 segment，写入新的
+			for i := result.Data.Result.Rg[0]; i <= result.Data.Result.Rg[1]; i++ {
+				delete(segments, i)
+			}
+		}
+
+		segments[sn] = segText.String()
+		if sn > maxSN {
+			maxSN = sn
+		}
+
 		if result.Data.Status == 2 {
 			break
 		}
 	}
 
-	return fullTranscript.String(), nil
+	// 按 sn 顺序拼接最终结果
+	var finalText strings.Builder
+	for i := 0; i <= maxSN; i++ {
+		if text, ok := segments[i]; ok {
+			finalText.WriteString(text)
+		}
+	}
+
+	return strings.TrimSpace(finalText.String()), nil
 }
 
 // Assess 发音评测 — 讯飞 ISE (Intelligent Speech Evaluation) WebSocket API
@@ -182,6 +221,9 @@ func (c *XunfeiClient) Assess(audioData []byte, referenceText string) (*model.Pr
 	if c.appID == "" {
 		return nil, errors.New("讯飞 AppID 未配置")
 	}
+
+	// 自动检测并去除 WAV 文件头（讯飞 ISE 需要原始 PCM 数据）
+	audioData = stripWAVHeader(audioData)
 
 	authURL, err := c.buildAuthURL("wss://ise-api.xfyun.cn/v2/open-ise")
 	if err != nil {
@@ -357,12 +399,28 @@ func (c *XunfeiClient) Synthesize(text string, voice string, speed int) ([]byte,
 	}
 
 	if voice == "" {
-		voice = "x4_lingxiaolu_oral" // 默认音色（支持中英文）
+		voice = "x4_enus_luna_assist" // 默认英文音色（Luna，美式英语，自然流畅）
 	}
 	if speed <= 0 || speed > 100 {
 		speed = 50 // 默认中等语速
 	}
 
+	// 尝试主音色，失败则回退到备选音色
+	voices := []string{voice, "x4_enus_luna_assist", "catherine", "x4_lingxiaolu_oral"}
+	var lastErr error
+	for _, v := range voices {
+		data, err := c.doSynthesize(text, v, speed)
+		if err == nil {
+			return data, nil
+		}
+		lastErr = err
+		log.Printf("[TTS] 音色 %s 合成失败: %v，尝试下一个...", v, err)
+	}
+	return nil, fmt.Errorf("所有 TTS 音色均失败: %w", lastErr)
+}
+
+// doSynthesize 执行单次 TTS 合成
+func (c *XunfeiClient) doSynthesize(text string, voice string, speed int) ([]byte, error) {
 	authURL, err := c.buildAuthURL("wss://tts-api.xfyun.cn/v2/tts")
 	if err != nil {
 		return nil, err
@@ -374,24 +432,40 @@ func (c *XunfeiClient) Synthesize(text string, voice string, speed int) ([]byte,
 	}
 	defer conn.Close()
 
+	// 使用 SSML 包装英文文本，增强自然度
+	// ssml 可以控制停顿、语调、语速，让英文读起来更自然
+	ssmlText := fmt.Sprintf(`<speak><prosody rate="%d%%">%s</prosody></speak>`, speed, text)
+	isSSML := true
+
 	// 发送合成请求（TTS 只需发一帧请求）
+	business := map[string]interface{}{
+		"aue":    "raw",                  // 输出格式: PCM
+		"auf":    "audio/L16;rate=16000", // 采样率
+		"vcn":    voice,                  // 发音人
+		"speed":  speed,                  // 语速 (0-100)
+		"volume": 60,                     // 音量稍大
+		"pitch":  50,                     // 音调
+		"tte":    "utf8",                 // 文本编码
+		"sfl":    1,                      // 流式返回
+	}
+
+	// 如果不支持 SSML（某些音色），回退到纯文本
+	var encodedText string
+	if isSSML {
+		business["tte"] = "utf8"
+		encodedText = base64.StdEncoding.EncodeToString([]byte(ssmlText))
+	} else {
+		encodedText = base64.StdEncoding.EncodeToString([]byte(text))
+	}
+
 	reqFrame := map[string]interface{}{
 		"common": map[string]interface{}{
 			"app_id": c.appID,
 		},
-		"business": map[string]interface{}{
-			"aue":    "raw",                    // 输出格式: PCM
-			"auf":    "audio/L16;rate=16000",   // 采样率
-			"vcn":    voice,                    // 发音人
-			"speed":  speed,                    // 语速 (0-100)
-			"volume": 50,                       // 音量
-			"pitch":  50,                       // 音调
-			"tte":    "utf8",                   // 文本编码
-			"sfl":    1,                        // 流式返回
-		},
+		"business": business,
 		"data": map[string]interface{}{
 			"status": 2, // TTS 只有一帧请求，status=2 表示结束
-			"text":   base64.StdEncoding.EncodeToString([]byte(text)),
+			"text":   encodedText,
 		},
 	}
 	if err := conn.WriteJSON(reqFrame); err != nil {
@@ -434,4 +508,32 @@ func (c *XunfeiClient) Synthesize(text string, voice string, speed int) ([]byte,
 	}
 
 	return audioBuf, nil
+}
+
+// stripWAVHeader 检测 WAV 文件头（"RIFF"...44 字节）并去除，返回纯 PCM 数据
+// 如果不是 WAV 格式则原样返回
+func stripWAVHeader(data []byte) []byte {
+	if len(data) > 44 &&
+		string(data[0:4]) == "RIFF" &&
+		string(data[8:12]) == "WAVE" {
+		// 找到 "data" 子块的位置
+		for i := 12; i < len(data)-8; i++ {
+			if string(data[i:i+4]) == "data" {
+				dataSize := int(data[i+4]) | int(data[i+5])<<8 | int(data[i+6])<<16 | int(data[i+7])<<24
+				pcmStart := i + 8
+				if pcmStart < len(data) {
+					end := pcmStart + dataSize
+					if end > len(data) {
+						end = len(data)
+					}
+					log.Printf("[WAV] 去除 WAV 头: header=%d bytes, pcm=%d bytes", pcmStart, end-pcmStart)
+					return data[pcmStart:end]
+				}
+			}
+		}
+		// 简单回退：跳过标准 44 字节头
+		log.Printf("[WAV] 使用标准 44 字节头偏移")
+		return data[44:]
+	}
+	return data
 }

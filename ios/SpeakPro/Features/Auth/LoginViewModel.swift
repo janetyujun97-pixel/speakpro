@@ -14,7 +14,7 @@ private struct LoginResponseData: Decodable {
     let user: UserInfo
 }
 
-struct UserInfo: Decodable, Equatable {
+struct UserInfo: Codable, Equatable {
     let id: String
     let name: String
     let email: String

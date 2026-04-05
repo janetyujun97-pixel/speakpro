@@ -57,7 +57,7 @@ struct LoginView: View {
 
             Text("SpeakPro")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.spText)
+                .foregroundStyle(Color.spTextPrimary)
 
             Text("AI 驱动的托福/雅思口语练习")
                 .font(.subheadline)

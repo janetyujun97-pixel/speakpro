@@ -36,6 +36,9 @@ struct HomeworkListView: View {
             .task {
                 await viewModel.fetchAssignments()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .switchToPendingHomework)) { _ in
+                viewModel.selectedTab = .pending
+            }
         }
     }
 
@@ -63,11 +66,11 @@ struct HomeworkListView: View {
                         .font(.spCaption)
                         .foregroundColor(.spTextSecondary)
 
-                    if !assignment.isCompleted {
-                        Text(assignment.deadline.deadlineString)
+                    if !assignment.isCompleted, let deadline = assignment.deadline {
+                        Text(deadline, style: .relative)
                             .font(.spCaption)
                             .foregroundColor(
-                                assignment.deadline.timeIntervalSinceNow < 86400
+                                deadline.timeIntervalSinceNow < 86400
                                     ? .spError : .spTextSecondary
                             )
                     }

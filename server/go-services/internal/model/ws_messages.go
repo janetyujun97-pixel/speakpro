@@ -53,6 +53,7 @@ type SessionReadyData struct {
 	SessionID        string `json:"session_id"`
 	ExaminerGreeting string `json:"examiner_greeting"`
 	TimeLimitSec     int    `json:"time_limit_sec"`
+	GreetingTTSB64   string `json:"greeting_tts_b64,omitempty"`
 }
 
 // TranscriptData 实时转写结果

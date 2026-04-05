@@ -27,7 +27,7 @@ func NewQwenClient(cfg *config.Config) *QwenClient {
 		apiKey:    cfg.QwenAPIKey,
 		modelName: cfg.QwenModel,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 90 * time.Second,
 		},
 	}
 }
@@ -192,7 +192,7 @@ func (c *QwenClient) CorrectGrammar(transcript string) (*model.GrammarScore, err
 	prompt := fmt.Sprintf(`Analyze the following English speech transcript for grammar errors.
 Return a JSON object with this exact structure:
 {
-  "score": <float 0-10, overall grammar score>,
+  "score": <float 0-100, overall grammar score on a 100-point scale>,
   "errors": [
     {
       "text": "<the incorrect phrase>",
@@ -203,6 +203,8 @@ Return a JSON object with this exact structure:
   "corrections": ["<full corrected sentence 1>", ...]
 }
 
+IMPORTANT: The "score" field must be on a 0-100 scale (not 0-10).
+For example: perfect grammar = 95-100, minor errors = 70-85, major errors = 40-60, barely intelligible = 10-30.
 Only return valid JSON, no markdown or extra text.
 
 Transcript: %s`, transcript)
@@ -292,4 +294,138 @@ func cleanJSONResponse(s string) string {
 	s = strings.TrimPrefix(s, "```")
 	s = strings.TrimSuffix(s, "```")
 	return strings.TrimSpace(s)
+}
+
+// ========================
+// 模考完整评测用 AI 方法
+// ========================
+
+// GenerateRevisedAnswer 生成修订后的答案
+func (c *QwenClient) GenerateRevisedAnswer(transcript, question string) (*model.RevisedAnswer, error) {
+	if c.apiKey == "" {
+		return nil, errors.New("千问 API Key 未配置")
+	}
+
+	prompt := fmt.Sprintf(`You are an expert IELTS/TOEFL speaking coach. The student answered the following question:
+
+Question: %s
+Student's answer: %s
+
+Provide an improved/corrected version that fixes all grammar errors, improves vocabulary, and enhances coherence while keeping the student's original ideas and structure.
+
+Return ONLY valid JSON:
+{"text": "<improved answer text>", "wordCount": <number>, "sentenceCount": <number>}`, question, transcript)
+
+	messages := []qwenMessage{
+		{Role: "system", Content: "You are an expert English speaking coach. Always respond with valid JSON only."},
+		{Role: "user", Content: prompt},
+	}
+
+	respStr, err := c.callQwen(messages)
+	if err != nil {
+		return nil, err
+	}
+
+	respStr = cleanJSONResponse(respStr)
+	var result model.RevisedAnswer
+	if err := json.Unmarshal([]byte(respStr), &result); err != nil {
+		// 如果 JSON 解析失败，直接用原文作为修订
+		return &model.RevisedAnswer{Text: respStr, WordCount: len(strings.Fields(respStr)), SentenceCount: strings.Count(respStr, ".") + 1}, nil
+	}
+	return &result, nil
+}
+
+// GenerateMindMap 生成思维导图结构
+func (c *QwenClient) GenerateMindMap(question, examType, section string) (*model.MindMapData, error) {
+	if c.apiKey == "" {
+		return nil, errors.New("千问 API Key 未配置")
+	}
+
+	prompt := fmt.Sprintf(`Generate a structured outline/mind map for answering this %s %s speaking question:
+
+"%s"
+
+The mind map should show the ideal answer structure with main points, supporting details, and examples. Limit to 3 levels deep.
+
+Return ONLY valid JSON:
+{
+  "title": "<main topic/thesis>",
+  "children": [
+    {
+      "label": "<main point>",
+      "detail": "<brief explanation>",
+      "children": [
+        {"label": "<supporting detail>", "detail": "<example or evidence>"}
+      ]
+    }
+  ]
+}`, examType, section, question)
+
+	messages := []qwenMessage{
+		{Role: "system", Content: "You are an expert speaking test coach. Always respond with valid JSON only."},
+		{Role: "user", Content: prompt},
+	}
+
+	respStr, err := c.callQwen(messages)
+	if err != nil {
+		return nil, err
+	}
+
+	respStr = cleanJSONResponse(respStr)
+	var result model.MindMapData
+	if err := json.Unmarshal([]byte(respStr), &result); err != nil {
+		return &model.MindMapData{Title: "Answer Structure", Children: []model.MindMapNode{{Label: "Main Point"}}}, nil
+	}
+	return &result, nil
+}
+
+// GenerateKeywordsAndSamples 生成关键词和样例答案
+func (c *QwenClient) GenerateKeywordsAndSamples(question, transcript, examType string) ([]model.KeywordItem, []string, error) {
+	if c.apiKey == "" {
+		return nil, nil, errors.New("千问 API Key 未配置")
+	}
+
+	prompt := fmt.Sprintf(`Analyze this %s speaking question and the student's response. Provide useful vocabulary and sample answers.
+
+Question: %s
+Student's response: %s
+
+Return ONLY valid JSON:
+{
+  "keywords": [
+    {
+      "word": "<advanced vocabulary word>",
+      "phonetic": "/<IPA pronunciation>/",
+      "partOfSpeech": "<noun/verb/adj/adv>",
+      "definition": "<clear definition in English>",
+      "exampleSentence": "<example sentence using this word in context of the question>"
+    }
+  ],
+  "sampleAnswers": [
+    "<complete high-scoring sample answer paragraph 1>",
+    "<complete high-scoring sample answer paragraph 2>"
+  ]
+}
+
+Provide 5-8 keywords and 2-3 sample answer paragraphs.`, examType, question, transcript)
+
+	messages := []qwenMessage{
+		{Role: "system", Content: "You are an expert IELTS/TOEFL vocabulary and speaking coach. Always respond with valid JSON only."},
+		{Role: "user", Content: prompt},
+	}
+
+	respStr, err := c.callQwen(messages)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	respStr = cleanJSONResponse(respStr)
+	var result struct {
+		Keywords      []model.KeywordItem `json:"keywords"`
+		SampleAnswers []string            `json:"sampleAnswers"`
+	}
+	if err := json.Unmarshal([]byte(respStr), &result); err != nil {
+		return []model.KeywordItem{}, []string{}, nil
+	}
+	return result.Keywords, result.SampleAnswers, nil
 }

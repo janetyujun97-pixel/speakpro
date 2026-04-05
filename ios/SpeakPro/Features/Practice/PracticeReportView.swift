@@ -39,9 +39,10 @@ struct PracticeReportView: View {
                         .padding(.horizontal, 20)
 
                     RadarChart(
-                        data: viewModel.dimensionScores,
-                        labels: ["发音", "流利度", "语法", "内容", "连贯性"],
-                        accentColor: .spAccent
+                        scores: Dictionary(uniqueKeysWithValues: zip(
+                            ["发音", "流利度", "语法", "内容", "连贯性"],
+                            viewModel.dimensionScores
+                        ))
                     )
                     .frame(height: 220)
                     .padding(.horizontal, 20)
@@ -75,10 +76,7 @@ struct PracticeReportView: View {
                             .font(.spTitleSmall)
                             .foregroundColor(.spTextPrimary)
 
-                        Text(viewModel.feedback)
-                            .font(.spBodySmall)
-                            .foregroundColor(.spTextSecondary)
-                            .lineSpacing(4)
+                        RichFeedbackView(text: viewModel.feedback)
                     }
                     .padding(20)
                     .background(Color.spSurface)

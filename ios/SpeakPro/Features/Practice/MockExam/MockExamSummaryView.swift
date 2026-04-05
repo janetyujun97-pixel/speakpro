@@ -5,7 +5,7 @@ struct MockExamSummaryView: View {
 
     let overallScore: Double
     let partAverages: [(part: Int, avg: Double)]
-    let scores: [QuestionScore]
+    let scores: [EnrichedQuestionScore]
     let onRetry: () -> Void
     let onDismiss: () -> Void
 

@@ -1,12 +1,19 @@
 import Foundation
 
+/// 推荐练习项（带跳转目标）
+struct RecommendedItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let mode: PracticeMode
+}
+
 /// 首页视图模型 —— 从真实 API 获取练习统计和待办作业
 final class HomeViewModel: ObservableObject {
 
     @Published var streakDays: Int = 0
     @Published var todayProgress: Double = 0.0   // 0.0 ~ 1.0
     @Published var totalSessions: Int = 0
-    @Published var recommendedPractices: [String] = []
+    @Published var recommendedItems: [RecommendedItem] = []
     @Published var pendingHomework: [String] = []
     @Published var isLoading = false
 
@@ -44,14 +51,18 @@ final class HomeViewModel: ObservableObject {
                     todayProgress = min(Double(todayCount) / Double(dailyGoal), 1.0)
 
                     // 根据薄弱项生成推荐练习
-                    recommendedPractices = generateRecommendations(data.dimensions)
+                    recommendedItems = generateRecommendations(data.dimensions)
                 }
             }
         } catch {
             print("[HomeVM] 统计加载失败: \(error)")
             await MainActor.run {
                 // 显示默认推荐
-                recommendedPractices = ["AI 对话练习", "跟读发音训练", "模考模拟"]
+                recommendedItems = [
+                    RecommendedItem(title: "AI 对话练习", mode: .conversation),
+                    RecommendedItem(title: "跟读发音训练", mode: .followRead),
+                    RecommendedItem(title: "模考模拟", mode: .mockExam),
+                ]
             }
         }
     }
@@ -66,12 +77,14 @@ final class HomeViewModel: ObservableObject {
             )
 
             await MainActor.run {
-                pendingHomework = response.data?.prefix(3).map { hw in
+                // 只显示未完成的作业
+                let pending = (response.data ?? []).filter { !$0.isCompleted }
+                pendingHomework = pending.prefix(3).map { hw in
                     if let deadline = hw.dueDate {
                         return "\(hw.title) (截止 \(formatDeadline(deadline)))"
                     }
                     return hw.title
-                } ?? []
+                }
             }
         } catch {
             print("[HomeVM] 作业加载失败: \(error)")
@@ -80,31 +93,41 @@ final class HomeViewModel: ObservableObject {
 
     // MARK: - 辅助方法
 
-    private func generateRecommendations(_ dimensions: DimensionScores?) -> [String] {
+    private func generateRecommendations(_ dimensions: DimensionScores?) -> [RecommendedItem] {
         guard let dim = dimensions else {
-            return ["AI 对话练习", "发音训练", "模考练习"]
+            return [
+                RecommendedItem(title: "AI 对话练习", mode: .conversation),
+                RecommendedItem(title: "发音训练", mode: .followRead),
+                RecommendedItem(title: "模考练习", mode: .mockExam),
+            ]
         }
 
-        var recs: [String] = []
-        // 找出薄弱维度，推荐对应练习
-        if dim.pronunciation < 70 { recs.append("发音跟读训练 — 提升发音准确度") }
-        if dim.fluency < 70 { recs.append("AI 对话练习 — 提升流利度") }
-        if dim.grammar < 70 { recs.append("朗读练习 — 强化语法表达") }
-        if dim.content < 70 { recs.append("模考练习 — 提升内容组织能力") }
-        if recs.isEmpty { recs.append("继续保持！尝试更高难度的练习") }
+        var recs: [RecommendedItem] = []
+        if dim.pronunciation < 70 { recs.append(RecommendedItem(title: "发音跟读训练 — 提升准确度", mode: .followRead)) }
+        if dim.fluency < 70 { recs.append(RecommendedItem(title: "AI 对话练习 — 提升流利度", mode: .conversation)) }
+        if dim.grammar < 70 { recs.append(RecommendedItem(title: "朗读练习 — 强化语法表达", mode: .readAloud)) }
+        if dim.content < 70 { recs.append(RecommendedItem(title: "模考练习 — 提升内容组织", mode: .mockExam)) }
+        if recs.isEmpty { recs.append(RecommendedItem(title: "继续保持！挑战更高难度", mode: .conversation)) }
         return Array(recs.prefix(3))
     }
 
     private func formatDeadline(_ dateStr: String) -> String {
+        // 支持带毫秒和不带毫秒的 ISO 格式
         let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: dateStr) else { return dateStr }
-        let diff = Calendar.current.dateComponents([.day, .hour], from: Date(), to: date)
-        if let days = diff.day, days > 0 {
-            return "\(days)天后"
-        } else if let hours = diff.hour, hours > 0 {
-            return "\(hours)小时后"
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var date = formatter.date(from: dateStr)
+        if date == nil {
+            formatter.formatOptions = [.withInternetDateTime]
+            date = formatter.date(from: dateStr)
         }
-        return "即将截止"
+        guard let parsedDate = date else {
+            // 最后尝试截取前19个字符 + Z
+            let cleaned = String(dateStr.prefix(19)) + "Z"
+            let fallback = ISO8601DateFormatter()
+            guard let d = fallback.date(from: cleaned) else { return "截止日期未知" }
+            return d.deadlineString
+        }
+        return parsedDate.deadlineString
     }
 }
 
@@ -136,4 +159,15 @@ private struct HomeworkItem: Decodable {
     let id: String
     let title: String
     let dueDate: String?
+    let submissions: [HomeworkSubmission]?
+
+    // 判断当前用户是否已提交/已批改
+    var isCompleted: Bool {
+        guard let subs = submissions, !subs.isEmpty else { return false }
+        return subs.contains { $0.status == "submitted" || $0.status == "graded" }
+    }
+}
+
+private struct HomeworkSubmission: Decodable {
+    let status: String
 }

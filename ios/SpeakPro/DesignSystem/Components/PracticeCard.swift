@@ -1,52 +1,48 @@
 import SwiftUI
 
-/// 练习入口卡片组件
+/// 练习入口卡片组件（纯展示，不处理点击）
 struct PracticeCard: View {
 
     let title: String
     let subtitle: String
     let iconName: String
-    var action: (() -> Void)?
 
     var body: some View {
-        Button(action: { action?() }) {
-            HStack(spacing: 16) {
-                // 图标
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.spAccent.opacity(0.1))
-                        .frame(width: 48, height: 48)
+        HStack(spacing: 16) {
+            // 图标
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.spAccent.opacity(0.1))
+                    .frame(width: 48, height: 48)
 
-                    Image(systemName: iconName)
-                        .font(.system(size: 22))
-                        .foregroundColor(.spAccent)
-                }
-
-                // 文本
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.spTitleSmall)
-                        .foregroundColor(.spTextPrimary)
-
-                    Text(subtitle)
-                        .font(.spBodySmall)
-                        .foregroundColor(.spTextSecondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                // 箭头
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.spTextSecondary)
+                Image(systemName: iconName)
+                    .font(.system(size: 22))
+                    .foregroundColor(.spAccent)
             }
-            .padding(16)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
+
+            // 文本
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.spTitleSmall)
+                    .foregroundColor(.spTextPrimary)
+
+                Text(subtitle)
+                    .font(.spBodySmall)
+                    .foregroundColor(.spTextSecondary)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            // 箭头
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.spTextSecondary)
         }
-        .buttonStyle(.plain)
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
     }
 }
 

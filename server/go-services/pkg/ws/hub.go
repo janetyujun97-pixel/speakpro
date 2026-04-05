@@ -72,9 +72,9 @@ func (c *Client) ReadPump(handler func(msgType int, data []byte)) {
 	}()
 
 	c.conn.SetReadLimit(1024 * 1024) // 1MB（支持 base64 音频块）
-	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	c.conn.SetReadDeadline(time.Now().Add(300 * time.Second)) // 5 分钟超时
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		c.conn.SetReadDeadline(time.Now().Add(300 * time.Second))
 		return nil
 	})
 
@@ -83,6 +83,8 @@ func (c *Client) ReadPump(handler func(msgType int, data []byte)) {
 		if err != nil {
 			break
 		}
+		// 每次收到消息时重置读超时
+		c.conn.SetReadDeadline(time.Now().Add(300 * time.Second))
 		handler(msgType, data)
 	}
 }

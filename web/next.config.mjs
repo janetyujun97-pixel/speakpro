@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // 启用压缩
   compress: true,
 
@@ -13,11 +12,6 @@ const nextConfig: NextConfig = {
         hostname: "**.aliyuncs.com",
       },
     ],
-  },
-
-  // 实验性优化
-  experimental: {
-    optimizeCss: true,
   },
 
   // 安全头
