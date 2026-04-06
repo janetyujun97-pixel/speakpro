@@ -1,0 +1,31 @@
+android/app/src/main/java/com/speakpro/core/audio/AudioRecorder.kt
+  fd75728ce1a5f3fd 164
+android/app/build.gradle.kts
+  fd75728ce1a5f3fd 56
+android/local.properties
+  fd75728ce1a5f3fd 1
+android/app/src/main/java/com/speakpro/core/network/ApiService.kt
+  fd75728ce1a5f3fd 14
+android/app/src/main/java/com/speakpro/features/homework/HomeworkDetailScreen.kt
+  fd75728ce1a5f3fd 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "bc755a15448b7f2ba9ffa400125354fb3b956dbf",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 3,
+      "accepted_lines": 6,
+      "overriden_lines": 0
+    }
+  }
+}
