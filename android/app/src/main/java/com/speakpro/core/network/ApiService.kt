@@ -11,7 +11,7 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 
 /**
- * Retrofit API 接口 — 对应 NestJS 后端 /api/v1/*
+ * Retrofit API 接口 — 对应 NestJS 后端
  */
 interface ApiService {
 

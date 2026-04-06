@@ -161,7 +161,7 @@ class AudioRecorder(private val context: Context) {
     private suspend fun readAudioLoop(recorder: AudioRecord, readSize: Int) {
         val buffer = ByteArray(readSize)
 
-        while (isActive && _isRecording.value) {
+        while (_isRecording.value) {
             val bytesRead = recorder.read(buffer, 0, readSize)
             if (bytesRead > 0) {
                 val chunk = buffer.copyOf(bytesRead)
