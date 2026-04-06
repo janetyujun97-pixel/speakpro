@@ -1,0 +1,135 @@
+android/app/src/main/java/com/speakpro/core/audio/AudioRecorder.kt
+  fd75728ce1a5f3fd 1-278
+android/app/src/main/java/com/speakpro/designsystem/components/WaveformView.kt
+  fd75728ce1a5f3fd 1-159
+android/app/src/main/java/com/speakpro/features/practice/conversation/ConversationViewModel.kt
+  fd75728ce1a5f3fd 1-504
+android/app/src/main/java/com/speakpro/features/practice/PracticeListScreen.kt
+  fd75728ce1a5f3fd 1-193
+android/app/src/main/java/com/speakpro/designsystem/theme/Theme.kt
+  fd75728ce1a5f3fd 1-73
+android/app/src/main/java/com/speakpro/core/network/Endpoints.kt
+  fd75728ce1a5f3fd 1-78
+android/app/src/main/res/values/strings.xml
+  fd75728ce1a5f3fd 1-4
+android/gradle.properties
+  fd75728ce1a5f3fd 1-4
+android/app/src/main/java/com/speakpro/features/profile/ProfileScreen.kt
+  fd75728ce1a5f3fd 1-177
+android/app/src/main/java/com/speakpro/features/practice/followread/FollowReadReportScreen.kt
+  fd75728ce1a5f3fd 1-291
+android/app/src/main/java/com/speakpro/features/profile/ProfileViewModel.kt
+  fd75728ce1a5f3fd 1-25
+android/app/src/main/java/com/speakpro/core/network/WebSocketManager.kt
+  fd75728ce1a5f3fd 1-269
+android/settings.gradle.kts
+  fd75728ce1a5f3fd 1-16
+android/app/src/main/java/com/speakpro/core/extensions/DateExtensions.kt
+  fd75728ce1a5f3fd 1-120
+android/app/src/main/java/com/speakpro/features/progress/ProgressScreen.kt
+  fd75728ce1a5f3fd 1-126
+android/app/src/main/java/com/speakpro/core/network/WsMessages.kt
+  fd75728ce1a5f3fd 1-268
+android/app/src/main/java/com/speakpro/features/practice/followread/FollowReadScreen.kt
+  fd75728ce1a5f3fd 1-538
+android/app/src/main/java/com/speakpro/features/home/HomeViewModel.kt
+  fd75728ce1a5f3fd 1-112
+android/app/src/main/res/values/themes.xml
+  fd75728ce1a5f3fd 1-4
+android/app/src/main/java/com/speakpro/MainActivity.kt
+  fd75728ce1a5f3fd 1-25
+android/app/src/main/java/com/speakpro/designsystem/theme/Type.kt
+  fd75728ce1a5f3fd 1-78
+android/app/src/main/java/com/speakpro/data/models/ApiModels.kt
+  fd75728ce1a5f3fd 1-405
+android/app/src/main/java/com/speakpro/features/progress/ProgressViewModel.kt
+  fd75728ce1a5f3fd 1-55
+android/app/src/main/java/com/speakpro/features/homework/HomeworkListScreen.kt
+  fd75728ce1a5f3fd 1-198
+android/app/src/main/java/com/speakpro/features/practice/mockexam/MockExamScreen.kt
+  fd75728ce1a5f3fd 1-400
+android/app/src/main/java/com/speakpro/designsystem/components/PracticeCard.kt
+  fd75728ce1a5f3fd 1-138
+android/app/src/main/java/com/speakpro/App.kt
+  fd75728ce1a5f3fd 1-18
+android/app/src/main/java/com/speakpro/features/homework/HomeworkDetailScreen.kt
+  fd75728ce1a5f3fd 1-469
+android/app/src/main/java/com/speakpro/features/practice/conversation/ChatBubbleView.kt
+  fd75728ce1a5f3fd 1-136
+android/app/src/main/java/com/speakpro/designsystem/components/ScoreRing.kt
+  fd75728ce1a5f3fd 1-119
+android/app/src/main/java/com/speakpro/designsystem/components/RadarChart.kt
+  fd75728ce1a5f3fd 1-183
+android/app/src/main/AndroidManifest.xml
+  fd75728ce1a5f3fd 1-24
+android/app/src/main/java/com/speakpro/navigation/AppNavigation.kt
+  fd75728ce1a5f3fd 1-323
+android/app/src/main/java/com/speakpro/features/practice/readaloud/ReadAloudViewModel.kt
+  fd75728ce1a5f3fd 1-401
+android/app/src/main/java/com/speakpro/core/network/AuthInterceptor.kt
+  fd75728ce1a5f3fd 1-31
+android/app/src/main/java/com/speakpro/designsystem/theme/Color.kt
+  fd75728ce1a5f3fd 1-38
+android/app/src/main/java/com/speakpro/features/practice/readaloud/ReadAloudScreen.kt
+  fd75728ce1a5f3fd 1-557
+android/app/src/main/java/com/speakpro/features/auth/LoginViewModel.kt
+  fd75728ce1a5f3fd 1-124
+android/app/src/main/java/com/speakpro/core/audio/AudioPlayer.kt
+  fd75728ce1a5f3fd 1-239
+android/app/src/main/java/com/speakpro/features/homework/HomeworkListViewModel.kt
+  fd75728ce1a5f3fd 1-41
+android/app/src/main/java/com/speakpro/designsystem/components/RichFeedbackView.kt
+  fd75728ce1a5f3fd 1-204
+android/app/src/main/java/com/speakpro/features/practice/mockexam/MockExamSummaryScreen.kt
+  fd75728ce1a5f3fd 1-221
+android/build.gradle.kts
+  fd75728ce1a5f3fd 1-7
+android/app/src/main/java/com/speakpro/core/network/ApiClient.kt
+  fd75728ce1a5f3fd 1-143
+android/app/src/main/java/com/speakpro/designsystem/components/RecordButton.kt
+  fd75728ce1a5f3fd 1-140
+android/app/src/main/java/com/speakpro/features/practice/conversation/ConversationScreen.kt
+  fd75728ce1a5f3fd 1-414
+android/app/src/main/java/com/speakpro/core/network/NetworkModule.kt
+  fd75728ce1a5f3fd 1-52
+android/app/src/main/java/com/speakpro/core/network/ApiService.kt
+  fd75728ce1a5f3fd 1-34
+android/app/src/main/java/com/speakpro/features/practice/mockexam/MockExamResultScreen.kt
+  fd75728ce1a5f3fd 1-461
+android/app/src/main/java/com/speakpro/features/auth/LoginScreen.kt
+  fd75728ce1a5f3fd 1-317
+android/app/src/main/java/com/speakpro/features/practice/followread/FollowReadViewModel.kt
+  fd75728ce1a5f3fd 1-414
+android/app/src/main/java/com/speakpro/core/storage/TokenManager.kt
+  fd75728ce1a5f3fd 1-126
+android/app/src/main/java/com/speakpro/features/home/HomeScreen.kt
+  fd75728ce1a5f3fd 1-364
+android/gradle/wrapper/gradle-wrapper.properties
+  fd75728ce1a5f3fd 1-5
+android/app/build.gradle.kts
+  fd75728ce1a5f3fd 1-101
+android/app/src/main/java/com/speakpro/features/practice/mockexam/MockExamViewModel.kt
+  fd75728ce1a5f3fd 1-416
+android/app/src/main/java/com/speakpro/core/audio/AudioFileManager.kt
+  fd75728ce1a5f3fd 1-195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "38d7412841ff25c3a27c0454083aac3fe83a5b48",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 10971,
+      "total_deletions": 116,
+      "accepted_lines": 10856,
+      "overriden_lines": 0
+    }
+  }
+}
