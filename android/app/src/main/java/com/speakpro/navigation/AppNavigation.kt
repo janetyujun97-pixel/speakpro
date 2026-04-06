@@ -1,0 +1,323 @@
+package com.speakpro.navigation
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.ShowChart
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.speakpro.designsystem.theme.SpAccent
+import com.speakpro.designsystem.theme.SpTextSecondary
+import com.speakpro.features.auth.LoginScreen
+import com.speakpro.features.auth.LoginViewModel
+import com.speakpro.features.home.HomeScreen
+import com.speakpro.features.homework.HomeworkDetailScreen
+import com.speakpro.features.homework.HomeworkListScreen
+import com.speakpro.features.practice.PracticeListScreen
+import com.speakpro.features.practice.conversation.ConversationScreen
+import com.speakpro.features.practice.followread.FollowReadScreen
+import com.speakpro.features.practice.mockexam.MockExamScreen
+import com.speakpro.features.practice.readaloud.ReadAloudScreen
+import com.speakpro.features.profile.ProfileScreen
+import com.speakpro.features.progress.ProgressScreen
+
+// ── 路由常量 ────────────────────────────────────
+
+object Routes {
+    const val LOGIN = "login"
+    const val MAIN = "main"
+    const val HOME = "home"
+    const val PRACTICE = "practice"
+    const val PRACTICE_CONVERSATION = "practice/conversation"
+    const val PRACTICE_READALOUD = "practice/readaloud"
+    const val PRACTICE_FOLLOWREAD = "practice/followread"
+    const val PRACTICE_MOCKEXAM = "practice/mockexam"
+    const val HOMEWORK = "homework"
+    const val HOMEWORK_DETAIL = "homework/{id}"
+    const val PROGRESS = "progress"
+    const val PROFILE = "profile"
+
+    fun homeworkDetail(id: String) = "homework/$id"
+}
+
+// ── Tab 枚举 ────────────────────────────────────
+
+enum class BottomTab(
+    val route: String,
+    val label: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
+) {
+    Home(
+        route = Routes.HOME,
+        label = "首页",
+        selectedIcon = Icons.Filled.Home,
+        unselectedIcon = Icons.Outlined.Home,
+    ),
+    Practice(
+        route = Routes.PRACTICE,
+        label = "练习",
+        selectedIcon = Icons.Filled.Mic,
+        unselectedIcon = Icons.Outlined.Mic,
+    ),
+    Homework(
+        route = Routes.HOMEWORK,
+        label = "作业",
+        selectedIcon = Icons.Filled.MenuBook,
+        unselectedIcon = Icons.Outlined.MenuBook,
+    ),
+    Progress(
+        route = Routes.PROGRESS,
+        label = "进度",
+        selectedIcon = Icons.Filled.ShowChart,
+        unselectedIcon = Icons.Outlined.ShowChart,
+    ),
+    Profile(
+        route = Routes.PROFILE,
+        label = "我的",
+        selectedIcon = Icons.Filled.Person,
+        unselectedIcon = Icons.Outlined.Person,
+    ),
+}
+
+// ── 顶层导航 ────────────────────────────────────
+
+/**
+ * App 根导航：检测登录状态，未登录展示 LoginScreen，已登录展示 MainScreen
+ */
+@Composable
+fun AppNavigation() {
+    val loginViewModel: LoginViewModel = hiltViewModel()
+    val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
+
+    if (isLoggedIn) {
+        MainScreen(
+            onLogout = { loginViewModel.logout() },
+        )
+    } else {
+        LoginScreen(viewModel = loginViewModel)
+    }
+}
+
+// ── 主界面（带底部导航栏） ──────────────────────
+
+@Composable
+private fun MainScreen(
+    onLogout: () -> Unit,
+) {
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // 仅在 Tab 根路由时显示底部栏
+    val tabRoutes = BottomTab.entries.map { it.route }
+    val showBottomBar = currentRoute in tabRoutes
+
+    Scaffold(
+        bottomBar = {
+            AnimatedVisibility(
+                visible = showBottomBar,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it }),
+            ) {
+                BottomNavigationBar(
+                    navController = navController,
+                    currentRoute = currentRoute,
+                )
+            }
+        },
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = Routes.HOME,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            // ── Tab 根页面 ──
+            composable(Routes.HOME) {
+                HomeScreen(
+                    onNavigateToPractice = { mode ->
+                        navController.navigate(mode)
+                    },
+                    onNavigateToHomework = {
+                        navController.navigate(Routes.HOMEWORK) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.PRACTICE) {
+                PracticeListScreen(
+                    onNavigate = { route -> navController.navigate(route) },
+                )
+            }
+
+            composable(Routes.HOMEWORK) {
+                HomeworkListScreen(
+                    onNavigateToDetail = { id ->
+                        navController.navigate(Routes.homeworkDetail(id))
+                    },
+                )
+            }
+
+            composable(Routes.PROGRESS) {
+                ProgressScreen()
+            }
+
+            composable(Routes.PROFILE) {
+                ProfileScreen(onLogout = onLogout)
+            }
+
+            // ── 练习子路由（嵌套详情页） ──
+
+            composable(Routes.PRACTICE_CONVERSATION) {
+                ConversationScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.PRACTICE_READALOUD) {
+                ReadAloudScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.PRACTICE_FOLLOWREAD) {
+                FollowReadScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.PRACTICE_MOCKEXAM) {
+                MockExamScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── 作业详情 ──
+
+            composable(
+                route = Routes.HOMEWORK_DETAIL,
+                arguments = listOf(navArgument("id") { type = NavType.StringType }),
+            ) {
+                val homeworkId = it.arguments?.getString("id") ?: ""
+                HomeworkDetailScreen(
+                    homeworkId = homeworkId,
+                    onBack = { navController.popBackStack() },
+                    onStartPractice = { questionId ->
+                        navController.navigate(Routes.PRACTICE_CONVERSATION)
+                    },
+                )
+            }
+        }
+    }
+}
+
+// ── 底部导航栏 ──────────────────────────────────
+
+@Composable
+private fun BottomNavigationBar(
+    navController: NavHostController,
+    currentRoute: String?,
+) {
+    NavigationBar {
+        BottomTab.entries.forEach { tab ->
+            val selected = currentRoute == tab.route
+
+            NavigationBarItem(
+                selected = selected,
+                onClick = {
+                    navController.navigate(tab.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                icon = {
+                    Icon(
+                        imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
+                        contentDescription = tab.label,
+                    )
+                },
+                label = { Text(text = tab.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = SpAccent,
+                    selectedTextColor = SpAccent,
+                    unselectedIconColor = SpTextSecondary,
+                    unselectedTextColor = SpTextSecondary,
+                ),
+            )
+        }
+    }
+}
+
+// ── 占位页面（供尚未实现的练习详情使用） ─────────
+
+@Composable
+private fun PlaceholderScreen(
+    title: String,
+    onBack: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = title,
+                style = com.speakpro.designsystem.theme.SpTitleMedium,
+                color = com.speakpro.designsystem.theme.SpTextPrimary,
+            )
+            Spacer(modifier = Modifier.padding(vertical = 8.dp))
+            TextButton(onClick = onBack) {
+                Text("返回")
+            }
+        }
+    }
+}
