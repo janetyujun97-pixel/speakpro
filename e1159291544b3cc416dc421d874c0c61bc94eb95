@@ -1,0 +1,37 @@
+server/go-services/internal/handler/tts.go
+  fd75728ce1a5f3fd 5,10,15-18,21-28,31-33,36-38,48-51,53-54,57-60,62-64,73-75,83-85,89-146
+web/app/(dashboard)/settings/page.tsx
+  fd75728ce1a5f3fd 13-14,25-28,109-170
+server/database/migrations/002_add_tts_provider.sql
+  fd75728ce1a5f3fd 1-8
+server/go-services/internal/service/mimo_tts.go
+  fd75728ce1a5f3fd 1-157
+server/go-services/internal/config/config.go
+  fd75728ce1a5f3fd 30-31,34-40,72-75
+server/go-services/internal/handler/conversation.go
+  fd75728ce1a5f3fd 26-34,37,40-48,427,429-432,435-466
+server/go-services/cmd/server/main.go
+  fd75728ce1a5f3fd 27,54,64
+server/nest-api/src/modules/users/users.controller.ts
+  fd75728ce1a5f3fd 40-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "e1159291544b3cc416dc421d874c0c61bc94eb95",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 426,
+      "total_deletions": 66,
+      "accepted_lines": 447,
+      "overriden_lines": 0
+    }
+  }
+}
