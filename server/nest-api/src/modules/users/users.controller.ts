@@ -37,6 +37,23 @@ export class UsersController {
     return { message: '密码修改成功' };
   }
 
+  @Get('settings')
+  async getSettings(@Request() req: any) {
+    const user = await this.usersService.findById(req.user.sub);
+    return { ttsProvider: (user as any).ttsProvider || 'mimo' };
+  }
+
+  @Put('settings')
+  async updateSettings(
+    @Request() req: any,
+    @Body() data: { ttsProvider?: string },
+  ) {
+    if (data.ttsProvider) {
+      await this.usersService.update(req.user.sub, { ttsProvider: data.ttsProvider } as any);
+    }
+    return { message: '设置已更新' };
+  }
+
   @Get()
   async findByRole(@Query('role') role?: string) {
     if (role) {

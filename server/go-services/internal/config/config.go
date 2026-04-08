@@ -27,9 +27,17 @@ type Config struct {
 	QwenModel  string
 
 	// Fish Audio TTS
-	FishAudioAPIKey string
-	FishAudioModel  string
+	FishAudioAPIKey  string
+	FishAudioModel   string
 	FishAudioVoiceID string
+
+	// MiMo-V2-TTS（小米）
+	MiMoAPIKey string
+	MiMoModel  string
+	MiMoVoice  string
+
+	// 默认 TTS 提供商：mimo / fish / xunfei
+	DefaultTTSProvider string
 
 	// NestJS 内部回调地址
 	NestAPIBaseURL string
@@ -61,6 +69,10 @@ func Load() *Config {
 		FishAudioAPIKey:    getEnv("FISH_AUDIO_API_KEY", ""),
 		FishAudioModel:     getEnv("FISH_AUDIO_MODEL", "s2-pro"),
 		FishAudioVoiceID:   getEnv("FISH_AUDIO_VOICE_ID", ""),
+		MiMoAPIKey:         getEnv("MIMO_API_KEY", ""),
+		MiMoModel:          getEnv("MIMO_MODEL", "mimo-v2-tts"),
+		MiMoVoice:          getEnv("MIMO_VOICE", "default_en"),
+		DefaultTTSProvider: getEnv("DEFAULT_TTS_PROVIDER", "mimo"),
 		NestAPIBaseURL:     getEnv("NEST_API_BASE_URL", "http://localhost:3000/api/v1"),
 		OSSRegion:          getEnv("OSS_REGION", "oss-cn-hangzhou"),
 		OSSBucket:          getEnv("OSS_BUCKET", "speakpro"),

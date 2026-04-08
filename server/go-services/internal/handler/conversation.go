@@ -23,25 +23,29 @@ var upgrader = websocket.Upgrader{
 
 // ConversationHandler 处理 WebSocket AI 对话
 type ConversationHandler struct {
-	hub            *ws.Hub
-	orchestrator   *service.Orchestrator
-	xunfei         *service.XunfeiClient
-	qwen           *service.QwenClient
-	fishTTS        *service.FishTTSClient
-	sessionManager *service.SessionManager
-	nestBaseURL    string
+	hub             *ws.Hub
+	orchestrator    *service.Orchestrator
+	xunfei          *service.XunfeiClient
+	qwen            *service.QwenClient
+	fishTTS         *service.FishTTSClient
+	mimoTTS         *service.MiMoTTSClient
+	sessionManager  *service.SessionManager
+	nestBaseURL     string
+	defaultProvider string
 }
 
-func NewConversationHandler(hub *ws.Hub, orch *service.Orchestrator, xunfei *service.XunfeiClient, qwen *service.QwenClient, fishTTS *service.FishTTSClient) *ConversationHandler {
+func NewConversationHandler(hub *ws.Hub, orch *service.Orchestrator, xunfei *service.XunfeiClient, qwen *service.QwenClient, fishTTS *service.FishTTSClient, mimoTTS *service.MiMoTTSClient) *ConversationHandler {
 	cfg := config.Load()
 	return &ConversationHandler{
-		hub:            hub,
-		orchestrator:   orch,
-		xunfei:         xunfei,
-		qwen:           qwen,
-		fishTTS:        fishTTS,
-		sessionManager: service.NewSessionManager(),
-		nestBaseURL:    cfg.NestAPIBaseURL,
+		hub:             hub,
+		orchestrator:    orch,
+		xunfei:          xunfei,
+		qwen:            qwen,
+		fishTTS:         fishTTS,
+		mimoTTS:         mimoTTS,
+		sessionManager:  service.NewSessionManager(),
+		nestBaseURL:     cfg.NestAPIBaseURL,
+		defaultProvider: cfg.DefaultTTSProvider,
 	}
 }
 
@@ -420,16 +424,46 @@ func (h *ConversationHandler) generateGreeting(examType, section string) string 
 	}
 }
 
-// synthesizeTTS 合成语音 — 优先 Fish Audio，失败回退讯飞
+// synthesizeTTS 合成语音 — 按配置的默认提供商优先，失败自动降级
 func (h *ConversationHandler) synthesizeTTS(text string) ([]byte, error) {
-	if h.fishTTS != nil && h.fishTTS.IsConfigured() {
-		data, err := h.fishTTS.Synthesize(text, 1.0)
-		if err == nil {
-			return data, nil
+	providers := []string{h.defaultProvider}
+	for _, p := range []string{"mimo", "fish", "xunfei"} {
+		if p != h.defaultProvider {
+			providers = append(providers, p)
 		}
-		log.Printf("[Conversation] Fish Audio TTS 失败，回退讯飞: %v", err)
 	}
-	return h.xunfei.Synthesize(text, "", 50)
+
+	var lastErr error
+	for _, p := range providers {
+		switch p {
+		case "mimo":
+			if h.mimoTTS != nil && h.mimoTTS.IsConfigured() {
+				data, err := h.mimoTTS.Synthesize(text, 1.0)
+				if err == nil {
+					return data, nil
+				}
+				log.Printf("[Conversation] MiMo TTS 失败: %v", err)
+				lastErr = err
+			}
+		case "fish":
+			if h.fishTTS != nil && h.fishTTS.IsConfigured() {
+				data, err := h.fishTTS.Synthesize(text, 1.0)
+				if err == nil {
+					return data, nil
+				}
+				log.Printf("[Conversation] Fish Audio 失败: %v", err)
+				lastErr = err
+			}
+		case "xunfei":
+			data, err := h.xunfei.Synthesize(text, "", 50)
+			if err == nil {
+				return data, nil
+			}
+			log.Printf("[Conversation] 讯飞 TTS 失败: %v", err)
+			lastErr = err
+		}
+	}
+	return nil, lastErr
 }
 
 // getTimeLimit 获取不同考试类型/部分的时间限制（秒）

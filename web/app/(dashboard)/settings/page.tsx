@@ -10,6 +10,8 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [ttsProvider, setTtsProvider] = useState("mimo");
+  const [ttsSaving, setTtsSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -20,6 +22,10 @@ export default function SettingsPage() {
       setName(user.name || "");
       setEmail(user.email || "");
     }
+    // 加载 TTS 设置
+    api.get<{ ttsProvider?: string }>("/users/settings").then((data) => {
+      if (data?.ttsProvider) setTtsProvider(data.ttsProvider);
+    }).catch(() => {});
   }, []);
 
   async function handleProfileSave() {
@@ -97,6 +103,68 @@ export default function SettingsPage() {
           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
           {profileSaving ? "保存中..." : "保存"}
+        </button>
+      </div>
+
+      {/* TTS 模型选择 */}
+      <div className="bg-white p-6 rounded-xl shadow-sm space-y-4">
+        <h2 className="font-semibold text-lg">TTS 语音合成模型</h2>
+        <p className="text-sm text-gray-500">选择 AI 口语对话和跟读练习中使用的语音合成引擎</p>
+
+        <div className="space-y-3">
+          {[
+            { value: "mimo", label: "MiMo-V2-TTS（小米）", desc: "国内可用，自然度高，支持情感控制", badge: "推荐" },
+            { value: "fish", label: "Fish Audio (s2-pro)", desc: "国际服务，80+语言支持，需海外网络", badge: "" },
+            { value: "xunfei", label: "讯飞 TTS", desc: "国内稳定，基础英文发音", badge: "备选" },
+          ].map((item) => (
+            <label
+              key={item.value}
+              className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                ttsProvider === item.value
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <input
+                type="radio"
+                name="ttsProvider"
+                value={item.value}
+                checked={ttsProvider === item.value}
+                onChange={(e) => setTtsProvider(e.target.value)}
+                className="mt-1 accent-blue-600"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{item.label}</span>
+                  {item.badge && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                      item.badge === "推荐" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                    }`}>{item.badge}</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <button
+          onClick={async () => {
+            setTtsSaving(true);
+            setMessage("");
+            try {
+              await api.put("/users/settings", { ttsProvider });
+              setMessage("TTS 模型已更新");
+            } catch {
+              setMessage("TTS 设置保存失败");
+            } finally {
+              setTtsSaving(false);
+            }
+          }}
+          disabled={ttsSaving}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          {ttsSaving ? "保存中..." : "保存 TTS 设置"}
         </button>
       </div>
 
