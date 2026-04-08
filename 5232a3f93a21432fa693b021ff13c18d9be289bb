@@ -1,0 +1,23 @@
+PROJECT.md
+  fd75728ce1a5f3fd 1-454
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "5232a3f93a21432fa693b021ff13c18d9be289bb",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 481,
+      "total_deletions": 12,
+      "accepted_lines": 478,
+      "overriden_lines": 0
+    }
+  }
+}
