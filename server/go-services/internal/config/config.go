@@ -36,8 +36,22 @@ type Config struct {
 	MiMoModel  string
 	MiMoVoice  string
 
-	// 默认 TTS 提供商：mimo / fish / xunfei
-	DefaultTTSProvider string
+	// MiMo LLM（小米大语言模型）
+	MiMoLLMAPIKey  string
+	MiMoLLMModel   string
+	MiMoLLMEndpoint string
+
+	// 腾讯云 ASR + SOE
+	TencentSecretID  string
+	TencentSecretKey string
+	TencentASRAppID  string
+	TencentRegion    string
+
+	// 默认提供商选择
+	DefaultTTSProvider string // mimo / fish / xunfei
+	DefaultASRProvider string // tencent / xunfei
+	DefaultISEProvider string // tencent / xunfei
+	DefaultLLMProvider string // mimo / qwen
 
 	// NestJS 内部回调地址
 	NestAPIBaseURL string
@@ -72,7 +86,17 @@ func Load() *Config {
 		MiMoAPIKey:         getEnv("MIMO_API_KEY", ""),
 		MiMoModel:          getEnv("MIMO_MODEL", "mimo-v2-tts"),
 		MiMoVoice:          getEnv("MIMO_VOICE", "default_en"),
+		MiMoLLMAPIKey:      getEnv("MIMO_LLM_API_KEY", ""),
+		MiMoLLMModel:       getEnv("MIMO_LLM_MODEL", "mimo-llm"),
+		MiMoLLMEndpoint:    getEnv("MIMO_LLM_ENDPOINT", ""),
+		TencentSecretID:    getEnv("TENCENT_SECRET_ID", ""),
+		TencentSecretKey:   getEnv("TENCENT_SECRET_KEY", ""),
+		TencentASRAppID:    getEnv("TENCENT_ASR_APP_ID", ""),
+		TencentRegion:      getEnv("TENCENT_REGION", "ap-guangzhou"),
 		DefaultTTSProvider: getEnv("DEFAULT_TTS_PROVIDER", "mimo"),
+		DefaultASRProvider: getEnv("DEFAULT_ASR_PROVIDER", "tencent"),
+		DefaultISEProvider: getEnv("DEFAULT_ISE_PROVIDER", "tencent"),
+		DefaultLLMProvider: getEnv("DEFAULT_LLM_PROVIDER", "mimo"),
 		NestAPIBaseURL:     getEnv("NEST_API_BASE_URL", "http://localhost:3000/api/v1"),
 		OSSRegion:          getEnv("OSS_REGION", "oss-cn-hangzhou"),
 		OSSBucket:          getEnv("OSS_BUCKET", "speakpro"),

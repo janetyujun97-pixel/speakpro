@@ -20,12 +20,56 @@ func main() {
 
 	cfg := config.Load()
 
-	// 初始化 AI 服务
+	// === 初始化所有 AI 服务 ===
+
+	// 旧服务（保留为回退）
 	xunfeiClient := service.NewXunfeiClient(cfg)
 	qwenClient := service.NewQwenClient(cfg)
+
+	// 新服务
+	tencentASR := service.NewTencentASRClient(cfg)
+	tencentSOE := service.NewTencentSOEClient(cfg)
+	mimoLLM := service.NewMiMoLLMClient(cfg)
+
+	// TTS 服务
 	fishTTSClient := service.NewFishTTSClient(cfg)
 	mimoTTSClient := service.NewMiMoTTSClient(cfg)
-	orchestrator := service.NewOrchestrator(xunfeiClient, qwenClient, fishTTSClient)
+
+	// === 构建带回退的 AI 客户端 ===
+
+	var asrClient service.ASRClient
+	var iseClient service.ISEClient
+	var llmClient service.LLMClient
+
+	// ASR: 腾讯云优先，讯飞回退
+	switch cfg.DefaultASRProvider {
+	case "tencent":
+		asrClient = service.NewFallbackASR(tencentASR, xunfeiClient)
+	default:
+		asrClient = service.NewFallbackASR(xunfeiClient, tencentASR)
+	}
+
+	// ISE: 腾讯云 SOE 优先，讯飞回退
+	switch cfg.DefaultISEProvider {
+	case "tencent":
+		iseClient = service.NewFallbackISE(tencentSOE, xunfeiClient)
+	default:
+		iseClient = service.NewFallbackISE(xunfeiClient, tencentSOE)
+	}
+
+	// LLM: MiMo 优先，千问回退
+	switch cfg.DefaultLLMProvider {
+	case "mimo":
+		llmClient = service.NewFallbackLLM(mimoLLM, qwenClient)
+	default:
+		llmClient = service.NewFallbackLLM(qwenClient, mimoLLM)
+	}
+
+	log.Printf("AI 服务配置: ASR=%s, ISE=%s, LLM=%s, TTS=%s",
+		cfg.DefaultASRProvider, cfg.DefaultISEProvider, cfg.DefaultLLMProvider, cfg.DefaultTTSProvider)
+
+	// === Orchestrator（使用接口） ===
+	orchestrator := service.NewOrchestrator(asrClient, iseClient, llmClient, fishTTSClient)
 
 	// WebSocket 管理器
 	hub := ws.NewHub()
@@ -37,9 +81,18 @@ func main() {
 
 	api := r.Group("/api/v1")
 
-	// 健康检查（无需认证）
+	// 健康检查
 	api.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok", "service": "go-services"})
+		c.JSON(200, gin.H{
+			"status":  "ok",
+			"service": "go-services",
+			"ai": gin.H{
+				"asr": cfg.DefaultASRProvider,
+				"ise": cfg.DefaultISEProvider,
+				"llm": cfg.DefaultLLMProvider,
+				"tts": cfg.DefaultTTSProvider,
+			},
+		})
 	})
 
 	// 需要认证的路由
@@ -51,16 +104,16 @@ func main() {
 		authorized.POST("/practice/audio", audioHandler.Upload)
 
 		// WebSocket AI 对话
-		convHandler := handler.NewConversationHandler(hub, orchestrator, xunfeiClient, qwenClient, fishTTSClient, mimoTTSClient)
+		convHandler := handler.NewConversationHandler(hub, orchestrator, asrClient, llmClient, fishTTSClient, mimoTTSClient, xunfeiClient)
 		authorized.GET("/conversation/ws/:sessionId", convHandler.Connect)
 
 		// 发音评测
-		assessHandler := handler.NewAssessmentHandler(orchestrator, xunfeiClient, qwenClient)
+		assessHandler := handler.NewAssessmentHandler(orchestrator, iseClient, llmClient)
 		authorized.POST("/assessment/evaluate", assessHandler.Evaluate)
 		authorized.POST("/assessment/full-evaluate", assessHandler.FullEvaluate)
 		authorized.POST("/assessment/feedback", assessHandler.Feedback)
 
-		// TTS 语音合成（优先 Fish Audio，回退讯飞）
+		// TTS 语音合成
 		ttsHandler := handler.NewTTSHandler(xunfeiClient, fishTTSClient, mimoTTSClient)
 		authorized.POST("/tts/synthesize", ttsHandler.Synthesize)
 	}

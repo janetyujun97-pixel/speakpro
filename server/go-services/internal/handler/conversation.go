@@ -25,8 +25,9 @@ var upgrader = websocket.Upgrader{
 type ConversationHandler struct {
 	hub             *ws.Hub
 	orchestrator    *service.Orchestrator
-	xunfei          *service.XunfeiClient
-	qwen            *service.QwenClient
+	asr             service.ASRClient
+	llm             service.LLMClient
+	xunfeiTTS       *service.XunfeiClient // TTS 回退用
 	fishTTS         *service.FishTTSClient
 	mimoTTS         *service.MiMoTTSClient
 	sessionManager  *service.SessionManager
@@ -34,13 +35,14 @@ type ConversationHandler struct {
 	defaultProvider string
 }
 
-func NewConversationHandler(hub *ws.Hub, orch *service.Orchestrator, xunfei *service.XunfeiClient, qwen *service.QwenClient, fishTTS *service.FishTTSClient, mimoTTS *service.MiMoTTSClient) *ConversationHandler {
+func NewConversationHandler(hub *ws.Hub, orch *service.Orchestrator, asr service.ASRClient, llm service.LLMClient, fishTTS *service.FishTTSClient, mimoTTS *service.MiMoTTSClient, xunfeiTTS *service.XunfeiClient) *ConversationHandler {
 	cfg := config.Load()
 	return &ConversationHandler{
 		hub:             hub,
 		orchestrator:    orch,
-		xunfei:          xunfei,
-		qwen:            qwen,
+		asr:             asr,
+		llm:             llm,
+		xunfeiTTS:       xunfeiTTS,
 		fishTTS:         fishTTS,
 		mimoTTS:         mimoTTS,
 		sessionManager:  service.NewSessionManager(),
@@ -216,7 +218,7 @@ func (h *ConversationHandler) runEvaluationPipeline(client *ws.Client, sessionID
 	}
 
 	// 步骤 1: ASR 语音转写
-	transcript, err := h.xunfei.Recognize(audioData)
+	transcript, err := h.asr.Recognize(audioData)
 	if err != nil {
 		log.Printf("[Conversation] ASR 失败: %v", err)
 		h.sendError(client, "ASR_FAILED", "语音识别失败，请重试")
@@ -455,7 +457,7 @@ func (h *ConversationHandler) synthesizeTTS(text string) ([]byte, error) {
 				lastErr = err
 			}
 		case "xunfei":
-			data, err := h.xunfei.Synthesize(text, "", 50)
+			data, err := h.xunfeiTTS.Synthesize(text, "", 50)
 			if err == nil {
 				return data, nil
 			}

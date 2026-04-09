@@ -17,13 +17,14 @@ import (
 //                                      → 讯飞 TTS(示范发音)
 //                                      → 返回综合评估结果
 type Orchestrator struct {
-	xunfei  *XunfeiClient
-	qwen    *QwenClient
+	asr     ASRClient
+	ise     ISEClient
+	llm     LLMClient
 	fishTTS *FishTTSClient
 }
 
-func NewOrchestrator(xunfei *XunfeiClient, qwen *QwenClient, fishTTS ...*FishTTSClient) *Orchestrator {
-	o := &Orchestrator{xunfei: xunfei, qwen: qwen}
+func NewOrchestrator(asr ASRClient, ise ISEClient, llm LLMClient, fishTTS ...*FishTTSClient) *Orchestrator {
+	o := &Orchestrator{asr: asr, ise: ise, llm: llm}
 	if len(fishTTS) > 0 {
 		o.fishTTS = fishTTS[0]
 	}
@@ -33,14 +34,14 @@ func NewOrchestrator(xunfei *XunfeiClient, qwen *QwenClient, fishTTS ...*FishTTS
 // EvaluateAudio 执行完整的音频评测流水线
 func (o *Orchestrator) EvaluateAudio(audioData []byte, referenceText string) (*model.AssessmentResult, error) {
 	// 步骤 1: ASR 语音转写
-	transcript, err := o.xunfei.Recognize(audioData)
+	transcript, err := o.asr.Recognize(audioData)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("[Orchestrator] ASR 转写完成: %q", transcript)
 
 	// 步骤 2: 发音评测（ISE 不可用时降级为估算分数）
-	pronScore, err := o.xunfei.Assess(audioData, referenceText)
+	pronScore, err := o.ise.Assess(audioData, referenceText)
 	if err != nil {
 		log.Printf("[Orchestrator] ISE 评测失败，使用降级评分: %v", err)
 		pronScore = &model.PronunciationScore{
@@ -54,14 +55,14 @@ func (o *Orchestrator) EvaluateAudio(audioData []byte, referenceText string) (*m
 	}
 
 	// 步骤 3: AI 语法纠错 + 评分
-	grammarResult, err := o.qwen.CorrectGrammar(transcript)
+	grammarResult, err := o.llm.CorrectGrammar(transcript)
 	if err != nil {
 		log.Printf("[Orchestrator] 语法纠错失败: %v", err)
 		grammarResult = &model.GrammarScore{Score: 0, Errors: []model.GramError{}, Corrections: []string{}}
 	}
 
 	// 步骤 4: AI 内容评分 + 综合反馈
-	feedback, err := o.qwen.GenerateFeedback(transcript, referenceText, pronScore)
+	feedback, err := o.llm.GenerateFeedback(transcript, referenceText, pronScore)
 	if err != nil {
 		log.Printf("[Orchestrator] 反馈生成失败: %v", err)
 		feedback = "AI 反馈暂不可用"
@@ -81,7 +82,7 @@ func (o *Orchestrator) EvaluateAudio(audioData []byte, referenceText string) (*m
 
 // GenerateExaminerResponse 生成 AI 考官回复（用于对话模式）
 func (o *Orchestrator) GenerateExaminerResponse(history []model.ConversationMessage, examType string, section string) (string, error) {
-	return o.qwen.Chat(history, examType, section)
+	return o.llm.Chat(history, examType, section)
 }
 
 // FullEvaluateAudio 完整评测流水线（模考用）
@@ -90,7 +91,7 @@ func (o *Orchestrator) FullEvaluateAudio(audioData []byte, referenceText, examTy
 	result := &model.FullEvaluateResult{}
 
 	// Step 1: ASR 转写（必须先完成，后续步骤依赖 transcript）
-	transcript, err := o.xunfei.Recognize(audioData)
+	transcript, err := o.asr.Recognize(audioData)
 	if err != nil {
 		log.Printf("[FullEvaluate] ASR 失败: %v", err)
 		transcript = ""
@@ -117,7 +118,7 @@ func (o *Orchestrator) FullEvaluateAudio(audioData []byte, referenceText, examTy
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		ps, err := o.xunfei.Assess(audioData, referenceText)
+		ps, err := o.ise.Assess(audioData, referenceText)
 		if err != nil {
 			log.Printf("[FullEvaluate] ISE 失败: %v", err)
 			ps = &model.PronunciationScore{}
@@ -134,7 +135,7 @@ func (o *Orchestrator) FullEvaluateAudio(audioData []byte, referenceText, examTy
 		if transcript == "" { return }
 
 		// B1: 语法纠错
-		gs, err := o.qwen.CorrectGrammar(transcript)
+		gs, err := o.llm.CorrectGrammar(transcript)
 		if err != nil {
 			log.Printf("[FullEvaluate] 语法分析失败: %v", err)
 			gs = &model.GrammarScore{Score: 0}
@@ -144,7 +145,7 @@ func (o *Orchestrator) FullEvaluateAudio(audioData []byte, referenceText, examTy
 		mu.Unlock()
 
 		// B2: 综合反馈
-		fb, err := o.qwen.GenerateFeedback(transcript, referenceText, nil)
+		fb, err := o.llm.GenerateFeedback(transcript, referenceText, nil)
 		if err != nil {
 			log.Printf("[FullEvaluate] 反馈生成失败: %v", err)
 			fb = ""
@@ -154,7 +155,7 @@ func (o *Orchestrator) FullEvaluateAudio(audioData []byte, referenceText, examTy
 		mu.Unlock()
 
 		// B3: 修订答案
-		ra, err := o.qwen.GenerateRevisedAnswer(transcript, referenceText)
+		ra, err := o.llm.GenerateRevisedAnswer(transcript, referenceText)
 		if err != nil {
 			log.Printf("[FullEvaluate] 修订答案失败: %v", err)
 			return
@@ -170,7 +171,7 @@ func (o *Orchestrator) FullEvaluateAudio(audioData []byte, referenceText, examTy
 		defer wg.Done()
 
 		// C1: 思维导图
-		mm, err := o.qwen.GenerateMindMap(referenceText, examType, section)
+		mm, err := o.llm.GenerateMindMap(referenceText, examType, section)
 		if err != nil {
 			log.Printf("[FullEvaluate] 思维导图失败: %v", err)
 		} else {
@@ -181,7 +182,7 @@ func (o *Orchestrator) FullEvaluateAudio(audioData []byte, referenceText, examTy
 
 		// C2: 关键词 + 样例答案
 		if transcript != "" {
-			kw, sa, err := o.qwen.GenerateKeywordsAndSamples(referenceText, transcript, examType)
+			kw, sa, err := o.llm.GenerateKeywordsAndSamples(referenceText, transcript, examType)
 			if err != nil {
 				log.Printf("[FullEvaluate] 关键词生成失败: %v", err)
 			} else {

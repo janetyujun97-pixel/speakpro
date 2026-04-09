@@ -13,12 +13,12 @@ import (
 
 type AssessmentHandler struct {
 	orchestrator *service.Orchestrator
-	xunfei       *service.XunfeiClient
-	qwen         *service.QwenClient
+	ise          service.ISEClient
+	llm          service.LLMClient
 }
 
-func NewAssessmentHandler(orch *service.Orchestrator, xunfei *service.XunfeiClient, qwen *service.QwenClient) *AssessmentHandler {
-	return &AssessmentHandler{orchestrator: orch, xunfei: xunfei, qwen: qwen}
+func NewAssessmentHandler(orch *service.Orchestrator, ise service.ISEClient, llm service.LLMClient) *AssessmentHandler {
+	return &AssessmentHandler{orchestrator: orch, ise: ise, llm: llm}
 }
 
 // Evaluate 发音评测接口
@@ -127,7 +127,7 @@ func (h *AssessmentHandler) Evaluate(c *gin.Context) {
 	log.Printf("[Assessment] 开始评测: audio_size=%d, ref_text=%q", len(audioData), referenceText[:min(50, len(referenceText))])
 
 	// 调用讯飞发音评测
-	pronScore, err := h.xunfei.Assess(audioData, referenceText)
+	pronScore, err := h.ise.Assess(audioData, referenceText)
 	if err != nil {
 		log.Printf("[Assessment] 评测失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -221,7 +221,7 @@ func (h *AssessmentHandler) Feedback(c *gin.Context) {
 		return
 	}
 
-	grammarScore, err := h.qwen.CorrectGrammar(req.Transcript)
+	grammarScore, err := h.llm.CorrectGrammar(req.Transcript)
 	if err != nil {
 		log.Printf("[Assessment] 语法分析失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -231,7 +231,7 @@ func (h *AssessmentHandler) Feedback(c *gin.Context) {
 		return
 	}
 
-	feedback, err := h.qwen.GenerateFeedback(req.Transcript, req.ReferenceText, nil)
+	feedback, err := h.llm.GenerateFeedback(req.Transcript, req.ReferenceText, nil)
 	if err != nil {
 		log.Printf("[Assessment] 生成反馈失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
