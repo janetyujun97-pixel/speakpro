@@ -315,7 +315,7 @@ class FollowReadViewModel : ViewModel() {
     private fun playAudioBytes(data: ByteArray, onComplete: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val tmpFile = File.createTempFile("tts_", ".mp3")
+                val tmpFile = File.createTempFile("tts_", ".wav")
                 tmpFile.writeBytes(data)
                 viewModelScope.launch(Dispatchers.Main) {
                     mediaPlayer?.release()
@@ -378,13 +378,13 @@ private data class QItem(val id: String, @SerializedName("prompt_text") val prom
 
 private data class TtsRequestBody(val text: String, val speed: Int)
 private data class TtsResponseData(
-    @SerializedName("audio_b64") val audioB64: String,
+    val audioB64: String = "",
     val format: String? = null,
 )
 
 private data class EvalRequestBody(
-    @SerializedName("audio_b64") val audioB64: String,
-    @SerializedName("reference_text") val referenceText: String,
+    val audioB64: String,
+    val referenceText: String,
 )
 
 private data class EvalResponse(

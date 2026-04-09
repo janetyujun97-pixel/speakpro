@@ -62,7 +62,7 @@ object Endpoints {
     object Conversation {
 
         /** NestJS 基地址（用于拼接 WS URL） */
-        private const val WS_BASE_DEBUG = "ws://10.0.2.2:8081/api/v1"
+        private const val WS_BASE_DEBUG = "ws://122.51.170.224/api/v1"
         private const val WS_BASE_RELEASE = "wss://api.speakpro.com/api/v1"
 
         /**

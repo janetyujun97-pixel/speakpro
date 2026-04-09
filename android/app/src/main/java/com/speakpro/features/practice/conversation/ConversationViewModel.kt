@@ -388,10 +388,14 @@ class ConversationViewModel : ViewModel() {
                     (audioData[0].toInt() and 0xFF == 0xFF && audioData[1].toInt() and 0xE0 == 0xE0) ||
                     (audioData[0].toInt() == 0x49 && audioData[1].toInt() == 0x44 && audioData[2].toInt() == 0x33)
                 )
+                val isWAV = audioData.size > 4 &&
+                    audioData[0].toInt() == 0x52 && audioData[1].toInt() == 0x49 &&
+                    audioData[2].toInt() == 0x46 && audioData[3].toInt() == 0x46 // "RIFF"
 
-                if (isMP3) {
-                    // MP3：写临时文件后用 MediaPlayer 播放
-                    val tmpFile = File.createTempFile("audio_", ".mp3")
+                if (isMP3 || isWAV) {
+                    // MP3/WAV：写临时文件后用 MediaPlayer 播放
+                    val ext = if (isWAV) ".wav" else ".mp3"
+                    val tmpFile = File.createTempFile("audio_", ext)
                     FileOutputStream(tmpFile).use { it.write(audioData) }
 
                     viewModelScope.launch(Dispatchers.Main) {

@@ -316,14 +316,17 @@ final class ConversationViewModel: ObservableObject {
             try AVAudioSession.sharedInstance().setActive(true)
 
             if let audioData = message.audioData {
-                // 检测音频格式：MP3 以 0xFF 0xFB 或 "ID3" 开头；WAV 以 "RIFF" 开头
-                if audioData.count > 3 && (
-                    // MP3 sync word
+                // 检测音频格式
+                let isMP3 = audioData.count > 3 && (
                     (audioData[0] == 0xFF && (audioData[1] & 0xE0) == 0xE0) ||
-                    // ID3 tag
                     (audioData[0] == 0x49 && audioData[1] == 0x44 && audioData[2] == 0x33)
-                ) {
-                    // MP3 格式（Fish Audio 返回），直接播放
+                )
+                let isWAV = audioData.count > 4 &&
+                    audioData[0] == 0x52 && audioData[1] == 0x49 &&
+                    audioData[2] == 0x46 && audioData[3] == 0x46 // "RIFF"
+
+                if isMP3 || isWAV {
+                    // MP3 或 WAV 格式，AVAudioPlayer 可直接播放
                     audioPlayer = try AVAudioPlayer(data: audioData)
                 } else {
                     // PCM 原始数据（讯飞返回），加 WAV 头后播放

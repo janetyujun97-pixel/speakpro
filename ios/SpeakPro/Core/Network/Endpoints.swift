@@ -3,16 +3,16 @@ import Foundation
 /// API 端点常量
 enum Endpoints {
 
-    // NestJS CRUD 服务
+    // NestJS CRUD 服务（通过 Nginx 代理，统一用 80 端口）
     #if DEBUG
-    static let baseURL = "http://localhost:3000/api/v1"
+    static let baseURL = "http://122.51.170.224/api/v1"
     #else
     static let baseURL = "https://api.speakpro.com/api/v1"
     #endif
 
-    // Go AI 服务（WebSocket/音频/评测/TTS）
+    // Go AI 服务（通过 Nginx 代理，统一用 80 端口）
     #if DEBUG
-    static let goBaseURL = "http://localhost:8081/api/v1"
+    static let goBaseURL = "http://122.51.170.224/api/v1"
     #else
     static let goBaseURL = "https://api.speakpro.com/api/v1"
     #endif
