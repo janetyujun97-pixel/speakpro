@@ -1,0 +1,43 @@
+android/app/src/main/java/com/speakpro/core/network/Endpoints.kt
+  fd75728ce1a5f3fd 65
+ios/SpeakPro/Core/Network/Endpoints.swift
+  fd75728ce1a5f3fd 6,8,13,15
+ios/SpeakPro/Info.plist
+  fd75728ce1a5f3fd 1-38
+ios/project.yml
+  fd75728ce1a5f3fd 19-20
+android/app/src/main/java/com/speakpro/core/network/NetworkModule.kt
+  fd75728ce1a5f3fd 20
+android/app/src/main/AndroidManifest.xml
+  fd75728ce1a5f3fd 10-11
+android/app/src/main/java/com/speakpro/features/practice/followread/FollowReadViewModel.kt
+  fd75728ce1a5f3fd 318,381,386-387
+ios/SpeakPro/Features/Practice/Conversation/ConversationViewModel.swift
+  fd75728ce1a5f3fd 319-320,323-329
+android/app/src/main/java/com/speakpro/features/practice/conversation/ConversationViewModel.kt
+  fd75728ce1a5f3fd 391-393,395-398
+android/app/src/main/java/com/speakpro/features/practice/readaloud/ReadAloudViewModel.kt
+  fd75728ce1a5f3fd 285,355,360-361
+android/app/src/main/java/com/speakpro/core/network/ApiClient.kt
+  fd75728ce1a5f3fd 27-28,31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.6",
+  "base_commit_sha": "f225047f3c4c2239a73fea0814ea2e136119ab8a",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 74,
+      "total_deletions": 26,
+      "accepted_lines": 94,
+      "overriden_lines": 0
+    }
+  }
+}
