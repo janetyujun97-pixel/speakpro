@@ -1,0 +1,43 @@
+server/go-services/cmd/server/main.go
+  fd75728ce1a5f3fd 23-25,28-34,37-72,84,86-95,107,111,116
+server/go-services/internal/service/interfaces.go
+  fd75728ce1a5f3fd 1-39
+server/go-services/internal/service/orchestrator.go
+  fd75728ce1a5f3fd 20-22,26-27,37,44,58,65,85,94,121,138,148,158,174,185
+server/go-services/internal/config/config.go
+  fd75728ce1a5f3fd 39-54,89-95,97-99
+server/go-services/internal/service/tencent_soe.go
+  fd75728ce1a5f3fd 1-138
+server/go-services/internal/handler/conversation.go
+  fd75728ce1a5f3fd 28-30,38,43-45,221,460
+server/go-services/internal/handler/assessment.go
+  fd75728ce1a5f3fd 16-17,20-21,130,224,234
+server/go-services/internal/service/tencent_sign.go
+  fd75728ce1a5f3fd 1-86
+server/go-services/internal/service/mimo_llm.go
+  fd75728ce1a5f3fd 1-417
+server/go-services/internal/service/tencent_asr.go
+  fd75728ce1a5f3fd 1-102
+server/go-services/internal/service/fallback.go
+  fd75728ce1a5f3fd 1-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.6",
+  "base_commit_sha": "6687e955cb617e295abf321b423dd7645ea7fd42",
+  "prompts": {
+    "fd75728ce1a5f3fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71382478-86f7-4833-ae1f-06ae10183672",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 1037,
+      "total_deletions": 45,
+      "accepted_lines": 1050,
+      "overriden_lines": 0
+    }
+  }
+}
