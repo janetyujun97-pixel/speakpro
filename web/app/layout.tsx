@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
+import "@fontsource-variable/fraunces";
+import "@fontsource-variable/fraunces/wght-italic.css";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/inter/wght-italic.css";
 import { Providers } from "./providers";
 import "./globals.css";
 

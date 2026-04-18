@@ -34,5 +34,12 @@
     <string>SpeakPro 需要使用麦克风来录制您的口语练习音频</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>SpeakPro 需要语音识别来实时转写您的口语内容</string>
+    <key>UIAppFonts</key>
+    <array>
+        <string>Fraunces-VariableFont.ttf</string>
+        <string>Fraunces-Italic-VariableFont.ttf</string>
+        <string>Inter-VariableFont.ttf</string>
+        <string>Inter-Italic-VariableFont.ttf</string>
+    </array>
 </dict>
 </plist>

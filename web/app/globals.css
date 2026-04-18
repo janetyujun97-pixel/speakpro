@@ -4,12 +4,12 @@
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #0F172A;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --border: #e2e8f0;
-    --ring: #3B82F6;
+    --background: #F4EEE3;
+    --foreground: #1C1B18;
+    --muted: #EDE5D6;
+    --muted-foreground: #706A5E;
+    --border: rgba(28, 27, 24, 0.12);
+    --ring: #B54A25;
   }
 
   body {
@@ -25,5 +25,14 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .eyebrow {
+    font-family: "Inter Variable", Inter, system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
   }
 }
