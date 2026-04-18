@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { RedisModule } from './common/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { QuestionsModule } from './modules/questions/questions.module';
@@ -11,6 +12,7 @@ import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { ClassesModule } from './modules/classes/classes.module';
 import { ResourcesModule } from './modules/resources/resources.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
       ttl: 60000,
       limit: 60,
     }]),
+    RedisModule,
     AuthModule,
     UsersModule,
     QuestionsModule,
@@ -41,6 +44,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     ClassesModule,
     ResourcesModule,
     AnalyticsModule,
+    OnboardingModule,
   ],
   providers: [
     // 全局启用速率限制
