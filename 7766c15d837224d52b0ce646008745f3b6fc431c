@@ -1,0 +1,41 @@
+ios/SpeakPro/Info.plist
+  46b2f17736674691 37-43
+web/tailwind.config.ts
+  46b2f17736674691 3-6,15-31,40-55
+android/app/src/main/java/com/speakpro/designsystem/theme/Theme.kt
+  46b2f17736674691 19-20,23-24,26-27,30,32-33,38-39
+android/app/src/main/java/com/speakpro/designsystem/theme/Type.kt
+  46b2f17736674691 4,6-9,12,15,17-79,81,83-85,88,90,92-94,97,99,101-102,105,107,113,115,121,123,129,131,137-153
+android/app/src/main/java/com/speakpro/designsystem/theme/Color.kt
+  46b2f17736674691 6-7,9,11-12,14-15,17-18,20-23,26,29-30,32-33,35-36,43-68
+web/app/globals.css
+  46b2f17736674691 7-12,29-36
+ios/SpeakPro/DesignSystem/Colors.swift
+  46b2f17736674691 4-5,9,11-12,14-15,17-18,20-23,26,29-56,58-59,61-62
+web/package.json
+  46b2f17736674691 12-13
+web/app/layout.tsx
+  46b2f17736674691 3-6
+ios/SpeakPro/DesignSystem/Typography.swift
+  46b2f17736674691 4-7,11,13-14,16-17,19-20,22,24-25,27-28,30-31,33-56,59-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "7766c15d837224d52b0ce646008745f3b6fc431c",
+  "prompts": {
+    "46b2f17736674691": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9342f74a-2155-45dd-a2ae-45f6c9df3fca",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 817,
+      "total_deletions": 91,
+      "accepted_lines": 813,
+      "overriden_lines": 0
+    }
+  }
+}
