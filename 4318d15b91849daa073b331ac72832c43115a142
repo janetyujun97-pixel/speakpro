@@ -1,0 +1,75 @@
+ios/SpeakPro/Features/Auth/AppleSignInCoordinator.swift
+  46b2f17736674691 1-177
+ios/SpeakPro/Features/Auth/PermissionPrimeView.swift
+  46b2f17736674691 1-147
+ios/SpeakPro/Core/Network/APIClient+AuthV2.swift
+  46b2f17736674691 1-144
+ios/SpeakPro/Features/Onboarding/OnbPlanView.swift
+  46b2f17736674691 1-190
+ios/project.yml
+  46b2f17736674691 1-15
+ios/SpeakPro/Features/Onboarding/OnboardingCoordinator.swift
+  46b2f17736674691 1-115
+ios/SpeakPro/Features/Auth/LoginView.swift
+  46b2f17736674691 1,4,9-17,20-21,26-68,72-86,90,92-102,106-122,124-145,147-157,159-170,172-179,181-187,189-277,279,284,286,288-331
+ios/SpeakPro/Core/Network/APIClient+Onboarding.swift
+  46b2f17736674691 1-97
+ios/SpeakPro/Features/Auth/PhoneAuthViewModel.swift
+  46b2f17736674691 1-141
+ios/SpeakPro/Features/Auth/SplashView.swift
+  46b2f17736674691 1-91
+ios/SpeakPro/Features/Onboarding/OnbLevelView.swift
+  46b2f17736674691 1-141
+ios/SpeakPro/Core/Network/Endpoints.swift
+  46b2f17736674691 23-43
+ios/SpeakPro/Features/Onboarding/OnboardingViewModel.swift
+  46b2f17736674691 1-168
+ios/SpeakPro/Core/Network/APIClient.swift
+  46b2f17736674691 39,180-186
+ios/SpeakPro/App/SpeakProApp.swift
+  46b2f17736674691 15,22-33,38-39,41-42,46
+ios/SpeakPro/Features/Onboarding/OnbTargetView.swift
+  46b2f17736674691 1-260
+ios/SpeakPro/Features/Auth/LoginViewModel.swift
+  46b2f17736674691 4,20-21,23-25,28,80-83,90
+ios/SpeakPro/App/AppCoordinator.swift
+  46b2f17736674691 4-9,12-18,22,47,49,53-61,64,70-71,75-82,84,87-92,94-98,102,110-132,152-156
+ios/SpeakPro.xcodeproj/project.pbxproj
+  46b2f17736674691 12,17,19,22,26,28-30,36,42,44,48,51,53-54,57,60-61,63,72,74,76,83,89,91,94,99,102-104,106-107,114,118,121,123,127,131-132,138,143,147,149,157-159,165,179-189,242,261-277,282-283,298,309-310,313-317,407,514-517,528-529,533,548,564-576,589,593,733-734,764-765
+ios/SpeakPro/Features/Onboarding/OnbDateView.swift
+  46b2f17736674691 1-212
+ios/SpeakPro/Features/Onboarding/OnbBaselineIntroView.swift
+  46b2f17736674691 1-114
+ios/SpeakPro/Features/Onboarding/OnbBaselineRecordingView.swift
+  46b2f17736674691 1-267
+ios/SpeakPro/Features/Auth/ForgotView.swift
+  46b2f17736674691 1-323
+ios/SpeakPro/Features/Onboarding/OnbExamTypeView.swift
+  46b2f17736674691 1-135
+ios/SpeakPro/Features/Auth/OTPView.swift
+  46b2f17736674691 1-240
+ios/SpeakPro/Features/Auth/RegisterView.swift
+  46b2f17736674691 1-242
+ios/SpeakPro/Features/Onboarding/OnbWelcomeView.swift
+  46b2f17736674691 1-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "4318d15b91849daa073b331ac72832c43115a142",
+  "prompts": {
+    "46b2f17736674691": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9342f74a-2155-45dd-a2ae-45f6c9df3fca",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 5547,
+      "total_deletions": 225,
+      "accepted_lines": 5201,
+      "overriden_lines": 0
+    }
+  }
+}
