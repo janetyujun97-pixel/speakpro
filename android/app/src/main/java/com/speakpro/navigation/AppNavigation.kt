@@ -44,8 +44,16 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.speakpro.designsystem.theme.SpAccent
 import com.speakpro.designsystem.theme.SpTextSecondary
-import com.speakpro.features.auth.LoginScreen
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.speakpro.core.network.ApiService
+import com.speakpro.core.storage.TokenManager
+import com.speakpro.features.auth.AuthNavGraph
 import com.speakpro.features.auth.LoginViewModel
+import com.speakpro.features.auth.SplashScreen
+import com.speakpro.features.onboarding.OnboardingNavGraph
 import com.speakpro.features.home.HomeScreen
 import com.speakpro.features.homework.HomeworkDetailScreen
 import com.speakpro.features.homework.HomeworkListScreen
@@ -119,20 +127,91 @@ enum class BottomTab(
 // ── 顶层导航 ────────────────────────────────────
 
 /**
- * App 根导航：检测登录状态，未登录展示 LoginScreen，已登录展示 MainScreen
+ * App 根导航状态机：splash → auth / onboarding / main。
+ *
+ * 路由决策：
+ *   - 初次进入：展示 Splash；完成后根据 token 决定去 auth 还是 onboarding 检查
+ *   - 未登录：展示 AuthNavGraph
+ *   - 已登录：拉 /onboarding/status；completed=true → MainScreen；否则进 OnboardingNavGraph
  */
 @Composable
 fun AppNavigation() {
     val loginViewModel: LoginViewModel = hiltViewModel()
     val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
 
-    if (isLoggedIn) {
-        MainScreen(
-            onLogout = { loginViewModel.logout() },
-        )
-    } else {
-        LoginScreen(viewModel = loginViewModel)
+    var route by remember {
+        androidx.compose.runtime.mutableStateOf(AppRoute.Splash)
     }
+
+    // Splash 完成后切到合适的路由
+    val splashFinished: () -> Unit = {
+        route = if (TokenManager.isLoggedIn) AppRoute.Onboarding else AppRoute.Auth
+    }
+
+    // 登录态变化：登出时回到 auth；登录时进 onboarding gate
+    LaunchedEffect(isLoggedIn) {
+        route = if (!isLoggedIn) {
+            if (route == AppRoute.Splash) return@LaunchedEffect
+            AppRoute.Auth
+        } else if (route == AppRoute.Auth) {
+            AppRoute.Onboarding
+        } else route
+    }
+
+    when (route) {
+        AppRoute.Splash -> SplashScreen(onFinished = splashFinished)
+
+        AppRoute.Auth -> AuthNavGraph(onAuthenticated = {
+            route = AppRoute.Onboarding
+        })
+
+        AppRoute.Onboarding -> OnboardingCheck(
+            onGoMain = { route = AppRoute.Main },
+            onStartOnboarding = { route = AppRoute.OnboardingGraph },
+        )
+
+        AppRoute.OnboardingGraph -> OnboardingNavGraph(
+            onCompleted = { route = AppRoute.Main },
+        )
+
+        AppRoute.Main -> MainScreen(onLogout = {
+            loginViewModel.logout()
+            route = AppRoute.Auth
+        })
+    }
+}
+
+private enum class AppRoute {
+    Splash, Auth, Onboarding, OnboardingGraph, Main
+}
+
+/**
+ * 登录后先拉一次 /onboarding/status 决定去主界面还是 onboarding 流程。
+ * 网络失败时默认进 onboarding（用户可正常完成流程）。
+ */
+@Composable
+private fun OnboardingCheck(
+    onGoMain: () -> Unit,
+    onStartOnboarding: () -> Unit,
+) {
+    val apiService: ApiService =
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            androidx.compose.ui.platform.LocalContext.current.applicationContext,
+            com.speakpro.navigation.AppApiEntryPoint::class.java,
+        ).apiService()
+
+    LaunchedEffect(Unit) {
+        try {
+            val resp = apiService.getOnboardingStatus()
+            if (resp.code == 0 && resp.data?.completed == true) onGoMain()
+            else onStartOnboarding()
+        } catch (_: Exception) {
+            onStartOnboarding()
+        }
+    }
+
+    // 检查期间展示一个中性的 splash（避免 UI 闪空白）
+    SplashScreen(onFinished = {})
 }
 
 // ── 主界面（带底部导航栏） ──────────────────────
