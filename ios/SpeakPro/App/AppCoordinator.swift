@@ -1,16 +1,25 @@
 import SwiftUI
 
 /// 应用全局导航与路由协调器
+///
+/// 路由状态：
+///   .splash       —— App 启动时短暂展示 Splash
+///   .auth         —— 未登录
+///   .onboarding   —— 已登录但 onboarding 未完成
+///   .main         —— 已登录且 onboarding 完成
 final class AppCoordinator: ObservableObject {
+
+    enum Route: Equatable {
+        case splash
+        case auth
+        case onboarding
+        case main
+    }
 
     // MARK: - Tab 定义
 
     enum Tab: String, CaseIterable, Identifiable {
-        case home
-        case practice
-        case homework
-        case progress
-        case profile
+        case home, practice, homework, progress, profile
 
         var id: String { rawValue }
 
@@ -35,49 +44,92 @@ final class AppCoordinator: ObservableObject {
         }
     }
 
-    // MARK: - Published Properties
+    // MARK: - Published
 
-    @Published var isAuthenticated: Bool = false
+    @Published var route: Route = .splash
     @Published var selectedTab: Tab = .home
     @Published var currentUser: UserInfo? = nil
 
-    // MARK: - Init — 从 Keychain 恢复登录态
+    // 兼容旧代码：isAuthenticated
+    var isAuthenticated: Bool {
+        get { route == .main || route == .onboarding }
+        set { /* 历史兼容：setter 只在登录成功时触发；实际切换用 route */
+            if newValue == false { logout() }
+        }
+    }
+
+    // MARK: - Init
 
     init() {
-        // 如果 Keychain 中存在 access token，则认为已登录
+        // 从 Keychain 恢复登录态
         if let token = APIClient.shared.accessToken, !token.isEmpty {
-            isAuthenticated = true
-            // 尝试从 UserDefaults 恢复用户信息
             if let data = UserDefaults.standard.data(forKey: "speakpro_user"),
                let user = try? JSONDecoder().decode(UserInfo.self, from: data) {
                 currentUser = user
             }
+            // 登录态存在时，先进 onboarding 查询；hydrate 后决定去哪
+            route = .onboarding
         }
     }
 
-    // MARK: - Auth Methods
+    // MARK: - Actions
 
-    /// 登录成功后调用，保存用户信息并切换至主界面
+    /// Splash 动画完成后调用
+    func splashFinished() {
+        if route == .splash {
+            route = (APIClient.shared.accessToken?.isEmpty == false) ? .onboarding : .auth
+        }
+    }
+
+    /// 登录成功（邮箱 / 手机 OTP / Apple）后调用
     func completeLogin(user: UserInfo) {
         currentUser = user
-        isAuthenticated = true
+        persistUser(user)
+        route = .onboarding
+        // 新用户进入 .onboarding 后，OnboardingCoordinator 里 hydrate 会拉 /onboarding/status，
+        // 若 completed_at != nil，会调 markOnboardingCompleted 切到主界面。
+        Task { await refreshOnboardingStatusAfterLogin() }
+    }
 
-        // 持久化用户信息（非敏感数据）
+    /// onboarding 完成后切到主界面
+    func markOnboardingCompleted() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            route = .main
+            selectedTab = .home
+        }
+    }
+
+    /// 退出登录
+    func logout() {
+        APIClient.shared.accessToken  = nil
+        APIClient.shared.refreshToken = nil
+        UserDefaults.standard.removeObject(forKey: "speakpro_user")
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentUser = nil
+            selectedTab = .home
+            route = .auth
+        }
+    }
+
+    // MARK: - Internal
+
+    private func persistUser(_ user: UserInfo) {
         if let data = try? JSONEncoder().encode(user) {
             UserDefaults.standard.set(data, forKey: "speakpro_user")
         }
     }
 
-    /// 登出：清除 Token、用户信息，返回登录页
-    func logout() {
-        APIClient.shared.accessToken  = nil
-        APIClient.shared.refreshToken = nil
-        UserDefaults.standard.removeObject(forKey: "speakpro_user")
-
-        withAnimation(.easeInOut(duration: 0.3)) {
-            currentUser = nil
-            isAuthenticated = false
-            selectedTab = .home
+    /// 登录后立刻问一下 onboarding 状态；若已完成则直接进主界面
+    private func refreshOnboardingStatusAfterLogin() async {
+        do {
+            let status = try await APIClient.shared.getOnboardingStatus()
+            await MainActor.run {
+                if status.completed {
+                    self.markOnboardingCompleted()
+                }
+            }
+        } catch {
+            // 网络失败不阻塞 —— 留在 .onboarding，VM 内部会重新拉
         }
     }
 }
@@ -97,11 +149,11 @@ struct ContentView: View {
                 .tag(AppCoordinator.Tab.home)
 
             PracticeListView()
-            .tabItem {
-                Label(AppCoordinator.Tab.practice.title,
-                      systemImage: AppCoordinator.Tab.practice.icon)
-            }
-            .tag(AppCoordinator.Tab.practice)
+                .tabItem {
+                    Label(AppCoordinator.Tab.practice.title,
+                          systemImage: AppCoordinator.Tab.practice.icon)
+                }
+                .tag(AppCoordinator.Tab.practice)
 
             HomeworkListView()
                 .tabItem {

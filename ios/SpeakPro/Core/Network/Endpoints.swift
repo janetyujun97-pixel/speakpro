@@ -20,9 +20,27 @@ enum Endpoints {
     // MARK: - Auth
 
     enum Auth {
-        static let login    = "/auth/login"
-        static let register = "/auth/register"
-        static let refresh  = "/auth/refresh"
+        static let login          = "/auth/login"
+        static let register       = "/auth/register"
+        static let refresh        = "/auth/refresh"
+
+        // —— Auth v2（PR2a 新增） ——
+        static let sendOtp        = "/auth/send-otp"
+        static let verifyOtp      = "/auth/verify-otp"
+        static let registerPhone  = "/auth/register-phone"
+        static let requestReset   = "/auth/request-reset"
+        static let resetPassword  = "/auth/reset-password"
+        static let apple          = "/auth/apple"
+        static let wechat         = "/auth/wechat"
+    }
+
+    // MARK: - Onboarding
+
+    enum Onboarding {
+        static let status    = "/onboarding/status"
+        static let profile   = "/onboarding/profile"
+        static let baseline  = "/onboarding/baseline"
+        static let finalize  = "/onboarding/finalize"
     }
 
     // MARK: - Practice
