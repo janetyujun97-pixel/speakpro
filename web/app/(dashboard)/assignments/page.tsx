@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, ClipboardCheck } from "lucide-react";
+import { Plus, ClipboardCheck } from "lucide-react";
+import {
+  EditorialEmptyState,
+  EditorialErrorState,
+  EditorialSkeleton,
+  mapErrorToCode,
+} from "@/components/ui/editorial-states";
 
 interface Submission {
   id: string;
@@ -42,21 +49,25 @@ function submissionSummary(submissions: Submission[] | null) {
 }
 
 export default function AssignmentsPage() {
+  const router = useRouter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<unknown>(null);
+
+  const fetchAssignments = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.get<Assignment[]>("/assignments");
+      setAssignments(data);
+    } catch (err: unknown) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAssignments = async () => {
-      try {
-        const data = await api.get<Assignment[]>("/assignments");
-        setAssignments(data);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "加载作业列表失败");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAssignments();
   }, []);
 
@@ -72,21 +83,29 @@ export default function AssignmentsPage() {
         </Link>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-data-red/20 bg-data-red/5 p-4 text-sm text-data-red">
-          {error}
-        </div>
-      )}
-
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">加载中...</span>
-        </div>
+        <EditorialSkeleton
+          headerTitle="ASSIGNMENTS · 加载中"
+          cardCount={3}
+        />
+      ) : error ? (
+        <EditorialErrorState
+          code={mapErrorToCode(error)}
+          onRetry={fetchAssignments}
+        />
       ) : assignments.length === 0 ? (
-        <div className="rounded-xl border border-border bg-white p-12 text-center text-muted-foreground">
-          暂无作业数据
-        </div>
+        <EditorialEmptyState
+          eyebrow="NO ASSIGNMENTS · 作业空空"
+          headline="All caught up,"
+          headlineItalic="— for now."
+          message={"还没有布置任何作业。\n创建第一个作业开始教学闭环。"}
+          primaryCTA={{
+            title: "创建作业",
+            onClick: () => router.push("/assignments/new"),
+          }}
+          footer="EMPTY STATE"
+          footerNumber="N° ASSIGN"
+        />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-white">
           <table className="w-full text-sm">
