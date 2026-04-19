@@ -8,23 +8,35 @@ import com.speakpro.data.models.BaselineResponse
 import com.speakpro.data.models.HomeworkAssignment
 import com.speakpro.data.models.LoginRequest
 import com.speakpro.data.models.LoginResponse
+import com.speakpro.data.models.NotebookPhrase
+import com.speakpro.data.models.NotebookWord
+import com.speakpro.data.models.NotificationItem
+import com.speakpro.data.models.NotificationListResponse
+import com.speakpro.data.models.NotificationPrefs
+import com.speakpro.data.models.OkResponse
 import com.speakpro.data.models.OnboardingProfile
 import com.speakpro.data.models.OnboardingStatusResponse
+import com.speakpro.data.models.PracticeSessionListItem
 import com.speakpro.data.models.PracticeStats
 import com.speakpro.data.models.RegisterPhoneRequest
 import com.speakpro.data.models.RequestResetRequest
 import com.speakpro.data.models.ResetPasswordRequest
 import com.speakpro.data.models.ResetPasswordResponse
+import com.speakpro.data.models.ReviewWordRequest
 import com.speakpro.data.models.SendOtpRequest
 import com.speakpro.data.models.SendOtpResponse
+import com.speakpro.data.models.SessionAudioResponse
+import com.speakpro.data.models.UpdatePrefsRequest
 import com.speakpro.data.models.UpdateProfileRequest
 import com.speakpro.data.models.VerifyOtpRequest
 import com.speakpro.data.models.VerifyOtpResponse
 import com.speakpro.data.models.WechatSignInRequest
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
@@ -82,6 +94,65 @@ interface ApiService {
 
     @GET("practice/stats")
     suspend fun getPracticeStats(): ApiResponse<PracticeStats>
+
+    @GET("practice/sessions")
+    suspend fun getPracticeSessions(): ApiResponse<List<PracticeSessionListItem>>
+
+    @GET("practice/sessions/{id}/audio")
+    suspend fun getSessionAudio(@Path("id") id: String): ApiResponse<SessionAudioResponse>
+
+    // ── Notebook (PR3a) ──
+
+    @GET("notebook/words")
+    suspend fun getNotebookWords(
+        @Query("filter") filter: String = "all",
+    ): ApiResponse<List<NotebookWord>>
+
+    @GET("notebook/phrases")
+    suspend fun getNotebookPhrases(): ApiResponse<List<NotebookPhrase>>
+
+    @POST("notebook/words/{id}/reviewed")
+    suspend fun reviewNotebookWord(
+        @Path("id") id: String,
+        @Body body: ReviewWordRequest,
+    ): ApiResponse<NotebookWord>
+
+    @POST("notebook/words/{id}/master")
+    suspend fun masterNotebookWord(
+        @Path("id") id: String,
+        @Body body: Map<String, String> = emptyMap(),
+    ): ApiResponse<NotebookWord>
+
+    @DELETE("notebook/words/{id}")
+    suspend fun deleteNotebookWord(
+        @Path("id") id: String,
+    ): ApiResponse<OkResponse>
+
+    // ── Notifications (PR3a) ──
+
+    @GET("notifications")
+    suspend fun getNotifications(
+        @Query("limit") limit: Int = 50,
+    ): ApiResponse<NotificationListResponse>
+
+    @PATCH("notifications/read-all")
+    suspend fun markAllNotificationsRead(
+        @Body body: Map<String, String> = emptyMap(),
+    ): ApiResponse<Map<String, Int>>
+
+    @PATCH("notifications/{id}/read")
+    suspend fun markNotificationRead(
+        @Path("id") id: String,
+        @Body body: Map<String, String> = emptyMap(),
+    ): ApiResponse<NotificationItem>
+
+    @GET("users/notification-prefs")
+    suspend fun getNotificationPrefs(): ApiResponse<NotificationPrefs>
+
+    @PATCH("users/notification-prefs")
+    suspend fun updateNotificationPrefs(
+        @Body body: UpdatePrefsRequest,
+    ): ApiResponse<NotificationPrefs>
 
     // ── Assignments (Homework) ──
 

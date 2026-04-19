@@ -1,7 +1,9 @@
 package com.speakpro.features.progress
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +11,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,8 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.speakpro.designsystem.theme.SpAccent
+import com.speakpro.designsystem.theme.SpAccentSoft
 import com.speakpro.designsystem.theme.SpBackground
 import com.speakpro.designsystem.theme.SpBodyMedium
+import com.speakpro.designsystem.theme.SpMuted
 import com.speakpro.designsystem.theme.SpTextPrimary
 import com.speakpro.designsystem.theme.SpTextSecondary
 import com.speakpro.designsystem.theme.SpTitleLarge
@@ -36,6 +50,9 @@ import com.speakpro.designsystem.theme.SpWhite
 @Composable
 fun ProgressScreen(
     viewModel: ProgressViewModel = hiltViewModel(),
+    onOpenHistory: () -> Unit = {},
+    onOpenNotebook: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
 ) {
     val totalSessions by viewModel.totalSessions.collectAsState()
     val averageScore by viewModel.averageScore.collectAsState()
@@ -81,13 +98,74 @@ fun ProgressScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 占位提示
+        // Review 入口（PR3c）
+        ReviewEntry(
+            title = "历史回听",
+            subtitle = "按天查看练习记录并回听",
+            icon = Icons.Filled.GraphicEq,
+            onClick = onOpenHistory,
+        )
+        Spacer(Modifier.height(12.dp))
+        ReviewEntry(
+            title = "错题本 / 生词本",
+            subtitle = "低分单词 + 间隔复习",
+            icon = Icons.Filled.MenuBook,
+            onClick = onOpenNotebook,
+        )
+        Spacer(Modifier.height(12.dp))
+        ReviewEntry(
+            title = "通知中心",
+            subtitle = "作业 / 批改 / 提醒",
+            icon = Icons.Filled.Notifications,
+            onClick = onOpenNotifications,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         Text(
             text = "更多进度详情将在后续版本中推出",
             style = SpBodyMedium,
             color = SpTextSecondary,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
+    }
+}
+
+@Composable
+private fun ReviewEntry(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = SpWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(36.dp).clip(CircleShape).background(SpAccentSoft),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, tint = SpAccent)
+            }
+            Spacer(Modifier.size(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = SpTextPrimary, fontSize = 14.sp)
+                Text(subtitle, color = SpMuted, fontSize = 11.sp)
+            }
+            Icon(
+                Icons.Filled.ChevronRight,
+                null,
+                tint = SpMuted,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 

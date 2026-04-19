@@ -81,6 +81,12 @@ object Routes {
     const val PROGRESS = "progress"
     const val PROFILE = "profile"
 
+    // Review 系统（PR3c）
+    const val REVIEW_HISTORY = "review/history"
+    const val REVIEW_NOTEBOOK = "review/notebook"
+    const val REVIEW_NOTIFICATIONS = "review/notifications"
+    const val REVIEW_NOTIFICATION_PREFS = "review/notifications/prefs"
+
     fun homeworkDetail(id: String) = "homework/$id"
 }
 
@@ -282,7 +288,38 @@ private fun MainScreen(
             }
 
             composable(Routes.PROGRESS) {
-                ProgressScreen()
+                ProgressScreen(
+                    onOpenHistory = { navController.navigate(Routes.REVIEW_HISTORY) },
+                    onOpenNotebook = { navController.navigate(Routes.REVIEW_NOTEBOOK) },
+                    onOpenNotifications = {
+                        navController.navigate(Routes.REVIEW_NOTIFICATIONS)
+                    },
+                )
+            }
+
+            // Review 子路由（PR3c）
+            composable(Routes.REVIEW_HISTORY) {
+                com.speakpro.features.review.HistoryTimelineScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.REVIEW_NOTEBOOK) {
+                com.speakpro.features.review.NotebookScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.REVIEW_NOTIFICATIONS) {
+                com.speakpro.features.review.NotificationsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenPrefs = {
+                        navController.navigate(Routes.REVIEW_NOTIFICATION_PREFS)
+                    },
+                )
+            }
+            composable(Routes.REVIEW_NOTIFICATION_PREFS) {
+                com.speakpro.features.review.NotificationPrefsScreen(
+                    onBack = { navController.popBackStack() },
+                )
             }
 
             composable(Routes.PROFILE) {
