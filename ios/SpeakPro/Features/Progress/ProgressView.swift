@@ -22,6 +22,9 @@ struct ProgressView: View {
 
                     // MARK: - 薄弱项分析
                     weaknessSection
+
+                    // MARK: - Review 入口（PR3b）
+                    reviewEntriesSection
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
@@ -32,6 +35,46 @@ struct ProgressView: View {
                 await viewModel.fetchProgress()
             }
         }
+    }
+
+    // MARK: - Review 入口
+
+    private var reviewEntriesSection: some View {
+        VStack(spacing: 12) {
+            NavigationLink {
+                HistoryTimelineView()
+            } label: {
+                reviewEntry(title: "历史回听", subtitle: "按天查看练习记录并回听", icon: "waveform")
+            }
+            NavigationLink {
+                NotebookView()
+            } label: {
+                reviewEntry(title: "错题本 / 生词本", subtitle: "低分单词 + 间隔复习", icon: "book")
+            }
+            NavigationLink {
+                NotificationsView()
+            } label: {
+                reviewEntry(title: "通知中心", subtitle: "作业 / 批改 / 提醒", icon: "bell")
+            }
+        }
+    }
+
+    private func reviewEntry(title: String, subtitle: String, icon: String) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(Color.spAccentSoft).frame(width: 36, height: 36)
+                Image(systemName: icon).foregroundColor(.spAccent)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.spBodyMedium).foregroundColor(.spPrimary)
+                Text(subtitle).font(.spCaption).foregroundColor(.spMuted)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").font(.spCaption).foregroundColor(.spMuted)
+        }
+        .padding(14)
+        .background(Color.white)
+        .cornerRadius(12)
     }
 
     // MARK: - Score History (简化折线图)

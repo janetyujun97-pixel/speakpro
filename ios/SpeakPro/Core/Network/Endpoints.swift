@@ -50,6 +50,28 @@ enum Endpoints {
         static let audio    = "/practice/audio"
         static let sessions = "/practice/sessions"
         static let stats    = "/practice/stats"
+
+        /// 历史时间线回听端点（PR3a 新增）
+        static func sessionAudio(id: String) -> String { "/practice/sessions/\(id)/audio" }
+    }
+
+    // MARK: - Notebook（PR3a 新增）
+
+    enum Notebook {
+        static let words    = "/notebook/words"
+        static let phrases  = "/notebook/phrases"
+        static func reviewed(id: String) -> String { "/notebook/words/\(id)/reviewed" }
+        static func master(id: String)   -> String { "/notebook/words/\(id)/master" }
+        static func deleteWord(id: String) -> String { "/notebook/words/\(id)" }
+    }
+
+    // MARK: - Notifications（PR3a 新增）
+
+    enum Notifications {
+        static let list     = "/notifications"
+        static let readAll  = "/notifications/read-all"
+        static func read(id: String) -> String { "/notifications/\(id)/read" }
+        static let prefs    = "/users/notification-prefs"
     }
 
     // MARK: - Conversation (WebSocket → Go 服务)
