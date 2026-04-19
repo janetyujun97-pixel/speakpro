@@ -10,9 +10,16 @@ struct NotificationsView: View {
             Color.spBackground.ignoresSafeArea()
             Group {
                 if vm.isLoading && vm.items.isEmpty {
-                    SwiftUI.ProgressView()
+                    SkeletonView(headerTitle: "NOTIFICATIONS · 加载中", cardCount: 4)
                 } else if vm.items.isEmpty {
-                    emptyState
+                    EmptyStateView(
+                        eyebrow: "NO NOTIFICATIONS · 通知空空",
+                        headline: "Quiet afternoon,",
+                        headlineItalic: "nothing to report.",
+                        message: "老师还没有新动作，也没有系统提醒。\n先去练一轮吧？",
+                        footer: "EMPTY STATE",
+                        footerNumber: "N° NOTIF",
+                    )
                 } else {
                     list
                 }

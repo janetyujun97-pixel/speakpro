@@ -11,9 +11,28 @@ struct HistoryTimelineView: View {
             Color.spBackground.ignoresSafeArea()
             Group {
                 if vm.isLoading && vm.groups.isEmpty {
-                    SwiftUI.ProgressView()
+                    SkeletonView(headerTitle: "HISTORY · 加载中", cardCount: 3)
+                } else if let err = vm.errorMessage, vm.groups.isEmpty {
+                    ErrorStateView(
+                        code: .unknown,
+                        onRetry: { Task { await vm.load() } },
+                    )
+                    .overlay(
+                        // 错误码在底部展示具体消息
+                        Text(err).font(.caption2).foregroundColor(.spMuted)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.bottom, 60),
+                        alignment: .bottom,
+                    )
                 } else if vm.groups.isEmpty {
-                    emptyState
+                    EmptyStateView(
+                        eyebrow: "NO HISTORY · 时间线空空",
+                        headline: "Nothing recorded,",
+                        headlineItalic: "— yet.",
+                        message: "完成一次练习，这里就会有你的声音留存。",
+                        footer: "EMPTY STATE",
+                        footerNumber: "N° HISTORY",
+                    )
                 } else {
                     list
                 }
@@ -59,16 +78,6 @@ struct HistoryTimelineView: View {
         }
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "waveform.path")
-                .font(.system(size: 36))
-                .foregroundColor(.spMuted)
-            Text("还没有练习记录")
-                .font(.spBodyMedium)
-                .foregroundColor(.spMuted)
-        }
-    }
 }
 
 // MARK: - Row
