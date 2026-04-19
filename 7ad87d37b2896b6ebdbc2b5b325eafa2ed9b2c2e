@@ -1,0 +1,39 @@
+ios/SpeakPro/App/SpeakProApp.swift
+  46b2f17736674691 19,22-49,51
+ios/SpeakPro/Core/Offline/OfflineUploadQueue.swift
+  46b2f17736674691 1-185
+ios/SpeakPro/Features/Review/NotificationsView.swift
+  46b2f17736674691 13,15-22
+ios/SpeakPro/Features/Review/HistoryTimelineView.swift
+  46b2f17736674691 14-26,28-35
+ios/SpeakPro/DesignSystem/Components/States/SkeletonView.swift
+  46b2f17736674691 1-98
+ios/SpeakPro/DesignSystem/Components/States/ErrorStateView.swift
+  46b2f17736674691 1-147
+ios/SpeakPro/DesignSystem/Components/States/OfflineBanner.swift
+  46b2f17736674691 1-179
+ios/SpeakPro/Core/Errors/SpErrorCode.swift
+  46b2f17736674691 1-108
+ios/SpeakPro/DesignSystem/Components/States/EmptyStateView.swift
+  46b2f17736674691 1-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "7ad87d37b2896b6ebdbc2b5b325eafa2ed9b2c2e",
+  "prompts": {
+    "46b2f17736674691": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9342f74a-2155-45dd-a2ae-45f6c9df3fca",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 1807,
+      "total_deletions": 44,
+      "accepted_lines": 10152,
+      "overriden_lines": 2
+    }
+  }
+}
