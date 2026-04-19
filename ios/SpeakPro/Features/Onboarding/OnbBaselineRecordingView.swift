@@ -224,6 +224,12 @@ struct OnbBaselineRecordingView: View {
         defer { isUploading = false }
 
         vm.baselineAudioURL = url
+
+        // PR5 follow-up —— 录音成功后立刻拷到持久缓存（30 条 LRU）
+        if let u = url {
+            _ = AudioFileManager.shared.cacheRecording(sourceURL: u)
+        }
+
         // 一期：先通过 audioUrl 传本地占位，服务端接受但实际音频尚未上 OSS。
         // 后续 PR 会接通 Go `/practice/audio` → sessionId。
         let audioUrl = url?.lastPathComponent
@@ -232,6 +238,14 @@ struct OnbBaselineRecordingView: View {
             audioUrl: audioUrl,
             transcript: nil
         )
+
+        // PR5 follow-up —— VM 如果报错说明网络失败，把录音入队下次重试
+        if vm.errorMessage != nil, let u = url {
+            OfflineUploadQueue.shared.enqueue(OfflineUploadTask(
+                audioFilename: u.lastPathComponent,
+                sessionId: nil,
+            ))
+        }
 
         // 进入 plan
         await vm.finalize()

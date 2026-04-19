@@ -4,6 +4,26 @@ import SwiftUI
 struct SpeakProApp: App {
     @StateObject private var coordinator = AppCoordinator()
 
+    init() {
+        // PR5 follow-up —— 注入离线上传队列的默认 uploader。
+        // 当前实现只处理 baseline 录音（/onboarding/baseline）；后续可扩展为 switch on 任务类型。
+        Task { @MainActor in
+            OfflineUploadQueue.shared.uploader = { task in
+                guard !task.audioFilename.isEmpty else { return false }
+                do {
+                    _ = try await APIClient.shared.postBaseline(.init(
+                        sessionId: task.sessionId,
+                        audioUrl: task.audioFilename,   // 占位：OSS 就位后改签名 URL
+                        transcript: nil,
+                    ))
+                    return true
+                } catch {
+                    return false
+                }
+            }
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()

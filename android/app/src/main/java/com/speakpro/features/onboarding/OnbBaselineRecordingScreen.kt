@@ -269,7 +269,12 @@ private fun finishEarly(
 
     // 一期：仅把文件名当占位 URL 传给服务端；后续 PR 接通 Go /practice/audio 上传拿真 sessionId
     val audioUrl = file?.name
-    vm.submitBaseline(sessionId = null, audioUrl = audioUrl, transcript = null)
+    vm.submitBaseline(
+        sessionId = null,
+        audioUrl = audioUrl,
+        transcript = null,
+        localAudioFile = file,
+    )
 
     // finalize 会生成计划；错开一个 tick 让 submitBaseline 的协程先起步
     vm.finalize()

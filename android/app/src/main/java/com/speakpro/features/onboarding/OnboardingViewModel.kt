@@ -2,7 +2,10 @@ package com.speakpro.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.speakpro.core.audio.AudioFileManager
 import com.speakpro.core.network.ApiService
+import com.speakpro.core.offline.OfflineUploadQueue
+import com.speakpro.core.offline.OfflineUploadTask
 import com.speakpro.data.models.BaselineRequest
 import com.speakpro.data.models.OnbExamType
 import com.speakpro.data.models.StudyPlan
@@ -25,6 +28,7 @@ import javax.inject.Inject
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val apiService: ApiService,
+    private val offlineQueue: OfflineUploadQueue,
 ) : ViewModel() {
 
     private val _examType = MutableStateFlow<OnbExamType?>(null)
@@ -113,10 +117,19 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    /** 录音完成后写入 baseline */
-    fun submitBaseline(sessionId: String?, audioUrl: String?, transcript: String?) {
+    /** 录音完成后写入 baseline。失败时把 audio 入队下次重试 */
+    fun submitBaseline(
+        sessionId: String?,
+        audioUrl: String?,
+        transcript: String?,
+        localAudioFile: java.io.File? = null,
+    ) {
+        // PR5 follow-up —— 录音文件先拷到持久缓存（30 条 LRU）
+        localAudioFile?.let { AudioFileManager.cacheRecording(it) }
+
         viewModelScope.launch {
             _isSyncing.value = true
+            var failed = false
             try {
                 val resp = apiService.postBaseline(
                     BaselineRequest(sessionId = sessionId, audioUrl = audioUrl, transcript = transcript),
@@ -125,11 +138,23 @@ class OnboardingViewModel @Inject constructor(
                     _baselineSessionId.value = resp.data?.sessionId
                 } else {
                     _errorMessage.value = resp.message.ifEmpty { "基线保存失败" }
+                    failed = true
                 }
             } catch (e: Exception) {
                 _errorMessage.value = e.localizedMessage
+                failed = true
             } finally {
                 _isSyncing.value = false
+            }
+
+            // 失败 + 有本地音频 → 入队离线上传队列，等联网自动重试
+            if (failed && audioUrl != null) {
+                offlineQueue.enqueue(
+                    OfflineUploadTask(
+                        audioFilename = audioUrl,
+                        sessionId = sessionId,
+                    ),
+                )
             }
         }
     }

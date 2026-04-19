@@ -3,6 +3,7 @@ package com.speakpro.features.review
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.speakpro.core.network.ApiService
+import com.speakpro.core.storage.NotebookCache
 import com.speakpro.data.models.NotebookFilter
 import com.speakpro.data.models.NotebookPhrase
 import com.speakpro.data.models.NotebookWord
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class NotebookViewModel @Inject constructor(
     private val apiService: ApiService,
+    private val cache: NotebookCache,
 ) : ViewModel() {
 
     private val _filter = MutableStateFlow(NotebookFilter.DUE)
@@ -48,16 +50,32 @@ class NotebookViewModel @Inject constructor(
 
     fun loadAll() {
         viewModelScope.launch {
+            // 本地缓存先上（弱网 / 离线首屏）
+            val cachedWords = cache.loadWords()
+            val cachedPhrases = cache.loadPhrases()
+            val hadCache = cachedWords.isNotEmpty() || cachedPhrases.isNotEmpty()
+            if (hadCache) {
+                _allWords.value = cachedWords
+                _phrases.value = cachedPhrases
+                applyFilter()
+            }
+
             _isLoading.value = true
             _errorMessage.value = null
             try {
                 val wordsResp = apiService.getNotebookWords(NotebookFilter.ALL.value)
                 val phrasesResp = apiService.getNotebookPhrases()
-                _allWords.value = wordsResp.data ?: emptyList()
-                _phrases.value = phrasesResp.data ?: emptyList()
+                val words = wordsResp.data ?: emptyList()
+                val phrases = phrasesResp.data ?: emptyList()
+                _allWords.value = words
+                _phrases.value = phrases
                 applyFilter()
+                // 回写缓存
+                cache.saveWords(words)
+                cache.savePhrases(phrases)
             } catch (e: Exception) {
-                _errorMessage.value = e.localizedMessage
+                // 联网失败 + 无缓存才报错
+                if (!hadCache) _errorMessage.value = e.localizedMessage
             } finally {
                 _isLoading.value = false
             }

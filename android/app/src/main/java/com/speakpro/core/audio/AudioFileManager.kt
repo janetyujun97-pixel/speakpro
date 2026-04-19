@@ -117,6 +117,58 @@ object AudioFileManager {
     }
 
     // ========================================================
+    // 历史回听本地缓存（PR5 follow-up）
+    // ========================================================
+    //
+    // 策略：把最新 N 条录音拷到 filesDir/audio_cache，历史时间线页可离线回听。
+    // 超出 N 按 lastModified 降序淘汰。filesDir 持久，App 重启后仍在。
+
+    const val MAX_CACHED_RECORDINGS = 30
+    private const val CACHE_SUBDIR = "audio_cache"
+
+    private lateinit var persistentCacheDir: File
+
+    /**
+     * 需在 Application.onCreate 中调用（紧跟 [init]）
+     */
+    fun initPersistentCache(context: Context) {
+        persistentCacheDir = File(context.filesDir, CACHE_SUBDIR).also { dir ->
+            if (!dir.exists()) dir.mkdirs()
+        }
+    }
+
+    /** 拷贝到持久缓存并触发 LRU 淘汰；返回缓存后的 File，失败返回 null */
+    fun cacheRecording(source: File): File? {
+        if (!::persistentCacheDir.isInitialized) return null
+        if (!source.exists()) return null
+        val dest = File(persistentCacheDir, source.name)
+        return try {
+            source.copyTo(dest, overwrite = true)
+            pruneCacheIfNeeded()
+            dest
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** 超过 [limit] 按 lastModified 降序淘汰 */
+    fun pruneCacheIfNeeded(limit: Int = MAX_CACHED_RECORDINGS) {
+        if (!::persistentCacheDir.isInitialized) return
+        val files = persistentCacheDir.listFiles() ?: return
+        if (files.size <= limit) return
+        files.sortedByDescending { it.lastModified() }
+            .drop(limit)
+            .forEach { it.delete() }
+    }
+
+    /** 当前缓存列表（按创建时间从新到旧） */
+    fun cachedRecordings(): List<File> {
+        if (!::persistentCacheDir.isInitialized) return emptyList()
+        return (persistentCacheDir.listFiles()?.toList() ?: emptyList())
+            .sortedByDescending { it.lastModified() }
+    }
+
+    // ========================================================
     // WAV 文件写入
     // ========================================================
 

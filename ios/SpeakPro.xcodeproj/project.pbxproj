@@ -18,6 +18,7 @@
 		09D0779810AB24DF1CAD1309 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE8C419299BC5B0D6F1E84E /* AudioPlayer.swift */; };
 		0D7BCB1ADAC1FC4358E58FD9 /* MockExamResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C728F056D183FA0D308768FF /* MockExamResultView.swift */; };
 		1519D97D5CE972BBCEB76DBF /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C290C8F6903A8380492843E4 /* AudioRecorder.swift */; };
+		1800F378A385B13A3816925B /* NotebookCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E30F5FA489B70CA779C797D /* NotebookCache.swift */; };
 		1C3A93863CA1D5392FEFD167 /* APIClient+Review.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC29386612F26C1656DE9B86 /* APIClient+Review.swift */; };
 		1C5D96F4B643037A2B53159F /* OnbPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D2029419D546AF6AAC7B260 /* OnbPlanView.swift */; };
 		1ECEA373558C09C9FC2D7BAC /* NotebookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F8E2448ECB21A8464DCB26 /* NotebookView.swift */; };
@@ -112,6 +113,7 @@
 		1A5F574C5A27C8937B960192 /* MockExamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockExamView.swift; sourceTree = "<group>"; };
 		1B08BB1EDE4F82E2686576E8 /* NotificationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsViewModel.swift; sourceTree = "<group>"; };
 		1D25A795939B7CD45866EBCC /* ReadAloudViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadAloudViewModel.swift; sourceTree = "<group>"; };
+		1E30F5FA489B70CA779C797D /* NotebookCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookCache.swift; sourceTree = "<group>"; };
 		1F7E9F75E54D08D6B309510B /* Endpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoints.swift; sourceTree = "<group>"; };
 		21E0334EB57DF392FE1F8E74 /* Fraunces-Italic-VariableFont.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces-Italic-VariableFont.ttf"; sourceTree = "<group>"; };
 		2A4154F5C455BE1BB83B1CF5 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
@@ -410,6 +412,7 @@
 				A58FB60F546C6D41E5720D8E /* CoreDataStack.swift */,
 				B2D46489987171AFB0092F7D /* KeychainManager.swift */,
 				E0700612732AFE237042CAC4 /* LocalCache.swift */,
+				1E30F5FA489B70CA779C797D /* NotebookCache.swift */,
 			);
 			path = Storage;
 			sourceTree = "<group>";
@@ -637,6 +640,7 @@
 				78DC3391EFFC5B0EA097A66A /* MockExamView.swift in Sources */,
 				C39AC4D0958BDA48A1C95DA9 /* MockExamViewModel.swift in Sources */,
 				BA164337620B50DAE9FC5C5D /* NetworkMonitor.swift in Sources */,
+				1800F378A385B13A3816925B /* NotebookCache.swift in Sources */,
 				1ECEA373558C09C9FC2D7BAC /* NotebookView.swift in Sources */,
 				011F6D18C8BFEE697E7268E1 /* NotebookViewModel.swift in Sources */,
 				442D1305B99B0F0CFBC85BAF /* NotificationsView.swift in Sources */,

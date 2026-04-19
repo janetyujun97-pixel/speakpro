@@ -34,7 +34,7 @@ enum NotebookFilter: String {
     case due, mastered, all
 }
 
-struct NotebookWord: Decodable, Identifiable {
+struct NotebookWord: Codable, Identifiable {
     let id: String
     let userId: String
     let word: String
@@ -50,7 +50,7 @@ struct NotebookWord: Decodable, Identifiable {
     let createdAt: Date
 }
 
-struct NotebookPhrase: Decodable, Identifiable {
+struct NotebookPhrase: Codable, Identifiable {
     let id: String
     let userId: String
     let phrase: String

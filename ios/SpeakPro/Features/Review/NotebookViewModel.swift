@@ -19,6 +19,15 @@ final class NotebookViewModel: ObservableObject {
     }
 
     func loadAll() async {
+        // 先上本地缓存（离线 / 弱网首屏）—— 有数据就立即展示
+        let cachedWords = NotebookCache.shared.loadWords()
+        let cachedPhrases = NotebookCache.shared.loadPhrases()
+        if !cachedWords.isEmpty || !cachedPhrases.isEmpty {
+            allWordsCache = cachedWords
+            phrases = cachedPhrases
+            applyFilter()
+        }
+
         isLoading = true; defer { isLoading = false }
         do {
             async let all = APIClient.shared.getNotebookWords(filter: .all)
@@ -27,8 +36,14 @@ final class NotebookViewModel: ObservableObject {
             allWordsCache = w
             phrases = p
             applyFilter()
+            // 回写本地缓存
+            NotebookCache.shared.save(words: w)
+            NotebookCache.shared.save(phrases: p)
         } catch {
-            errorMessage = error.localizedDescription
+            // 联网失败但有缓存时不 surface 为错误（已经展示本地数据）
+            if cachedWords.isEmpty && cachedPhrases.isEmpty {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
