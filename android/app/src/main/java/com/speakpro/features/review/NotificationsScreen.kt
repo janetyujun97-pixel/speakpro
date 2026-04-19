@@ -111,9 +111,19 @@ fun NotificationsScreen(
         ) {
             when {
                 isLoading && items.isEmpty() ->
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    com.speakpro.designsystem.components.states.SkeletonState(
+                        headerTitle = "NOTIFICATIONS · 加载中",
+                        cardCount = 4,
+                    )
                 items.isEmpty() ->
-                    Text("暂无通知", color = SpMuted, modifier = Modifier.align(Alignment.Center))
+                    com.speakpro.designsystem.components.states.EmptyState(
+                        eyebrow = "NO NOTIFICATIONS · 通知空空",
+                        headline = "Quiet afternoon,",
+                        headlineItalic = "nothing to report.",
+                        message = "老师还没有新动作，也没有系统提醒。\n先去练一轮吧？",
+                        footer = "EMPTY STATE",
+                        footerNumber = "N° NOTIF",
+                    )
                 else -> LazyColumn(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         vertical = 8.dp,

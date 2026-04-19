@@ -49,7 +49,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.speakpro.core.network.ApiService
+import com.speakpro.core.network.NetworkMonitor
 import com.speakpro.core.storage.TokenManager
+import com.speakpro.designsystem.components.states.OfflineBanner
 import com.speakpro.features.auth.AuthNavGraph
 import com.speakpro.features.auth.LoginViewModel
 import com.speakpro.features.auth.SplashScreen
@@ -145,6 +147,14 @@ fun AppNavigation() {
     val loginViewModel: LoginViewModel = hiltViewModel()
     val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
 
+    // 全局 NetworkMonitor —— 单例，靠 EntryPoint 从 Application-scoped graph 拿
+    val appCtx = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val networkMonitor = remember(appCtx) {
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            appCtx, NetworkMonitorEntryPoint::class.java,
+        ).networkMonitor()
+    }
+
     var route by remember {
         androidx.compose.runtime.mutableStateOf(AppRoute.Splash)
     }
@@ -164,26 +174,31 @@ fun AppNavigation() {
         } else route
     }
 
-    when (route) {
-        AppRoute.Splash -> SplashScreen(onFinished = splashFinished)
+    Column {
+        // 全局 offline 横幅：非 connected 时滑入顶部
+        OfflineBanner(monitor = networkMonitor)
 
-        AppRoute.Auth -> AuthNavGraph(onAuthenticated = {
-            route = AppRoute.Onboarding
-        })
+        when (route) {
+            AppRoute.Splash -> SplashScreen(onFinished = splashFinished)
 
-        AppRoute.Onboarding -> OnboardingCheck(
-            onGoMain = { route = AppRoute.Main },
-            onStartOnboarding = { route = AppRoute.OnboardingGraph },
-        )
+            AppRoute.Auth -> AuthNavGraph(onAuthenticated = {
+                route = AppRoute.Onboarding
+            })
 
-        AppRoute.OnboardingGraph -> OnboardingNavGraph(
-            onCompleted = { route = AppRoute.Main },
-        )
+            AppRoute.Onboarding -> OnboardingCheck(
+                onGoMain = { route = AppRoute.Main },
+                onStartOnboarding = { route = AppRoute.OnboardingGraph },
+            )
 
-        AppRoute.Main -> MainScreen(onLogout = {
-            loginViewModel.logout()
-            route = AppRoute.Auth
-        })
+            AppRoute.OnboardingGraph -> OnboardingNavGraph(
+                onCompleted = { route = AppRoute.Main },
+            )
+
+            AppRoute.Main -> MainScreen(onLogout = {
+                loginViewModel.logout()
+                route = AppRoute.Auth
+            })
+        }
     }
 }
 

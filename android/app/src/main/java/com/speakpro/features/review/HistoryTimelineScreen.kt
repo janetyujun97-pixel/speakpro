@@ -111,12 +111,18 @@ fun HistoryTimelineScreen(
         Box(Modifier.fillMaxSize().padding(padding).background(SpBackground)) {
             when {
                 isLoading && groups.isEmpty() ->
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    com.speakpro.designsystem.components.states.SkeletonState(
+                        headerTitle = "HISTORY · 加载中",
+                        cardCount = 3,
+                    )
                 groups.isEmpty() ->
-                    Text(
-                        "还没有练习记录",
-                        color = SpMuted,
-                        modifier = Modifier.align(Alignment.Center),
+                    com.speakpro.designsystem.components.states.EmptyState(
+                        eyebrow = "NO HISTORY · 时间线空空",
+                        headline = "Nothing recorded,",
+                        headlineItalic = "— yet.",
+                        message = "完成一次练习，这里就会有你的声音留存。",
+                        footer = "EMPTY STATE",
+                        footerNumber = "N° HISTORY",
                     )
                 else -> LazyColumn(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
