@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { AudioPlayer } from "@/components/grading/audio-player";
 import { TranscriptViewer, type TranscriptSegment } from "@/components/grading/transcript-viewer";
 import { ScoreAdjuster, type ScoreCategory } from "@/components/grading/score-adjuster";
+import { VoiceMemoRecorder } from "@/components/grading/voice-memo-recorder";
 
 // ---- 类型定义 ----
 
@@ -24,6 +25,7 @@ interface Submission {
   status: "pending" | "submitted" | "graded";
   teacherScore: number | null;
   teacherComment: string | null;
+  teacherVoiceUrl: string | null;
   submittedAt: string | null;
   gradedAt: string | null;
 }
@@ -84,6 +86,7 @@ export default function GradePage() {
   // 教师评分
   const [teacherScore, setTeacherScore] = useState(0);
   const [comment, setComment] = useState("");
+  const [teacherVoiceUrl, setTeacherVoiceUrl] = useState<string | null>(null);
 
   // 加载作业
   useEffect(() => {
@@ -108,6 +111,7 @@ export default function GradePage() {
     setSelectedSubmission(sub);
     setTeacherScore(sub.teacherScore ?? 70);
     setComment(sub.teacherComment ?? "");
+    setTeacherVoiceUrl(sub.teacherVoiceUrl ?? null);
     setSelectedSession(null);
     setSessions([]);
 
@@ -137,6 +141,7 @@ export default function GradePage() {
         submissionId: selectedSubmission.id,
         teacherScore,
         teacherComment: comment,
+        teacherVoiceUrl,
       });
       await loadAssignment();
     } catch {
@@ -322,6 +327,12 @@ export default function GradePage() {
                 rows={3}
                 placeholder="给学生写一些鼓励或改进建议..."
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+
+              <VoiceMemoRecorder
+                existingUrl={teacherVoiceUrl}
+                onUploaded={(url) => setTeacherVoiceUrl(url)}
+                onCleared={() => setTeacherVoiceUrl(null)}
               />
 
               <button
