@@ -17,10 +17,11 @@ import (
 //                                      → 讯飞 TTS(示范发音)
 //                                      → 返回综合评估结果
 type Orchestrator struct {
-	asr     ASRClient
-	ise     ISEClient
-	llm     LLMClient
-	fishTTS *FishTTSClient
+	asr      ASRClient
+	ise      ISEClient
+	llm      LLMClient
+	fishTTS  *FishTTSClient
+	notebook *NotebookClient
 }
 
 func NewOrchestrator(asr ASRClient, ise ISEClient, llm LLMClient, fishTTS ...*FishTTSClient) *Orchestrator {
@@ -29,6 +30,19 @@ func NewOrchestrator(asr ASRClient, ise ISEClient, llm LLMClient, fishTTS ...*Fi
 		o.fishTTS = fishTTS[0]
 	}
 	return o
+}
+
+// SetNotebookClient 注入 NestJS 错题本回调客户端；nil 或未配置 secret 时 ReportMisses 为 no-op
+func (o *Orchestrator) SetNotebookClient(c *NotebookClient) { o.notebook = c }
+
+// ReportMisses 异步上报低分词到 NestJS 错题本。
+// - userID / sessionID 由 handler 从 JWT + 请求体提取
+// - items 通常来自 ISE XML 的 ExtractMissesFromISE
+func (o *Orchestrator) ReportMisses(userID, sessionID string, items []MissItem) {
+	if o.notebook == nil {
+		return
+	}
+	go o.notebook.RecordMiss(userID, sessionID, items)
 }
 
 // EvaluateAudio 执行完整的音频评测流水线

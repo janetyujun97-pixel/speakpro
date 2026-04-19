@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Body,
   Param,
   Query,
@@ -58,11 +59,27 @@ export class AssignmentsController {
   @Put(':id/grade')
   async grade(
     @Param('id') id: string,
-    @Body() data: { submissionId: string; teacherComment?: string; teacherScore: number },
+    @Body()
+    data: {
+      submissionId: string;
+      teacherComment?: string;
+      teacherScore: number;
+      teacherVoiceUrl?: string;
+    },
   ) {
     return this.assignmentsService.grade(id, data.submissionId, {
       teacherComment: data.teacherComment,
       teacherScore: data.teacherScore,
+      teacherVoiceUrl: data.teacherVoiceUrl,
     });
+  }
+
+  /** Web 教师后台录完整体语音备注后回写作业 */
+  @Patch(':id/teacher-voice')
+  async updateTeacherVoice(
+    @Param('id') id: string,
+    @Body() data: { teacherVoiceUrl: string | null },
+  ) {
+    return this.assignmentsService.updateTeacherVoice(id, data.teacherVoiceUrl);
   }
 }

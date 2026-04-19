@@ -47,6 +47,13 @@ export class PracticeController {
     return this.practiceService.findById(id);
   }
 
+  // 历史时间线的回听音频 —— OSS 凭证齐备时改返签名 URL，目前 fallback 直接返数据库字段
+  @Get('sessions/:id/audio')
+  @UseGuards(JwtAuthGuard)
+  async getSessionAudio(@Request() req: any, @Param('id') id: string) {
+    return this.practiceService.getSessionAudio(req.user.sub, id);
+  }
+
   @Get('stats')
   @UseGuards(JwtAuthGuard)
   async getStats(@Request() req: any) {

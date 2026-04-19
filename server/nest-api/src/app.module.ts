@@ -13,6 +13,8 @@ import { ClassesModule } from './modules/classes/classes.module';
 import { ResourcesModule } from './modules/resources/resources.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { NotebookModule } from './modules/notebook/notebook.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
     ResourcesModule,
     AnalyticsModule,
     OnboardingModule,
+    NotebookModule,
+    NotificationsModule,
   ],
   providers: [
     // 全局启用速率限制

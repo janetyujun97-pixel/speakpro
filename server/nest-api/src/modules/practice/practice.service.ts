@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { PracticeSession } from './entities/practice-session.entity';
@@ -8,6 +9,7 @@ export class PracticeService {
   constructor(
     @InjectRepository(PracticeSession)
     private readonly practiceRepository: Repository<PracticeSession>,
+    private readonly configService: ConfigService,
   ) {}
 
   async startSession(studentId: string, data: { questionId: string; mode: string }): Promise<PracticeSession> {
@@ -49,6 +51,33 @@ export class PracticeService {
       throw new NotFoundException('练习会话不存在');
     }
     return session;
+  }
+
+  /**
+   * 历史时间线回听：目前未接入 OSS 签名，直接返库里 audio_url；
+   * OSS_ACCESS_KEY_* 齐备后再包一层 `generateSignedUrl(audioUrl, ttl=30d)`。
+   */
+  async getSessionAudio(userId: string, sessionId: string): Promise<{
+    sessionId: string;
+    audioUrl: string | null;
+    expiresInSec: number | null;
+    signed: boolean;
+  }> {
+    const session = await this.practiceRepository.findOne({ where: { id: sessionId } });
+    if (!session) throw new NotFoundException('练习会话不存在');
+    if (session.studentId !== userId) {
+      throw new ForbiddenException('无权访问该录音');
+    }
+
+    const hasOssCreds = !!this.configService.get<string>('OSS_ACCESS_KEY_ID');
+
+    return {
+      sessionId: session.id,
+      audioUrl: session.audioUrl ?? null,
+      // OSS 凭证未就位：expiresInSec 为 null，客户端直接走原 URL；后续补签名后为 30d
+      expiresInSec: hasOssCreds ? 30 * 24 * 3600 : null,
+      signed: hasOssCreds,
+    };
   }
 
   async getStats(studentId: string) {
