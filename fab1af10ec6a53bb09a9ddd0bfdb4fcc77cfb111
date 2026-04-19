@@ -1,0 +1,25 @@
+android/app/src/main/java/com/speakpro/features/practice/mockexam/MockExamResultScreen.kt
+  46b2f17736674691 192-194,292
+android/app/src/main/java/com/speakpro/data/models/ApiModels.kt
+  46b2f17736674691 8-15,151,153-156,158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "fab1af10ec6a53bb09a9ddd0bfdb4fcc77cfb111",
+  "prompts": {
+    "46b2f17736674691": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9342f74a-2155-45dd-a2ae-45f6c9df3fca",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 395,
+      "total_deletions": 46,
+      "accepted_lines": 10501,
+      "overriden_lines": 0
+    }
+  }
+}
