@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -72,6 +73,17 @@ export default function LoginPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "登录中..." : "登录"}
           </Button>
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <Link href="/register" className="hover:text-foreground underline">
+              注册教师账号
+            </Link>
+            <Link
+              href="/forgot-password"
+              className="hover:text-foreground underline"
+            >
+              忘记密码
+            </Link>
+          </div>
         </form>
       </CardContent>
     </Card>
