@@ -1,0 +1,45 @@
+ios/SpeakPro/App/SpeakProApp.swift
+  46b2f17736674691 7-26
+android/app/src/main/java/com/speakpro/core/audio/AudioFileManager.kt
+  46b2f17736674691 120-170
+ios/SpeakPro/Features/Review/NotebookViewModel.swift
+  46b2f17736674691 22-30,39-41,43-46
+android/app/src/main/java/com/speakpro/features/onboarding/OnbBaselineRecordingScreen.kt
+  46b2f17736674691 272-277
+android/app/src/main/java/com/speakpro/core/storage/NotebookCache.kt
+  46b2f17736674691 1-85
+android/app/src/main/java/com/speakpro/App.kt
+  46b2f17736674691 5-6,8-11,13,24-25,27-61
+android/app/src/main/java/com/speakpro/features/review/NotebookViewModel.kt
+  46b2f17736674691 6,22,53-62,68-71,73-75,77-78
+android/app/src/main/java/com/speakpro/features/onboarding/OnboardingViewModel.kt
+  46b2f17736674691 5,7-8,31,120-129,132,141,145,149-157
+ios/SpeakPro/Core/Network/APIClient+Review.swift
+  46b2f17736674691 37,53
+ios/SpeakPro/Features/Onboarding/OnbBaselineRecordingView.swift
+  46b2f17736674691 227-232,242-248
+ios/SpeakPro/Core/Storage/NotebookCache.swift
+  46b2f17736674691 1-91
+ios/SpeakPro/Core/Audio/AudioFileManager.swift
+  46b2f17736674691 52-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "8277956a1aa8691e996f6b9ece748a38eb103b7f",
+  "prompts": {
+    "46b2f17736674691": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9342f74a-2155-45dd-a2ae-45f6c9df3fca",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 2687,
+      "total_deletions": 9,
+      "accepted_lines": 11306,
+      "overriden_lines": 7
+    }
+  }
+}
