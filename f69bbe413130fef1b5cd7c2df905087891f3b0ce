@@ -1,0 +1,41 @@
+android/app/src/main/java/com/speakpro/features/review/NotificationsScreen.kt
+  46b2f17736674691 1-301
+android/app/src/main/java/com/speakpro/data/models/ReviewModels.kt
+  46b2f17736674691 1-114
+android/app/src/main/java/com/speakpro/features/review/NotificationsViewModel.kt
+  46b2f17736674691 1-130
+android/app/src/main/java/com/speakpro/navigation/AppNavigation.kt
+  46b2f17736674691 84-89,291-322
+android/app/src/main/java/com/speakpro/core/network/ApiService.kt
+  46b2f17736674691 11-16,19,25,28-29,35,39,98-156
+android/app/src/main/java/com/speakpro/features/review/NotebookScreen.kt
+  46b2f17736674691 1-354
+android/app/src/main/java/com/speakpro/features/review/HistoryTimelineViewModel.kt
+  46b2f17736674691 1-115
+android/app/src/main/java/com/speakpro/features/review/NotebookViewModel.kt
+  46b2f17736674691 1-122
+android/app/src/main/java/com/speakpro/features/review/HistoryTimelineScreen.kt
+  46b2f17736674691 1-258
+android/app/src/main/java/com/speakpro/features/progress/ProgressScreen.kt
+  46b2f17736674691 4,6,14-23,38,41,53-55,101-124,134-168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "f69bbe413130fef1b5cd7c2df905087891f3b0ce",
+  "prompts": {
+    "46b2f17736674691": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9342f74a-2155-45dd-a2ae-45f6c9df3fca",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 2870,
+      "total_deletions": 2217,
+      "accepted_lines": 10841,
+      "overriden_lines": 0
+    }
+  }
+}
