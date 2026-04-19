@@ -1,0 +1,25 @@
+web/components/grading/voice-memo-recorder.tsx
+  46b2f17736674691 1-284
+web/app/(dashboard)/assignments/[id]/grade/page.tsx
+  46b2f17736674691 9,28,89,114,144,332-337
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "d3911bafa29cd236495c5356d0f9ea0881b4d984",
+  "prompts": {
+    "46b2f17736674691": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9342f74a-2155-45dd-a2ae-45f6c9df3fca",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 296,
+      "total_deletions": 0,
+      "accepted_lines": 9553,
+      "overriden_lines": 1
+    }
+  }
+}
