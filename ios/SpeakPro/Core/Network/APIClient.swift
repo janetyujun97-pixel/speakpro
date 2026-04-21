@@ -36,6 +36,7 @@ enum HTTPMethod: String {
     case get    = "GET"
     case post   = "POST"
     case put    = "PUT"
+    case patch  = "PATCH"
     case delete = "DELETE"
 }
 
@@ -174,6 +175,13 @@ final class APIClient {
         body: Encodable? = nil
     ) async throws -> APIResponse<T> {
         try await request(.put, path: path, body: body)
+    }
+
+    func patch<T: Decodable>(
+        _ path: String,
+        body: Encodable? = nil
+    ) async throws -> APIResponse<T> {
+        try await request(.patch, path: path, body: body)
     }
 
     func delete<T: Decodable>(

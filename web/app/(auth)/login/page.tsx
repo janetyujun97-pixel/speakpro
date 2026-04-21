@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { login } from "@/lib/auth";
 import {
@@ -112,6 +112,16 @@ function LoginInner() {
         >
           {loading ? "登录中…" : "登录"}
         </HairlineBtn>
+
+        {/* main PR2d 提供的注册 / 忘记密码 —— 以 editorial 样式呈现 */}
+        <div className="flex justify-between pt-1">
+          <Link href="/register" className="text-[12px] text-muted hover:text-ink transition-colors">
+            注册教师账号 →
+          </Link>
+          <Link href="/forgot-password" className="text-[12px] text-muted hover:text-ink transition-colors">
+            忘记密码？
+          </Link>
+        </div>
       </form>
 
       <div className="mt-8 text-center">

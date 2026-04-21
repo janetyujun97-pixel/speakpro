@@ -12,10 +12,16 @@ import (
 
 // Orchestrator AI 编排服务 - 协调多个 AI 服务完成完整评测流水线
 //
-// 流水线：学生录音 → 讯飞 ASR(转写) → 讯飞评测(发音评分)
-//                                      → 通义千问(语法纠错+评分生成)
-//                                      → 讯飞 TTS(示范发音)
-//                                      → 返回综合评估结果
+// 流水线：ASR 转写 → (并行) ISE 发音 · 语法纠错 · 综合反馈 → 返回综合评估结果
+type Orchestrator struct {
+	asr      ASRClient
+	ise      ISEClient
+	llm      LLMClient
+	fishTTS  *FishTTSClient
+	notebook *NotebookClient
+	registry *ProviderRegistry
+}
+
 // ProviderRegistry 保留所有原始 AI 客户端，供按次覆盖时重新组装 fallback 链
 type ProviderRegistry struct {
 	TencentASR ASRClient
@@ -24,14 +30,6 @@ type ProviderRegistry struct {
 	XunfeiISE  ISEClient
 	MimoLLM    LLMClient
 	QwenLLM    LLMClient
-}
-
-type Orchestrator struct {
-	asr      ASRClient
-	ise      ISEClient
-	llm      LLMClient
-	fishTTS  *FishTTSClient
-	registry *ProviderRegistry
 }
 
 func NewOrchestrator(asr ASRClient, ise ISEClient, llm LLMClient, fishTTS ...*FishTTSClient) *Orchestrator {
@@ -47,6 +45,19 @@ func (o *Orchestrator) WithRegistry(reg *ProviderRegistry) *Orchestrator {
 	o.registry = reg
 	return o
 }
+
+// SetNotebookClient 注入 NestJS 错题本回调客户端；nil 或未配置 secret 时 ReportMisses 为 no-op
+func (o *Orchestrator) SetNotebookClient(c *NotebookClient) { o.notebook = c }
+
+// ReportMisses 异步上报低分词到 NestJS 错题本。
+func (o *Orchestrator) ReportMisses(userID, sessionID string, items []MissItem) {
+	if o.notebook == nil {
+		return
+	}
+	go o.notebook.RecordMiss(userID, sessionID, items)
+}
+
+// ── 按次覆盖：空字符串 → 沿用默认；匹配到预设 → 重组 fallback 链 ─────
 
 // PickASR 根据覆盖值返回带 fallback 的 ASR 客户端；空覆盖返回默认
 func (o *Orchestrator) PickASR(override string) ASRClient {
@@ -100,62 +111,98 @@ func (o *Orchestrator) PickLLM(override string) LLMClient {
 	return o.llm
 }
 
-// EvaluateAudio 执行完整的音频评测流水线（使用默认 provider）
+// ── 主流水线 ────────────────────────────────────────────────────────
+
+// EvaluateAudio 执行完整的音频评测流水线（默认 provider）
 func (o *Orchestrator) EvaluateAudio(audioData []byte, referenceText string) (*model.AssessmentResult, error) {
 	return o.evaluateAudio(o.asr, o.ise, o.llm, audioData, referenceText)
 }
 
-// EvaluateAudioWithOverrides 允许按次覆盖 ASR/ISE/LLM；空字符串表示沿用默认
+// EvaluateAudioWithOverrides 按次覆盖 ASR/ISE/LLM；空字符串表示沿用默认
 func (o *Orchestrator) EvaluateAudioWithOverrides(audioData []byte, referenceText, asrP, iseP, llmP string) (*model.AssessmentResult, error) {
 	return o.evaluateAudio(o.PickASR(asrP), o.PickISE(iseP), o.PickLLM(llmP), audioData, referenceText)
 }
 
 func (o *Orchestrator) evaluateAudio(asr ASRClient, ise ISEClient, llm LLMClient, audioData []byte, referenceText string) (*model.AssessmentResult, error) {
-	// 步骤 1: ASR 语音转写
 	transcript, err := asr.Recognize(audioData)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("[Orchestrator] ASR 转写完成: %q", transcript)
+	return o.evaluateWithTranscript(ise, llm, audioData, referenceText, transcript)
+}
 
-	// 步骤 2: 发音评测（ISE 不可用时降级为估算分数）
-	pronScore, err := ise.Assess(audioData, referenceText)
-	if err != nil {
-		log.Printf("[Orchestrator] ISE 评测失败，使用降级评分: %v", err)
-		pronScore = &model.PronunciationScore{
-			Overall:    0,
-			Fluency:    0,
-			Integrity:  0,
-			Stress:     0,
-			Intonation: 0,
-			Phonemes:   []model.PhonemeScore{},
+// EvaluateWithTranscript 外部已做过 ASR 的评测（对话模式用，避免重复 ASR）。
+// 并行执行：ISE 发音评测、语法纠错、综合反馈。
+func (o *Orchestrator) EvaluateWithTranscript(audioData []byte, referenceText, transcript string) (*model.AssessmentResult, error) {
+	return o.evaluateWithTranscript(o.ise, o.llm, audioData, referenceText, transcript)
+}
+
+// EvaluateWithTranscriptAndOverrides 对话模式也支持按次覆盖
+func (o *Orchestrator) EvaluateWithTranscriptAndOverrides(audioData []byte, referenceText, transcript, iseP, llmP string) (*model.AssessmentResult, error) {
+	return o.evaluateWithTranscript(o.PickISE(iseP), o.PickLLM(llmP), audioData, referenceText, transcript)
+}
+
+func (o *Orchestrator) evaluateWithTranscript(ise ISEClient, llm LLMClient, audioData []byte, referenceText, transcript string) (*model.AssessmentResult, error) {
+	var (
+		wg        sync.WaitGroup
+		pronScore *model.PronunciationScore
+		grammar   *model.GrammarScore
+		feedback  string
+	)
+
+	wg.Add(3)
+
+	// A: ISE 发音评测
+	go func() {
+		defer wg.Done()
+		ps, err := ise.Assess(audioData, referenceText)
+		if err != nil {
+			log.Printf("[Orchestrator] ISE 评测失败，使用降级评分: %v", err)
+			ps = &model.PronunciationScore{Phonemes: []model.PhonemeScore{}}
 		}
-	}
+		pronScore = ps
+	}()
 
-	// 步骤 3: AI 语法纠错 + 评分
-	grammarResult, err := llm.CorrectGrammar(transcript)
-	if err != nil {
-		log.Printf("[Orchestrator] 语法纠错失败: %v", err)
-		grammarResult = &model.GrammarScore{Score: 0, Errors: []model.GramError{}, Corrections: []string{}}
-	}
+	// B: 语法纠错
+	go func() {
+		defer wg.Done()
+		if transcript == "" {
+			grammar = &model.GrammarScore{Score: 0, Errors: []model.GramError{}, Corrections: []string{}}
+			return
+		}
+		gs, err := llm.CorrectGrammar(transcript)
+		if err != nil {
+			log.Printf("[Orchestrator] 语法纠错失败: %v", err)
+			gs = &model.GrammarScore{Score: 0, Errors: []model.GramError{}, Corrections: []string{}}
+		}
+		grammar = gs
+	}()
 
-	// 步骤 4: AI 内容评分 + 综合反馈
-	feedback, err := llm.GenerateFeedback(transcript, referenceText, pronScore)
-	if err != nil {
-		log.Printf("[Orchestrator] 反馈生成失败: %v", err)
-		feedback = "AI 反馈暂不可用"
-	}
+	// C: 综合反馈
+	go func() {
+		defer wg.Done()
+		if transcript == "" {
+			feedback = ""
+			return
+		}
+		fb, err := llm.GenerateFeedback(transcript, referenceText, nil)
+		if err != nil {
+			log.Printf("[Orchestrator] 反馈生成失败: %v", err)
+			fb = "AI 反馈暂不可用"
+		}
+		feedback = fb
+	}()
 
-	// 组装综合结果
-	result := &model.AssessmentResult{
+	wg.Wait()
+
+	return &model.AssessmentResult{
 		Pronunciation: *pronScore,
-		Grammar:       *grammarResult,
-		Overall:       calculateOverall(pronScore, grammarResult),
+		Grammar:       *grammar,
+		Overall:       calculateOverall(pronScore, grammar),
 		AIFeedback:    feedback,
 		Transcript:    transcript,
-	}
-
-	return result, nil
+	}, nil
 }
 
 // GenerateExaminerResponse 生成 AI 考官回复（用于对话模式）
@@ -163,12 +210,14 @@ func (o *Orchestrator) GenerateExaminerResponse(history []model.ConversationMess
 	return o.llm.Chat(history, examType, section)
 }
 
-// FullEvaluateAudio 完整评测流水线（模考用）— 使用默认 provider
+// ── 完整评测（模考） ────────────────────────────────────────────────
+
+// FullEvaluateAudio 完整评测流水线（默认 provider）
 func (o *Orchestrator) FullEvaluateAudio(audioData []byte, referenceText, examType, section string) (*model.FullEvaluateResult, error) {
 	return o.fullEvaluateAudio(o.asr, o.ise, o.llm, audioData, referenceText, examType, section)
 }
 
-// FullEvaluateAudioWithOverrides 允许按次覆盖 ASR/ISE/LLM
+// FullEvaluateAudioWithOverrides 允许按次覆盖
 func (o *Orchestrator) FullEvaluateAudioWithOverrides(audioData []byte, referenceText, examType, section, asrP, iseP, llmP string) (*model.FullEvaluateResult, error) {
 	return o.fullEvaluateAudio(o.PickASR(asrP), o.PickISE(iseP), o.PickLLM(llmP), audioData, referenceText, examType, section)
 }
@@ -176,7 +225,6 @@ func (o *Orchestrator) FullEvaluateAudioWithOverrides(audioData []byte, referenc
 func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMClient, audioData []byte, referenceText, examType, section string) (*model.FullEvaluateResult, error) {
 	result := &model.FullEvaluateResult{}
 
-	// Step 1: ASR 转写（必须先完成，后续步骤依赖 transcript）
 	transcript, err := asr.Recognize(audioData)
 	if err != nil {
 		log.Printf("[FullEvaluate] ASR 失败: %v", err)
@@ -185,10 +233,8 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 	result.Transcript = transcript
 	result.WordCount = len(strings.Fields(transcript))
 	result.SentenceCount = countSentences(transcript)
-
 	log.Printf("[FullEvaluate] ASR 完成: %d 词, %d 句", result.WordCount, result.SentenceCount)
 
-	// Step 2: 并行执行 3 组任务（减少千问并发数避免限流）
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
@@ -200,7 +246,7 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 	var keywords []model.KeywordItem
 	var sampleAnswers []string
 
-	// 组 A: ISE 发音评测（独立通道）
+	// A: ISE 发音评测
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -214,13 +260,14 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 		mu.Unlock()
 	}()
 
-	// 组 B: 千问串行 — 语法 → 反馈 → 修订答案（共用上下文，串行更稳定）
+	// B: 千问串行 — 语法 → 反馈 → 修订答案
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if transcript == "" { return }
+		if transcript == "" {
+			return
+		}
 
-		// B1: 语法纠错
 		gs, err := llm.CorrectGrammar(transcript)
 		if err != nil {
 			log.Printf("[FullEvaluate] 语法分析失败: %v", err)
@@ -230,7 +277,6 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 		gramScore = gs
 		mu.Unlock()
 
-		// B2: 综合反馈
 		fb, err := llm.GenerateFeedback(transcript, referenceText, nil)
 		if err != nil {
 			log.Printf("[FullEvaluate] 反馈生成失败: %v", err)
@@ -240,7 +286,6 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 		aiFeedback = fb
 		mu.Unlock()
 
-		// B3: 修订答案
 		ra, err := llm.GenerateRevisedAnswer(transcript, referenceText)
 		if err != nil {
 			log.Printf("[FullEvaluate] 修订答案失败: %v", err)
@@ -251,12 +296,11 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 		mu.Unlock()
 	}()
 
-	// 组 C: 千问串行 — 思维导图 → 关键词+样例
+	// C: 千问串行 — 思维导图 → 关键词+样例
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
-		// C1: 思维导图
 		mm, err := llm.GenerateMindMap(referenceText, examType, section)
 		if err != nil {
 			log.Printf("[FullEvaluate] 思维导图失败: %v", err)
@@ -266,7 +310,6 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 			mu.Unlock()
 		}
 
-		// C2: 关键词 + 样例答案
 		if transcript != "" {
 			kw, sa, err := llm.GenerateKeywordsAndSamples(referenceText, transcript, examType)
 			if err != nil {
@@ -282,7 +325,6 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 
 	wg.Wait()
 
-	// 组装结果
 	result.PronunciationScore = pronScore
 	result.GrammarScore = gramScore
 	result.AIFeedback = aiFeedback
@@ -291,7 +333,6 @@ func (o *Orchestrator) fullEvaluateAudio(asr ASRClient, ise ISEClient, llm LLMCl
 	result.Keywords = keywords
 	result.SampleAnswers = sampleAnswers
 
-	// 计算综合分
 	if pronScore != nil && gramScore != nil {
 		result.OverallScore = calculateOverall(pronScore, gramScore)
 	}
@@ -324,22 +365,18 @@ func countSentences(text string) int {
 }
 
 func calculateOverall(pron *model.PronunciationScore, gram *model.GrammarScore) float64 {
-	// 所有分数统一为 0-100 百分制
-	pronScore := pron.Overall      // ISE 原始 0-100
-	fluencyScore := pron.Fluency   // ISE 原始 0-100
-	gramScore := gram.Score        // 千问已改为 0-100
+	pronScore := pron.Overall
+	fluencyScore := pron.Fluency
+	gramScore := gram.Score
 
-	// 兼容旧的 0-10 分制（如果 AI 仍然返回 0-10 范围的分数）
 	if gramScore > 0 && gramScore <= 10 {
 		gramScore = gramScore * 10
 	}
 
-	// 若 ISE 不可用（分数为 0），只用语法评分
 	if pronScore == 0 && fluencyScore == 0 {
 		return gramScore
 	}
 
-	// 加权平均：发音 35%, 流利度 25%, 语法 25%, 内容/综合 15%
 	overall := pronScore*0.35 + fluencyScore*0.25 + gramScore*0.25 + pronScore*0.15
-	return math.Round(overall*10) / 10 // 保留一位小数
+	return math.Round(overall*10) / 10
 }

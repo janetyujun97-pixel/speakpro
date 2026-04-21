@@ -5,6 +5,14 @@ import com.google.gson.annotations.SerializedName
 // =============================================================================
 // SpeakPro 共享 API 数据模型
 // 与 iOS 端和后端接口保持一致
+//
+// 命名约定：
+//   - NestJS REST 端点 —— 全 camelCase，字段名直接匹配，不需要 @SerializedName
+//   - Go REST 端点     —— 也全 camelCase（json tags 用 camelCase）
+//   - Go WebSocket 消息 —— 使用 snake_case（历史遗留），数据类上保留 @SerializedName
+//
+// 曾经的 bug（PR5 修复）：REST 相关的 data class 之前带着 @SerializedName("snake_case")
+// 但后端 JSON 的 key 是 camelCase，导致字段全为 null。现在移除这些错误标注。
 // =============================================================================
 
 // MARK: - 通用响应包装
@@ -30,9 +38,7 @@ data class LoginRequest(
 )
 
 data class LoginResponse(
-    @SerializedName("access_token")
     val accessToken: String,
-    @SerializedName("refresh_token")
     val refreshToken: String,
     val user: UserInfo,
 )
@@ -47,15 +53,10 @@ data class UserInfo(
 // MARK: - 练习统计
 
 data class PracticeStats(
-    @SerializedName("total_sessions")
     val totalSessions: Int = 0,
-    @SerializedName("average_score")
     val averageScore: Double? = null,
-    @SerializedName("total_duration_min")
     val totalDurationMin: Int? = null,
-    @SerializedName("streak_days")
     val streakDays: Int? = null,
-    @SerializedName("today_session_count")
     val todaySessionCount: Int? = null,
     val dimensions: DimensionScores? = null,
     val recent: RecentStats = RecentStats(),
@@ -69,9 +70,7 @@ data class DimensionScores(
 )
 
 data class RecentStats(
-    @SerializedName("last_7_days")
     val last7Days: Int = 0,
-    @SerializedName("last_30_days")
     val last30Days: Int = 0,
 )
 
@@ -81,12 +80,10 @@ data class QuestionItem(
     val id: String,
     val title: String,
     val content: String = "",
-    @SerializedName("exam_type")
     val examType: String = "",          // "IELTS" | "TOEFL"
     val section: String? = null,        // "Part1" | "Part2" | "Part3" | "Independent" | "Integrated"
     val difficulty: String? = null,     // "easy" | "medium" | "hard"
     val tags: List<String>? = null,
-    @SerializedName("created_at")
     val createdAt: String? = null,
 )
 
@@ -94,7 +91,6 @@ data class QuestionListResponse(
     val items: List<QuestionItem> = emptyList(),
     val total: Int = 0,
     val page: Int = 1,
-    @SerializedName("page_size")
     val pageSize: Int = 20,
 )
 
@@ -104,13 +100,10 @@ data class HomeworkAssignment(
     val id: String,
     val title: String,
     val description: String? = null,
-    @SerializedName("due_date")
     val dueDate: String? = null,
-    @SerializedName("created_at")
     val createdAt: String? = null,
     val teacher: TeacherInfo? = null,
     val submissions: List<SubmissionInfo>? = null,
-    @SerializedName("question_ids")
     val questionIds: List<String>? = null,
     val questions: List<QuestionItem>? = null,
 ) {
@@ -127,16 +120,12 @@ data class TeacherInfo(
 
 data class SubmissionInfo(
     val id: String? = null,
-    @SerializedName("student_id")
     val studentId: String? = null,
     val status: String = "pending",     // "pending" | "submitted" | "graded"
-    @SerializedName("audio_url")
     val audioUrl: String? = null,
     val score: Double? = null,
     val feedback: String? = null,
-    @SerializedName("submitted_at")
     val submittedAt: String? = null,
-    @SerializedName("graded_at")
     val gradedAt: String? = null,
 )
 
@@ -146,18 +135,12 @@ data class SubmissionInfo(
  * 完整评测请求体（full-evaluate）
  */
 data class FullEvaluateBody(
-    @SerializedName("session_id")
     val sessionId: String,
-    @SerializedName("exam_type")
     val examType: String,
     val section: String,
-    @SerializedName("question_text")
     val questionText: String,
-    @SerializedName("student_audio_b64")
     val studentAudioB64: String? = null,
-    @SerializedName("student_text")
     val studentText: String? = null,
-    @SerializedName("reference_text")
     val referenceText: String? = null,
 )
 
@@ -165,16 +148,14 @@ data class FullEvaluateBody(
  * 完整评测结果（full-evaluate 响应）
  */
 data class FullEvaluateResult(
-    @SerializedName("session_id")
-    val sessionId: String,
-    @SerializedName("overall_score")
+    val sessionId: String? = null,       // Go 目前未回传；留字段以容纳后续补充
     val overallScore: Double = 0.0,
-    val pronunciation: PronScore? = null,
-    val grammar: GramScore? = null,
-    val content: ContentScore? = null,
-    val fluency: FluencyScore? = null,
-    @SerializedName("ai_feedback")
+    val pronunciationScore: PronScore? = null,    // Go 侧字段名：pronunciationScore
+    val grammarScore: GramScore? = null,
+    val contentScore: ContentScore? = null,
+    val fluencyScore: FluencyScore? = null,
     val aiFeedback: String? = null,
+    val transcript: String? = null,
     val suggestions: List<String>? = null,
 )
 
@@ -192,7 +173,6 @@ data class PronScore(
 data class WordScore(
     val word: String,
     val score: Double = 0.0,
-    @SerializedName("is_correct")
     val isCorrect: Boolean? = null,
 )
 
@@ -221,11 +201,8 @@ data class ContentScore(
 /** 流利度评分 */
 data class FluencyScore(
     val score: Double? = null,
-    @SerializedName("words_per_minute")
     val wordsPerMinute: Int? = null,
-    @SerializedName("pause_count")
     val pauseCount: Int? = null,
-    @SerializedName("filler_count")
     val fillerCount: Int? = null,
 )
 
@@ -238,7 +215,6 @@ data class TtsSynthesizeRequest(
 )
 
 data class TtsSynthesizeResponse(
-    @SerializedName("audio_b64")
     val audioB64: String,
     val duration: Double? = null,
 )
@@ -392,14 +368,10 @@ enum class ExamType(val value: String) {
 data class PracticeSession(
     val id: String,
     val mode: String,
-    @SerializedName("exam_type")
     val examType: String = "",
     val section: String? = null,
     val score: Double? = null,
-    @SerializedName("duration_sec")
     val durationSec: Int? = null,
-    @SerializedName("created_at")
     val createdAt: String? = null,
-    @SerializedName("completed_at")
     val completedAt: String? = null,
 )

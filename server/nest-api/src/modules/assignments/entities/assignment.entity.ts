@@ -38,6 +38,10 @@ export class Assignment {
   @Column({ type: 'timestamptz', nullable: true, name: 'due_date' })
   dueDate: Date;
 
+  /** 老师为整个作业录制的语音备注（PR3a 引入），OSS 上传后写入 */
+  @Column({ type: 'text', nullable: true, name: 'teacher_voice_url' })
+  teacherVoiceUrl: string | null;
+
   @OneToMany(() => Submission, (submission) => submission.assignment)
   submissions: Submission[];
 

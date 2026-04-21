@@ -40,6 +40,13 @@ ios/**/xcuserdata/
 ios/**/*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 ios/DerivedData/
 ios/build/
+ios/build-sim/
+
+# === Android / Gradle ===
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
 ios/**/*.ipa
 ios/**/*.dSYM.zip
 ios/**/*.dSYM

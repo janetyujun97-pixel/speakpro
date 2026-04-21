@@ -3,17 +3,27 @@
 @tailwind utilities;
 
 /* ────────────────────────────────────────────────────────────────
-   Editorial design tokens — 与 design/SpeakPro Admin/index.html 对齐
-   主题切换：改下面 :root 下的 6 个颜色变量即可（未来若加 ivory/dark）
+   SpeakPro Web · editorial tokens
+   PR1 的 --background/--foreground 等与我们扩展的 --ink/--ivory/--moss 共存：
+   - shadcn 遗留组件（Card/Input/Button）读前半段
+   - editorial primitives 和所有新页面读后半段
    ──────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
+    /* —— PR1 语义名（shadcn 兼容） —— */
+    --background: #F4EEE3;
+    --foreground: #1C1B18;
+    --muted: #EDE5D6;
+    --muted-foreground: #706A5E;
+    --border: rgba(28, 27, 24, 0.12);
+    --ring: #B54A25;
+
+    /* —— editorial 扩展 token（primitives + 新页面用） —— */
     --bg: #F4EEE3;
     --bg-soft: #EDE5D6;
     --ivory: #FBF8F2;
     --ink: #1C1B18;
     --ink-2: #2A2723;
-    --muted: #706A5E;
     --muted-2: #9A9285;
     --line: rgba(28, 27, 24, 0.12);
     --line-soft: rgba(28, 27, 24, 0.07);
@@ -23,32 +33,24 @@
     --moss-soft: rgba(47, 74, 58, 0.08);
     --gold: #9A7A1F;
 
-    /* 旧 shadcn token 的兼容映射，供尚未迁移的组件使用 */
-    --background: var(--bg);
-    --foreground: var(--ink);
-    --muted-foreground: var(--muted);
-    --border: var(--line);
-    --ring: var(--accent);
-    --primary: var(--ink);
+    /* Next/font 注入的字体变量（layout.tsx 里），未注入时编辑体组件也能回退 */
+    --font-sans: "Inter Variable", Inter, system-ui, sans-serif;
+    --font-serif: "Fraunces Variable", Fraunces, "Source Serif Pro", Georgia, serif;
+    --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
   }
 
   * { box-sizing: border-box; }
 
-  html {
-    color: var(--ink);
-    background: var(--bg);
-  }
-
   body {
     color: var(--ink);
     background: var(--bg);
-    font-family: var(--font-inter), "PingFang SC", -apple-system, system-ui, sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
     position: relative;
   }
 
-  /* 整页微点阵背景 — 固定、不可交互、仅做纸张质感 */
+  /* 纸张质感微点阵 */
   body::before {
     content: '';
     position: fixed;
@@ -63,7 +65,6 @@
 
   * { border-color: var(--line); }
 
-  /* 统一滚动条样式 */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(28, 27, 24, 0.12); border-radius: 8px; }
@@ -72,18 +73,19 @@
 @layer utilities {
   .text-balance { text-wrap: balance; }
 
-  /* Editorial typography helpers — 对齐 primitives.jsx 的 Eyebrow/Serif/Numeral/Mono */
+  /* PR1 小标签（shadcn 页用） */
   .eyebrow {
+    font-family: var(--font-sans);
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--muted);
-    font-family: var(--font-inter), sans-serif;
+    color: var(--muted-foreground);
   }
 
+  /* editorial 衬线辅助类（primitives.tsx 已内联 style，这里保留入口供 class 用法） */
   .serif {
-    font-family: var(--font-fraunces), "Source Serif Pro", Georgia, serif;
+    font-family: var(--font-serif);
     font-feature-settings: "ss01";
     font-variation-settings: "opsz" 144, "SOFT" 50;
     line-height: 1.1;
@@ -91,7 +93,7 @@
   }
 
   .numeral {
-    font-family: var(--font-fraunces), "Source Serif Pro", Georgia, serif;
+    font-family: var(--font-serif);
     font-variation-settings: "opsz" 144, "SOFT" 50;
     font-feature-settings: "ss01";
     letter-spacing: -0.02em;
@@ -99,7 +101,7 @@
   }
 
   .mono {
-    font-family: var(--font-mono), "SF Mono", ui-monospace, monospace;
+    font-family: var(--font-mono);
     letter-spacing: 0.05em;
   }
 }

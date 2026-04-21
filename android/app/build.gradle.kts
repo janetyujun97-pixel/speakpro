@@ -1,3 +1,10 @@
+// PR2c 备注 ——
+//   WeChat 登录：需要接入 com.tencent.mm.opensdk:wechat-sdk-android，
+//     在 AndroidManifest 声明 WXEntryActivity 处理回调（package/.wxapi/WXEntryActivity）。
+//     当前代码在 LoginScreen 点击微信按钮会 toast "微信登录敬请期待"，
+//     凭证（WECHAT_APP_ID / WECHAT_APP_SECRET）就绪后再接入。
+//   Apple 登录：Android 走 Web OAuth（Chrome Custom Tab → Apple JS），
+//     属 follow-up，本 PR 未做。UI 按钮 toast "Apple 登录敬请期待"。
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")

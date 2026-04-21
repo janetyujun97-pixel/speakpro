@@ -13,6 +13,8 @@ import {
   HairlineBtn,
   type ChipTone,
 } from "@/components/editorial/primitives";
+// main PR3d —— 只引 VoiceMemoRecorder，其它 grading 组件我们这边已重写
+import { VoiceMemoRecorder } from "@/components/grading/voice-memo-recorder";
 
 // ── 类型定义 ────────────────────────────────────────────────────────
 
@@ -31,6 +33,7 @@ interface Submission {
   status: "pending" | "submitted" | "graded";
   teacherScore: number | null;
   teacherComment: string | null;
+  teacherVoiceUrl: string | null;
   submittedAt: string | null;
   gradedAt: string | null;
 }
@@ -121,6 +124,7 @@ export default function GradePage() {
 
   const [teacherScore, setTeacherScore] = useState(70);
   const [comment, setComment] = useState("");
+  const [teacherVoiceUrl, setTeacherVoiceUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadAssignment();
@@ -146,6 +150,7 @@ export default function GradePage() {
     setSelectedSubmission(sub);
     setTeacherScore(sub.teacherScore ?? 70);
     setComment(sub.teacherComment ?? "");
+    setTeacherVoiceUrl(sub.teacherVoiceUrl ?? null);
     setSelectedSession(null);
     setSessions([]);
 
@@ -174,6 +179,7 @@ export default function GradePage() {
         submissionId: selectedSubmission.id,
         teacherScore,
         teacherComment: comment,
+        teacherVoiceUrl,
       });
       await loadAssignment();
     } catch {
@@ -399,6 +405,8 @@ export default function GradePage() {
                       onChangeScore={setTeacherScore}
                       comment={comment}
                       onChangeComment={setComment}
+                      teacherVoiceUrl={teacherVoiceUrl}
+                      onVoiceUrlChange={setTeacherVoiceUrl}
                       grading={grading}
                       alreadyGraded={selectedSubmission.status === "graded"}
                       onSubmit={handleGrade}
@@ -558,6 +566,8 @@ function ScorePanel({
   onChangeScore,
   comment,
   onChangeComment,
+  teacherVoiceUrl,
+  onVoiceUrlChange,
   grading,
   alreadyGraded,
   onSubmit,
@@ -567,6 +577,8 @@ function ScorePanel({
   onChangeScore: (n: number) => void;
   comment: string;
   onChangeComment: (v: string) => void;
+  teacherVoiceUrl: string | null;
+  onVoiceUrlChange: (v: string | null) => void;
   grading: boolean;
   alreadyGraded: boolean;
   onSubmit: () => void;
@@ -676,6 +688,18 @@ function ScorePanel({
           className="mt-2 w-full resize-y border border-line bg-ivory p-3 text-[12px] text-ink outline-none placeholder:text-muted-2"
           style={{ borderRadius: 2, minHeight: 70 }}
         />
+      </div>
+
+      {/* 教师语音备注（PR3d） */}
+      <div className="mt-4">
+        <Eyebrow>语音批注</Eyebrow>
+        <div className="mt-2">
+          <VoiceMemoRecorder
+            existingUrl={teacherVoiceUrl}
+            onUploaded={(url) => onVoiceUrlChange(url)}
+            onCleared={() => onVoiceUrlChange(null)}
+          />
+        </div>
       </div>
 
       {/* 综合评分可调（兼容旧 0-100 teacherScore） */}

@@ -20,9 +20,27 @@ enum Endpoints {
     // MARK: - Auth
 
     enum Auth {
-        static let login    = "/auth/login"
-        static let register = "/auth/register"
-        static let refresh  = "/auth/refresh"
+        static let login          = "/auth/login"
+        static let register       = "/auth/register"
+        static let refresh        = "/auth/refresh"
+
+        // —— Auth v2（PR2a 新增） ——
+        static let sendOtp        = "/auth/send-otp"
+        static let verifyOtp      = "/auth/verify-otp"
+        static let registerPhone  = "/auth/register-phone"
+        static let requestReset   = "/auth/request-reset"
+        static let resetPassword  = "/auth/reset-password"
+        static let apple          = "/auth/apple"
+        static let wechat         = "/auth/wechat"
+    }
+
+    // MARK: - Onboarding
+
+    enum Onboarding {
+        static let status    = "/onboarding/status"
+        static let profile   = "/onboarding/profile"
+        static let baseline  = "/onboarding/baseline"
+        static let finalize  = "/onboarding/finalize"
     }
 
     // MARK: - Practice
@@ -32,6 +50,28 @@ enum Endpoints {
         static let audio    = "/practice/audio"
         static let sessions = "/practice/sessions"
         static let stats    = "/practice/stats"
+
+        /// 历史时间线回听端点（PR3a 新增）
+        static func sessionAudio(id: String) -> String { "/practice/sessions/\(id)/audio" }
+    }
+
+    // MARK: - Notebook（PR3a 新增）
+
+    enum Notebook {
+        static let words    = "/notebook/words"
+        static let phrases  = "/notebook/phrases"
+        static func reviewed(id: String) -> String { "/notebook/words/\(id)/reviewed" }
+        static func master(id: String)   -> String { "/notebook/words/\(id)/master" }
+        static func deleteWord(id: String) -> String { "/notebook/words/\(id)" }
+    }
+
+    // MARK: - Notifications（PR3a 新增）
+
+    enum Notifications {
+        static let list     = "/notifications"
+        static let readAll  = "/notifications/read-all"
+        static func read(id: String) -> String { "/notifications/\(id)/read" }
+        static let prefs    = "/users/notification-prefs"
     }
 
     // MARK: - Conversation (WebSocket → Go 服务)

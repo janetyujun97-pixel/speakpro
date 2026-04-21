@@ -36,6 +36,10 @@ export class Submission {
   @Column({ type: 'text', nullable: true, name: 'teacher_comment' })
   teacherComment: string | null;
 
+  /** 老师对单条提交的语音备注（PR3a 引入），OSS 上传后写入 */
+  @Column({ type: 'text', nullable: true, name: 'teacher_voice_url' })
+  teacherVoiceUrl: string | null;
+
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, name: 'teacher_score' })
   teacherScore: number;
 

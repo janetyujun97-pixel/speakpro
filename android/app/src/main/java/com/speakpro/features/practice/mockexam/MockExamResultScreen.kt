@@ -189,9 +189,9 @@ private fun ScoreHeader(result: FullEvaluateResult) {
                 .background(SpWhite)
                 .padding(vertical = 12.dp),
         ) {
-            DimensionScore("发音", result.pronunciation?.overall ?: 0.0, SpSuccess, Modifier.weight(1f))
-            DimensionScore("流利度", result.fluency?.score ?: 0.0, SpPrimary, Modifier.weight(1f))
-            DimensionScore("语法", result.grammar?.score ?: 0.0, SpAccent, Modifier.weight(1f))
+            DimensionScore("发音", result.pronunciationScore?.overall ?: 0.0, SpSuccess, Modifier.weight(1f))
+            DimensionScore("流利度", result.fluencyScore?.score ?: 0.0, SpPrimary, Modifier.weight(1f))
+            DimensionScore("语法", result.grammarScore?.score ?: 0.0, SpAccent, Modifier.weight(1f))
         }
     }
 }
@@ -289,7 +289,7 @@ private fun MyAnswerSection(
         result.aiFeedback?.let { transcript ->
             if (transcript.isNotBlank()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                val errorTexts = result.grammar?.errors
+                val errorTexts = result.grammarScore?.errors
                     ?.mapNotNull { it.text?.lowercase() }
                     ?.toSet() ?: emptySet()
 

@@ -1,16 +1,25 @@
 import SwiftUI
 
 /// 应用全局导航与路由协调器
+///
+/// 路由状态：
+///   .splash       —— App 启动时短暂展示 Splash
+///   .auth         —— 未登录
+///   .onboarding   —— 已登录但 onboarding 未完成
+///   .main         —— 已登录且 onboarding 完成
 final class AppCoordinator: ObservableObject {
+
+    enum Route: Equatable {
+        case splash
+        case auth
+        case onboarding
+        case main
+    }
 
     // MARK: - Tab 定义
 
     enum Tab: String, CaseIterable, Identifiable {
-        case home
-        case practice
-        case homework
-        case progress
-        case profile
+        case home, practice, homework, progress, profile
 
         var id: String { rawValue }
 
@@ -35,49 +44,110 @@ final class AppCoordinator: ObservableObject {
         }
     }
 
-    // MARK: - Published Properties
+    // MARK: - Published
 
-    @Published var isAuthenticated: Bool = false
+    @Published var route: Route = .splash
     @Published var selectedTab: Tab = .home
     @Published var currentUser: UserInfo? = nil
 
-    // MARK: - Init — 从 Keychain 恢复登录态
+    // 兼容旧代码：isAuthenticated
+    var isAuthenticated: Bool {
+        get { route == .main || route == .onboarding }
+        set { /* 历史兼容：setter 只在登录成功时触发；实际切换用 route */
+            if newValue == false { logout() }
+        }
+    }
+
+    // MARK: - Init
 
     init() {
-        // 如果 Keychain 中存在 access token，则认为已登录
+        // 从 Keychain 恢复登录态
         if let token = APIClient.shared.accessToken, !token.isEmpty {
-            isAuthenticated = true
-            // 尝试从 UserDefaults 恢复用户信息
             if let data = UserDefaults.standard.data(forKey: "speakpro_user"),
                let user = try? JSONDecoder().decode(UserInfo.self, from: data) {
                 currentUser = user
             }
+            // 已有 token：默认进 main，异步查 onboarding_status 决定是否降级到 onboarding
+            route = .main
+            Task { await refreshOnboardingStatusAfterLogin() }
         }
     }
 
-    // MARK: - Auth Methods
+    // MARK: - Actions
 
-    /// 登录成功后调用，保存用户信息并切换至主界面
+    /// Splash 动画完成后调用
+    func splashFinished() {
+        if route == .splash {
+            if APIClient.shared.accessToken?.isEmpty == false {
+                // 已登录：默认 main，异步校准 onboarding 状态
+                route = .main
+                selectedTab = .home
+                Task { await refreshOnboardingStatusAfterLogin() }
+            } else {
+                route = .auth
+            }
+        }
+    }
+
+    /// 登录成功（邮箱 / 手机 OTP / Apple）后调用
+    ///
+    /// 分流策略（与 Android OnboardingCheck 对齐）：
+    ///   - profile 不存在（老用户 / 没走过 onboarding）→ 直接进 main
+    ///   - profile 存在但 completed=false（中途退出）→ onboarding 继续
+    ///   - profile.completed=true → main
+    ///   - 网络失败 → main（避免老用户被卡在 onboarding）
+    ///
+    /// 默认先进 main，随后异步校准：仅在"有 profile 但未完成"时降级到 onboarding。
     func completeLogin(user: UserInfo) {
         currentUser = user
-        isAuthenticated = true
+        persistUser(user)
+        route = .main
+        selectedTab = .home
+        Task { await refreshOnboardingStatusAfterLogin() }
+    }
 
-        // 持久化用户信息（非敏感数据）
+    /// onboarding 完成后切到主界面
+    func markOnboardingCompleted() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            route = .main
+            selectedTab = .home
+        }
+    }
+
+    /// 退出登录
+    func logout() {
+        APIClient.shared.accessToken  = nil
+        APIClient.shared.refreshToken = nil
+        UserDefaults.standard.removeObject(forKey: "speakpro_user")
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentUser = nil
+            selectedTab = .home
+            route = .auth
+        }
+    }
+
+    // MARK: - Internal
+
+    private func persistUser(_ user: UserInfo) {
         if let data = try? JSONEncoder().encode(user) {
             UserDefaults.standard.set(data, forKey: "speakpro_user")
         }
     }
 
-    /// 登出：清除 Token、用户信息，返回登录页
-    func logout() {
-        APIClient.shared.accessToken  = nil
-        APIClient.shared.refreshToken = nil
-        UserDefaults.standard.removeObject(forKey: "speakpro_user")
-
-        withAnimation(.easeInOut(duration: 0.3)) {
-            currentUser = nil
-            isAuthenticated = false
-            selectedTab = .home
+    /// 登录后异步查 onboarding 状态；只有"有 profile 但未完成"时才降级到 onboarding
+    private func refreshOnboardingStatusAfterLogin() async {
+        do {
+            let status = try await APIClient.shared.getOnboardingStatus()
+            await MainActor.run {
+                if status.profile != nil && !status.completed {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.route = .onboarding
+                    }
+                }
+                // 其他情况（profile=nil 或 completed=true）保持默认 main
+            }
+        } catch {
+            // 网络失败不改路由 —— 留在 main（已是默认）
         }
     }
 }
@@ -97,11 +167,11 @@ struct ContentView: View {
                 .tag(AppCoordinator.Tab.home)
 
             PracticeListView()
-            .tabItem {
-                Label(AppCoordinator.Tab.practice.title,
-                      systemImage: AppCoordinator.Tab.practice.icon)
-            }
-            .tag(AppCoordinator.Tab.practice)
+                .tabItem {
+                    Label(AppCoordinator.Tab.practice.title,
+                          systemImage: AppCoordinator.Tab.practice.icon)
+                }
+                .tag(AppCoordinator.Tab.practice)
 
             HomeworkListView()
                 .tabItem {

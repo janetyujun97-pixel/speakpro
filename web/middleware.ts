@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // 无需登录可访问的路径
-const PUBLIC_PATHS = ["/login", "/register", "/forgot-password"];
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 // 登录后不应再访问的路径（如已登录访问 /login 会跳转 Dashboard）
 const AUTH_ONLY_PATHS = ["/login", "/register"];

@@ -56,6 +56,9 @@ type Config struct {
 	// NestJS 内部回调地址
 	NestAPIBaseURL string
 
+	// 服务间共享密钥（调用 NestJS /_internal/* 端点时放 X-Internal-Secret）
+	InternalSharedSecret string
+
 	// OSS
 	OSSRegion          string
 	OSSBucket          string
@@ -97,7 +100,8 @@ func Load() *Config {
 		DefaultASRProvider: getEnv("DEFAULT_ASR_PROVIDER", "tencent"),
 		DefaultISEProvider: getEnv("DEFAULT_ISE_PROVIDER", "tencent"),
 		DefaultLLMProvider: getEnv("DEFAULT_LLM_PROVIDER", "mimo"),
-		NestAPIBaseURL:     getEnv("NEST_API_BASE_URL", "http://localhost:3000/api/v1"),
+		NestAPIBaseURL:       getEnv("NEST_API_BASE_URL", "http://localhost:3000/api/v1"),
+		InternalSharedSecret: getEnv("INTERNAL_SHARED_SECRET", ""),
 		OSSRegion:          getEnv("OSS_REGION", "oss-cn-hangzhou"),
 		OSSBucket:          getEnv("OSS_BUCKET", "speakpro"),
 		OSSAccessKeyID:     getEnv("OSS_ACCESS_KEY_ID", ""),

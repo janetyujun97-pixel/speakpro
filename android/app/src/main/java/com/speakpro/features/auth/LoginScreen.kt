@@ -1,10 +1,9 @@
 package com.speakpro.features.auth
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,20 +16,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,280 +31,257 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.speakpro.designsystem.theme.FraunceFamily
+import com.speakpro.designsystem.theme.InterFamily
 import com.speakpro.designsystem.theme.SpAccent
 import com.speakpro.designsystem.theme.SpBackground
-import com.speakpro.designsystem.theme.SpBodyMedium
-import com.speakpro.designsystem.theme.SpCaption
 import com.speakpro.designsystem.theme.SpError
-import com.speakpro.designsystem.theme.SpTextPrimary
-import com.speakpro.designsystem.theme.SpTextSecondary
-import com.speakpro.designsystem.theme.SpWhite
+import com.speakpro.designsystem.theme.SpIvory
+import com.speakpro.designsystem.theme.SpLine
+import com.speakpro.designsystem.theme.SpMuted
+import com.speakpro.designsystem.theme.SpPrimary
 
 /**
- * 登录页面 — 对应 iOS LoginView
+ * Login —— 手机号优先（主路径）+ OR 分割 + Apple / WeChat / Password 三个社交入口。
  */
 @Composable
-fun LoginScreen(viewModel: LoginViewModel) {
-    val email by viewModel.email.collectAsState()
-    val password by viewModel.password.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val focusManager = LocalFocusManager.current
-
-    val isFormValid = viewModel.isFormValid()
+fun LoginScreen(
+    phoneVM: PhoneAuthViewModel,
+    onRequestOtp: () -> Unit,
+    onGoRegister: () -> Unit,
+    onGoForgot: () -> Unit,
+    onAppleSignIn: () -> Unit,
+    onWechatSignIn: () -> Unit,
+    onEmailLogin: () -> Unit,
+) {
+    val phone by phoneVM.phone.collectAsState()
+    val isSending by phoneVM.isSending.collectAsState()
+    val errorMessage by phoneVM.errorMessage.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SpBackground)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = 28.dp, vertical = 20.dp),
     ) {
-        Spacer(modifier = Modifier.height(80.dp))
-
-        // ── Logo 区域 ──
-        LogoSection()
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // ── 表单区域 ──
-        FormSection(
-            email = email,
-            password = password,
-            isLoading = isLoading,
-            isFormValid = isFormValid,
-            errorMessage = errorMessage,
-            onEmailChange = viewModel::onEmailChange,
-            onPasswordChange = viewModel::onPasswordChange,
-            onLogin = {
-                focusManager.clearFocus()
-                viewModel.login()
-            },
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // ── 底部提示 ──
-        FooterSection()
-
-        Spacer(modifier = Modifier.height(32.dp))
-    }
-}
-
-// ── Logo ────────────────────────────────────────
-
-@Composable
-private fun LogoSection() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        // App 图标占位（渐变圆角矩形）
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(SpAccent, SpAccent.copy(alpha = 0.7f)),
-                    )
-                ),
-        ) {
-            Text(
-                text = "SP",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "SpeakPro",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = SpTextPrimary,
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "AI 驱动的托福/雅思口语练习",
-            style = SpBodyMedium,
-            color = SpTextSecondary,
-        )
-    }
-}
-
-// ── 表单 ────────────────────────────────────────
-
-@Composable
-private fun FormSection(
-    email: String,
-    password: String,
-    isLoading: Boolean,
-    isFormValid: Boolean,
-    errorMessage: String?,
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onLogin: () -> Unit,
-) {
-    Column {
-        // 卡片容器
-        Column(
+        // masthead
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(SpWhite),
+                .padding(bottom = 14.dp),
         ) {
-            // 邮箱输入
-            OutlinedTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                label = { Text("邮箱") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = null,
-                        tint = SpTextSecondary,
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next,
-                ),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = SpAccent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 48.dp),
-                color = SpTextSecondary.copy(alpha = 0.15f),
-            )
-
-            // 密码输入
-            OutlinedTextField(
-                value = password,
-                onValueChange = onPasswordChange,
-                label = { Text("密码") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = SpTextSecondary,
-                    )
-                },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(onDone = { onLogin() }),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = SpAccent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
+            Eyebrow("SPEAKPRO · LOG IN")
+            Spacer(Modifier.weight(1f))
+            Text(
+                "EN",
+                color = SpAccent,
+                fontFamily = InterFamily,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
             )
         }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(SpLine),
+        )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(Modifier.height(32.dp))
 
-        // 错误提示
-        AnimatedVisibility(
-            visible = errorMessage != null,
-            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-            exit = fadeOut(),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            ) {
+        Text("Welcome", color = SpPrimary, fontFamily = FraunceFamily, fontSize = 36.sp)
+        Text(
+            "back.",
+            color = SpAccent,
+            fontFamily = FraunceFamily,
+            fontStyle = FontStyle.Italic,
+            fontSize = 36.sp,
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Sign in to pick up your rehearsal\nwhere you left off.",
+            color = SpMuted,
+            fontFamily = FraunceFamily,
+            fontStyle = FontStyle.Italic,
+            fontSize = 14.sp,
+        )
+
+        Spacer(Modifier.height(36.dp))
+
+        Eyebrow("MOBILE · 手机号")
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "+86",
+                color = SpPrimary,
+                fontFamily = InterFamily,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.width(10.dp))
+            Box(Modifier.width(1.dp).height(14.dp).background(SpLine))
+            Spacer(Modifier.width(10.dp))
+            BasicTextField(
+                value = phone,
+                onValueChange = phoneVM::onPhoneChange,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = SpPrimary,
+                    fontFamily = FraunceFamily,
+                    fontStyle = FontStyle.Italic,
+                    fontSize = 16.sp,
+                ),
+                decorationBox = { inner ->
+                    Box {
+                        if (phone.isEmpty()) {
+                            Text(
+                                "138 0013 8000",
+                                color = SpMuted.copy(alpha = 0.5f),
+                                fontFamily = FraunceFamily,
+                                fontStyle = FontStyle.Italic,
+                                fontSize = 16.sp,
+                            )
+                        }
+                        inner()
+                    }
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(SpPrimary))
+
+        Spacer(Modifier.height(24.dp))
+        SpPrimaryButton(
+            text = "获取验证码",
+            enabled = phoneVM.isPhoneValid,
+            loading = isSending,
+            onClick = onRequestOtp,
+        )
+
+        if (errorMessage != null) {
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.Error,
+                    Icons.Filled.Error,
                     contentDescription = null,
                     tint = SpError,
                     modifier = Modifier.size(16.dp),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = errorMessage ?: "",
-                    style = SpCaption,
-                    color = SpError,
-                )
+                Spacer(Modifier.width(6.dp))
+                Text(errorMessage ?: "", color = SpError, fontSize = 12.sp)
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(28.dp))
+        OrDivider()
 
-        // 登录按钮
-        Button(
-            onClick = onLogin,
-            enabled = isFormValid && !isLoading,
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = SpAccent,
-                disabledContainerColor = SpAccent.copy(alpha = 0.4f),
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
+        Spacer(Modifier.height(18.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(20.dp),
-                )
-            } else {
+            SocialCell("Apple", Icons.Filled.Lock, modifier = Modifier.weight(1f)) {
+                onAppleSignIn()
+            }
+            SocialCell("WeChat", Icons.Filled.Chat, modifier = Modifier.weight(1f)) {
+                onWechatSignIn()
+            }
+            SocialCell("Password", Icons.Filled.Lock, modifier = Modifier.weight(1f)) {
+                onEmailLogin()
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                "注册账号",
+                color = SpPrimary,
+                fontFamily = InterFamily,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.clickable(onClick = onGoRegister),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text("·", color = SpMuted)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                "忘记密码",
+                color = SpPrimary,
+                fontFamily = InterFamily,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.clickable(onClick = onGoForgot),
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                "首次登录即注册 · 代表同意",
+                color = SpMuted,
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+            )
+            Row {
                 Text(
-                    text = "登录",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    "用户协议",
+                    color = SpPrimary,
+                    fontSize = 11.sp,
+                    textDecoration = TextDecoration.Underline,
+                )
+                Text(" · ", color = SpMuted, fontSize = 11.sp)
+                Text(
+                    "隐私政策",
+                    color = SpPrimary,
+                    fontSize = 11.sp,
+                    textDecoration = TextDecoration.Underline,
                 )
             }
         }
+
+        Spacer(Modifier.height(30.dp))
     }
 }
 
-// ── 底部提示 ────────────────────────────────────
-
 @Composable
-private fun FooterSection() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "测试账号：teacher@speakpro.com",
-            style = SpCaption,
-            color = SpTextSecondary.copy(alpha = 0.6f),
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "密码：teacher123",
-            style = SpCaption,
-            color = SpTextSecondary.copy(alpha = 0.6f),
-        )
+private fun SocialCell(
+    label: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(SpIvory)
+            .border(1.dp, SpLine, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = SpPrimary, modifier = Modifier.size(18.dp))
+        Text(label, color = SpMuted, fontFamily = InterFamily, fontSize = 10.sp)
     }
 }

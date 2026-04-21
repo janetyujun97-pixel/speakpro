@@ -1,3 +1,18 @@
+# SpeakPro · iOS project
+#
+# PR2b 备注 —— Apple Sign-In：
+#   AppleSignInCoordinator 已就绪（走 ASAuthorizationAppleIDProvider），但
+#   真机登录需要：
+#     1) Apple Developer Portal 为 bundle id `com.speakpro.app` 打开
+#        "Sign in with Apple" capability
+#     2) 在 Xcode Signing & Capabilities 添加 "Sign in with Apple"
+#        （或在这里 targets.SpeakPro.entitlements 中写入
+#         com.apple.developer.applesignin: [Default]）
+#     3) 后端配置 APPLE_CLIENT_ID = com.speakpro.app
+#   在凭证齐备前，Apple 按钮点击会返回错误并显示 "Apple 登录尚未开通"。
+#
+# WeChat 登录：需要接入 WechatOpenSDK（CocoaPods/SPM），本 PR 未做，
+#   UI 上点击微信按钮会 toast "微信登录敬请期待"。
 name: SpeakPro
 options:
   bundleIdPrefix: com.speakpro

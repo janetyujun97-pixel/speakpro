@@ -79,6 +79,15 @@ func main() {
 	}
 	orchestrator := service.NewOrchestrator(asrClient, iseClient, llmClient, fishTTSClient).WithRegistry(registry)
 
+	// PR3a —— NestJS 错题本内部回调（凭证未配时 RecordMiss 会变 no-op）
+	orchestrator.SetNotebookClient(service.NewNotebookClient(
+		cfg.NestAPIBaseURL,
+		cfg.InternalSharedSecret,
+	))
+	if cfg.InternalSharedSecret == "" {
+		log.Println("[NotebookClient] INTERNAL_SHARED_SECRET 未配置，错题本回调已禁用")
+	}
+
 	// WebSocket 管理器
 	hub := ws.NewHub()
 	go hub.Run()

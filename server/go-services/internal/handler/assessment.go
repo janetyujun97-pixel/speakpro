@@ -193,6 +193,7 @@ func (h *AssessmentHandler) FullEvaluate(c *gin.Context) {
 	asrProvider := getStringField(reqMap, "asrProvider", "asr_provider")
 	iseProvider := getStringField(reqMap, "iseProvider", "ise_provider")
 	llmProvider := getStringField(reqMap, "llmProvider", "llm_provider")
+	sessionID := getStringField(reqMap, "sessionId", "session_id")
 
 	if audioB64 == "" || referenceText == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "audioB64 和 referenceText 为必填项"})
@@ -215,6 +216,17 @@ func (h *AssessmentHandler) FullEvaluate(c *gin.Context) {
 		log.Printf("[FullEvaluate] 失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": "评测失败: " + err.Error()})
 		return
+	}
+
+	// PR3a —— 上报低分词到 NestJS 错题本（异步、失败不影响响应）
+	// ISE 原始 XML 暂未透传到这里；若后续 PronunciationScore 带上 Words 字段，
+	// 可直接 `items := append(items, {Word: w.Word, Score: w.Score})`。
+	// 当前留一个挂载点即可，避免造成不一致数据。
+	if userIDVal, ok := c.Get("userId"); ok {
+		if userID, ok := userIDVal.(string); ok && userID != "" {
+			items := []service.MissItem{} // TODO: 从 ISE 结果填充 word-level misses
+			h.orchestrator.ReportMisses(userID, sessionID, items)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

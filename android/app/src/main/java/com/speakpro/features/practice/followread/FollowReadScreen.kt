@@ -51,7 +51,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.speakpro.designsystem.components.RecordButton
 import com.speakpro.designsystem.components.ScoreRing
 import com.speakpro.designsystem.components.WaveformView
@@ -80,8 +86,19 @@ import com.speakpro.designsystem.theme.SpWhite
 @Composable
 fun FollowReadScreen(
     onBack: () -> Unit,
-    viewModel: FollowReadViewModel = viewModel(),
+    viewModel: FollowReadViewModel = hiltViewModel(),
 ) {
+    val ctx = LocalContext.current
+    val micLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.startRecording() }
+    val tryStartRecording: () -> Unit = {
+        val granted = ContextCompat.checkSelfPermission(
+            ctx, Manifest.permission.RECORD_AUDIO,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) viewModel.startRecording()
+        else micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
     val phase by viewModel.phase.collectAsState()
     val currentSentence by viewModel.currentSentence.collectAsState()
     val currentIndex by viewModel.currentSentenceIndex.collectAsState()
@@ -169,7 +186,7 @@ fun FollowReadScreen(
                 FollowReadPhase.RECORDING -> RecordingPhaseContent(
                     isRecording = isRecording,
                     waveform = studentWaveform,
-                    onStart = { viewModel.startRecording() },
+                    onStart = tryStartRecording,
                     onStop = { viewModel.stopRecording() },
                 )
                 FollowReadPhase.EVALUATING -> EvaluatingPhaseContent()
@@ -207,34 +224,52 @@ fun FollowReadScreen(
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OutlinedButton(
                         onClick = { viewModel.playReference() },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = SpPrimary),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            horizontal = 8.dp, vertical = 8.dp,
+                        ),
+                        modifier = Modifier.weight(1f),
                     ) {
-                        Icon(Icons.Filled.VolumeUp, null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.VolumeUp, null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("再听一次", style = SpBodyMedium)
+                        Text("再听", style = SpBodySmall, maxLines = 1)
                     }
 
                     OutlinedButton(
                         onClick = { viewModel.retryRecording() },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = SpAccent),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            horizontal = 8.dp, vertical = 8.dp,
+                        ),
+                        modifier = Modifier.weight(1f),
                     ) {
-                        Icon(Icons.Filled.Refresh, null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.Refresh, null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("重录", style = SpBodyMedium)
+                        Text("重录", style = SpBodySmall, maxLines = 1)
                     }
 
                     if (!isCompleted) {
                         Button(
                             onClick = { viewModel.nextSentence() },
                             colors = ButtonDefaults.buttonColors(containerColor = SpAccent),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = 8.dp, vertical = 8.dp,
+                            ),
+                            modifier = Modifier.weight(1f),
                         ) {
-                            Icon(Icons.Filled.Forward, null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Filled.Forward,
+                                null,
+                                modifier = Modifier.size(14.dp),
+                                tint = SpWhite,
+                            )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("下一句", style = SpBodyMedium, color = SpWhite)
+                            Text("下一句", style = SpBodySmall, color = SpWhite, maxLines = 1)
                         }
                     }
                 }

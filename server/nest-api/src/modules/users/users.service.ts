@@ -26,6 +26,23 @@ export class UsersService {
     });
   }
 
+  async findByPhone(phone: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { phone } });
+  }
+
+  async findByAppleSub(appleSub: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { appleSub } });
+  }
+
+  async findByWechatUnionid(wechatUnionid: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { wechatUnionid } });
+  }
+
+  async setPassword(userId: string, newPassword: string): Promise<void> {
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await this.usersRepository.update(userId, { password: hashed });
+  }
+
   async create(data: Partial<User>): Promise<User> {
     const user = this.usersRepository.create(data);
     return this.usersRepository.save(user);

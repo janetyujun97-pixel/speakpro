@@ -1,7 +1,9 @@
 import type { Config } from "tailwindcss";
 
-// Editorial design tokens 映射自 design/SpeakPro Admin/index.html
-// 颜色均由 CSS 变量驱动，主题切换时只改 CSS 变量即可（见 globals.css）
+// SpeakPro Web 设计 token — editorial 风格：墨黑 + sienna + 暖米。
+// source of truth = speakpro/components/HomeEditorial.jsx 的 PALETTE。
+// 既有名字（primary/accent/success）保留，仅改值；新增 token 用新名字。
+
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,35 +12,47 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "var(--bg)",
-        "bg-soft": "var(--bg-soft)",
-        ivory: "var(--ivory)",
-        ink: "var(--ink)",
-        "ink-2": "var(--ink-2)",
-        muted: "var(--muted)",
-        "muted-2": "var(--muted-2)",
-        line: "var(--line)",
-        "line-soft": "var(--line-soft)",
-        accent: "var(--accent)",
-        "accent-soft": "var(--accent-soft)",
-        moss: "var(--moss)",
-        "moss-soft": "var(--moss-soft)",
-        gold: "var(--gold)",
+        // ——— 既有 token（改值） ———
+        primary: "#1C1B18",      // ink，墨黑
+        accent: "#B54A25",       // sienna
+        success: "#2F4A3A",      // moss（替代薄荷）
+
+        // ——— 新增 token ———
+        ink: "#1C1B18",
+        bg: "#F4EEE3",
+        bgSoft: "#EDE5D6",
+        ivory: "#FBF8F2",
+        muted: "#706A5E",
+        line: "rgba(28,27,24,0.12)",
+        accentSoft: "rgba(181,74,37,0.08)",
+        accentWarm: "#D9734A",
+        moss: "#2F4A3A",
+        mossSoft: "rgba(47,74,58,0.08)",
+
+        data: {
+          blue: "#3B82F6",
+          green: "#10B981",
+          orange: "#F59E0B",
+          red: "#EF4444",
+        },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', '"PingFang SC"', '-apple-system', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-fraunces)', '"Source Serif Pro"', 'Georgia', 'serif'],
-        mono: ['var(--font-mono)', '"SF Mono"', 'ui-monospace', 'monospace'],
-      },
-      fontSize: {
-        eyebrow: ["10px", { letterSpacing: "0.18em", lineHeight: "1.4" }],
-      },
-      letterSpacing: {
-        eyebrow: "0.18em",
-      },
-      borderRadius: {
-        // editorial 风格：整站硬朗直角或 2px 圆角
-        xs: "2px",
+        sans: [
+          '"Inter Variable"',
+          "Inter",
+          "var(--font-geist-sans)",
+          '"PingFang SC"',
+          "-apple-system",
+          "system-ui",
+          "sans-serif",
+        ],
+        serif: [
+          '"Fraunces Variable"',
+          "Fraunces",
+          '"Source Serif Pro"',
+          "Georgia",
+          "serif",
+        ],
       },
       animation: {
         shimmer: "shimmer 2s infinite linear",

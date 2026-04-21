@@ -1,6 +1,7 @@
 package com.speakpro.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
@@ -44,8 +46,18 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.speakpro.designsystem.theme.SpAccent
 import com.speakpro.designsystem.theme.SpTextSecondary
-import com.speakpro.features.auth.LoginScreen
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.speakpro.core.network.ApiService
+import com.speakpro.core.network.NetworkMonitor
+import com.speakpro.core.storage.TokenManager
+import com.speakpro.designsystem.components.states.OfflineBanner
+import com.speakpro.features.auth.AuthNavGraph
 import com.speakpro.features.auth.LoginViewModel
+import com.speakpro.features.auth.SplashScreen
+import com.speakpro.features.onboarding.OnboardingNavGraph
 import com.speakpro.features.home.HomeScreen
 import com.speakpro.features.homework.HomeworkDetailScreen
 import com.speakpro.features.homework.HomeworkListScreen
@@ -72,6 +84,12 @@ object Routes {
     const val HOMEWORK_DETAIL = "homework/{id}"
     const val PROGRESS = "progress"
     const val PROFILE = "profile"
+
+    // Review 系统（PR3c）
+    const val REVIEW_HISTORY = "review/history"
+    const val REVIEW_NOTEBOOK = "review/notebook"
+    const val REVIEW_NOTIFICATIONS = "review/notifications"
+    const val REVIEW_NOTIFICATION_PREFS = "review/notifications/prefs"
 
     fun homeworkDetail(id: String) = "homework/$id"
 }
@@ -119,20 +137,122 @@ enum class BottomTab(
 // ── 顶层导航 ────────────────────────────────────
 
 /**
- * App 根导航：检测登录状态，未登录展示 LoginScreen，已登录展示 MainScreen
+ * App 根导航状态机：splash → auth / onboarding / main。
+ *
+ * 路由决策：
+ *   - 初次进入：展示 Splash；完成后根据 token 决定去 auth 还是 onboarding 检查
+ *   - 未登录：展示 AuthNavGraph
+ *   - 已登录：拉 /onboarding/status；completed=true → MainScreen；否则进 OnboardingNavGraph
  */
 @Composable
 fun AppNavigation() {
     val loginViewModel: LoginViewModel = hiltViewModel()
     val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
 
-    if (isLoggedIn) {
-        MainScreen(
-            onLogout = { loginViewModel.logout() },
-        )
-    } else {
-        LoginScreen(viewModel = loginViewModel)
+    // 全局 NetworkMonitor —— 单例，靠 EntryPoint 从 Application-scoped graph 拿
+    val appCtx = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val networkMonitor = remember(appCtx) {
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            appCtx, NetworkMonitorEntryPoint::class.java,
+        ).networkMonitor()
     }
+
+    var route by remember {
+        androidx.compose.runtime.mutableStateOf(AppRoute.Splash)
+    }
+
+    // Splash 完成后切到合适的路由
+    val splashFinished: () -> Unit = {
+        route = if (TokenManager.isLoggedIn) AppRoute.Onboarding else AppRoute.Auth
+    }
+
+    // 登录态变化：登出时回到 auth；登录时进 onboarding gate
+    LaunchedEffect(isLoggedIn) {
+        route = if (!isLoggedIn) {
+            if (route == AppRoute.Splash) return@LaunchedEffect
+            AppRoute.Auth
+        } else if (route == AppRoute.Auth) {
+            AppRoute.Onboarding
+        } else route
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(com.speakpro.designsystem.theme.SpBackground)
+            .statusBarsPadding(),
+    ) {
+        // 全局 offline 横幅：非 connected 时滑入顶部
+        OfflineBanner(monitor = networkMonitor)
+
+        when (route) {
+            AppRoute.Splash -> SplashScreen(onFinished = splashFinished)
+
+            AppRoute.Auth -> AuthNavGraph(onAuthenticated = {
+                route = AppRoute.Onboarding
+            })
+
+            AppRoute.Onboarding -> OnboardingCheck(
+                onGoMain = { route = AppRoute.Main },
+                onStartOnboarding = { route = AppRoute.OnboardingGraph },
+            )
+
+            AppRoute.OnboardingGraph -> OnboardingNavGraph(
+                onCompleted = { route = AppRoute.Main },
+                onGoLogin = {
+                    loginViewModel.logout()
+                    route = AppRoute.Auth
+                },
+            )
+
+            AppRoute.Main -> MainScreen(onLogout = {
+                loginViewModel.logout()
+                route = AppRoute.Auth
+            })
+        }
+    }
+}
+
+private enum class AppRoute {
+    Splash, Auth, Onboarding, OnboardingGraph, Main
+}
+
+/**
+ * 登录后先拉一次 /onboarding/status 决定去主界面还是 onboarding 流程。
+ *
+ * 分流策略：
+ *   - profile 不存在（老用户 / 没走过 onboarding） → Main，不强制引导
+ *   - profile 存在但 completed=false（中途退出） → OnboardingGraph 继续
+ *   - profile.completed=true → Main
+ *   - 网络失败 → Main（避免老用户被卡在 onboarding）
+ */
+@Composable
+private fun OnboardingCheck(
+    onGoMain: () -> Unit,
+    onStartOnboarding: () -> Unit,
+) {
+    val apiService: ApiService =
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            androidx.compose.ui.platform.LocalContext.current.applicationContext,
+            com.speakpro.navigation.AppApiEntryPoint::class.java,
+        ).apiService()
+
+    LaunchedEffect(Unit) {
+        try {
+            val resp = apiService.getOnboardingStatus()
+            val data = resp.data
+            if (resp.code == 0 && data?.profile != null && !data.completed) {
+                onStartOnboarding()
+            } else {
+                onGoMain()
+            }
+        } catch (_: Exception) {
+            onGoMain()
+        }
+    }
+
+    // 检查期间展示一个中性的 splash（避免 UI 闪空白）
+    SplashScreen(onFinished = {})
 }
 
 // ── 主界面（带底部导航栏） ──────────────────────
@@ -203,7 +323,38 @@ private fun MainScreen(
             }
 
             composable(Routes.PROGRESS) {
-                ProgressScreen()
+                ProgressScreen(
+                    onOpenHistory = { navController.navigate(Routes.REVIEW_HISTORY) },
+                    onOpenNotebook = { navController.navigate(Routes.REVIEW_NOTEBOOK) },
+                    onOpenNotifications = {
+                        navController.navigate(Routes.REVIEW_NOTIFICATIONS)
+                    },
+                )
+            }
+
+            // Review 子路由（PR3c）
+            composable(Routes.REVIEW_HISTORY) {
+                com.speakpro.features.review.HistoryTimelineScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.REVIEW_NOTEBOOK) {
+                com.speakpro.features.review.NotebookScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.REVIEW_NOTIFICATIONS) {
+                com.speakpro.features.review.NotificationsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenPrefs = {
+                        navController.navigate(Routes.REVIEW_NOTIFICATION_PREFS)
+                    },
+                )
+            }
+            composable(Routes.REVIEW_NOTIFICATION_PREFS) {
+                com.speakpro.features.review.NotificationPrefsScreen(
+                    onBack = { navController.popBackStack() },
+                )
             }
 
             composable(Routes.PROFILE) {
