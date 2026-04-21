@@ -1,0 +1,197 @@
+server/nest-api/src/modules/practice/practice.service.ts
+  56945762ed8c76c0 1-2,12,56-80
+server/go-services/internal/service/notebook_client.go
+  56945762ed8c76c0 1-161
+server/nest-api/src/modules/auth/dto/apple-signin.dto.ts
+  56945762ed8c76c0 1-20
+server/nest-api/src/modules/auth/dto/send-otp.dto.ts
+  56945762ed8c76c0 1-11
+server/nest-api/src/modules/notifications/dto/update-prefs.dto.ts
+  56945762ed8c76c0 1-18
+server/nest-api/src/modules/notifications/notifications.controller.ts
+  56945762ed8c76c0 1-53
+web/components/grading/voice-memo-recorder.tsx
+  56945762ed8c76c0 1-284
+web/lib/auth.ts
+  56945762ed8c76c0 51-97
+server/nest-api/src/modules/auth/entities/email-reset-token.entity.ts
+  56945762ed8c76c0 1-27
+server/nest-api/src/modules/auth/providers/apple.provider.ts
+  56945762ed8c76c0 1-58
+server/nest-api/src/modules/onboarding/onboarding.controller.ts
+  56945762ed8c76c0 1-42
+web/app/layout.tsx
+  56945762ed8c76c0 2-6,21
+server/go-services/internal/handler/conversation.go
+  56945762ed8c76c0 11,221,230,244,247-264,266-273,275,277-311,313,315-318,321-322,326
+server/nest-api/src/modules/notifications/notifications.module.ts
+  56945762ed8c76c0 1-14
+server/database/migrations/006_notifications.sql
+  56945762ed8c76c0 1-32
+android/app/build.gradle.kts
+  56945762ed8c76c0 1-7
+server/go-services/internal/config/config.go
+  56945762ed8c76c0 59-61,103-104
+server/nest-api/src/modules/auth/auth.service.ts
+  56945762ed8c76c0 2-4,6-8,11,13-18,21-47,51-52,56-63,66-67,74,82,87,91-92,96,102,108-345
+server/nest-api/src/modules/auth/providers/mail.provider.ts
+  56945762ed8c76c0 1-56
+server/nest-api/src/app.module.ts
+  56945762ed8c76c0 6,15-17,41,50-52
+server/nest-api/src/modules/notebook/notebook.module.ts
+  56945762ed8c76c0 1-15
+server/.env.example
+  56945762ed8c76c0 37-73
+server/nest-api/src/modules/auth/dto/wechat-signin.dto.ts
+  56945762ed8c76c0 1-8
+server/nest-api/src/modules/users/users.service.ts
+  56945762ed8c76c0 29-45
+server/nest-api/src/modules/practice/practice.controller.ts
+  56945762ed8c76c0 50-56
+server/nest-api/src/modules/onboarding/entities/onboarding-profile.entity.ts
+  56945762ed8c76c0 1-55
+server/nest-api/src/modules/notebook/dto/record-miss.dto.ts
+  56945762ed8c76c0 1-49
+web/components/ui/editorial-states.tsx
+  56945762ed8c76c0 1-363
+server/nest-api/src/modules/notifications/notifications.service.spec.ts
+  56945762ed8c76c0 1-100
+server/nest-api/src/modules/onboarding/dto/update-profile.dto.ts
+  56945762ed8c76c0 1-32
+server/database/migrations/004_auth_v2_and_onboarding.sql
+  56945762ed8c76c0 1-61
+server/nest-api/src/modules/notebook/notebook.service.ts
+  56945762ed8c76c0 1-172
+web/tsconfig.tsbuildinfo
+  56945762ed8c76c0 1
+server/nest-api/src/modules/auth/auth.service.spec.ts
+  56945762ed8c76c0 3-11,15-20,24-45,50-52,54-55,63-90,96-105,112,147,190-392
+server/nest-api/src/modules/auth/providers/wechat.provider.ts
+  56945762ed8c76c0 1-74
+server/nest-api/src/modules/notebook/entities/notebook-word.entity.ts
+  56945762ed8c76c0 1-61
+server/nest-api/src/modules/auth/dto/reset-email-password.dto.ts
+  56945762ed8c76c0 1-12
+server/nest-api/src/modules/notebook/notebook-internal.controller.ts
+  56945762ed8c76c0 1-20
+server/go-services/cmd/server/main.go
+  56945762ed8c76c0 82-90
+server/go-services/internal/service/orchestrator.go
+  56945762ed8c76c0 53-61,133,137-158,160-162,164-165,167-173,175-180,183-188,190-197,199,201-202
+server/nest-api/src/modules/auth/providers/otp.provider.ts
+  56945762ed8c76c0 1-48
+server/nest-api/src/common/redis/redis.service.ts
+  56945762ed8c76c0 1-66
+server/database/migrations/005_notebook.sql
+  56945762ed8c76c0 1-42
+server/nest-api/src/modules/notebook/notebook.service.spec.ts
+  56945762ed8c76c0 1-141
+server/nest-api/package.json
+  56945762ed8c76c0 30-32,48
+server/nest-api/src/modules/auth/dto/verify-otp.dto.ts
+  56945762ed8c76c0 1-16
+server/.env.production.example
+  56945762ed8c76c0 44-72
+.gitignore
+  56945762ed8c76c0 43-49
+server/nest-api/src/modules/notifications/entities/notification.entity.ts
+  56945762ed8c76c0 1-42
+web/components/ui/button.tsx
+  56945762ed8c76c0 1-50
+server/go-services/internal/handler/assessment.go
+  56945762ed8c76c0 196,221-229
+server/nest-api/src/modules/notifications/notifications.service.ts
+  56945762ed8c76c0 1-119
+web/package.json
+  56945762ed8c76c0 12-18,20,22,27-30
+server/nest-api/src/modules/assignments/assignments.controller.ts
+  56945762ed8c76c0 6,62-68,73,76-83
+server/nest-api/src/modules/assignments/assignments.service.ts
+  56945762ed8c76c0 4-5,16-18,23-52,123-127,138,142-172
+server/nest-api/src/modules/notebook/entities/notebook-phrase.entity.ts
+  56945762ed8c76c0 1-32
+web/middleware.ts
+  56945762ed8c76c0 5
+web/app/(auth)/reset-password/page.tsx
+  56945762ed8c76c0 1-141
+web/app/(dashboard)/assignments/[id]/grade/page.tsx
+  56945762ed8c76c0 17,36,127,153,182
+server/nest-api/src/modules/notebook/notebook.controller.ts
+  56945762ed8c76c0 1-55
+ios/project.yml
+  56945762ed8c76c0 1-15
+server/nest-api/src/modules/assignments/assignments.module.ts
+  56945762ed8c76c0 3-4,11-14
+server/nest-api/src/modules/onboarding/dto/baseline.dto.ts
+  56945762ed8c76c0 1-25
+web/components/ui/card.tsx
+  56945762ed8c76c0 1-63
+web/components/ui/input.tsx
+  56945762ed8c76c0 1-24
+server/database/migrations/007_alter_assignments_teacher_voice.sql
+  56945762ed8c76c0 1-14
+server/nest-api/src/modules/notifications/entities/user-notification-prefs.entity.ts
+  56945762ed8c76c0 1-25
+web/app/(auth)/register/page.tsx
+  56945762ed8c76c0 1-132
+server/go-services/internal/service/tencent_soe.go
+  56945762ed8c76c0 4,6,11-16,18,23-31,35,42-43,49,57,60-61,63-79,81-93,95-97,99-110,112-117,119-122,124,126,128-129,131,133-139,141-197,199-201,204-205,208-210,212-216,219-220,223-225,230-258
+web/tailwind.config.ts
+  56945762ed8c76c0 3-6,15-37,40-55
+server/nest-api/src/modules/auth/auth.controller.ts
+  56945762ed8c76c0 1,3,6-13,19-20,22-23,27-28,35-98
+server/nest-api/src/modules/onboarding/onboarding.module.ts
+  56945762ed8c76c0 1-15
+server/nest-api/src/common/guards/internal-secret.guard.ts
+  56945762ed8c76c0 1-46
+server/nest-api/src/modules/assignments/entities/assignment.entity.ts
+  56945762ed8c76c0 41-44
+server/nest-api/src/modules/users/entities/user.entity.ts
+  56945762ed8c76c0 23,33-34,36-38
+server/nest-api/src/modules/auth/auth.module.ts
+  56945762ed8c76c0 2,5,9-18,24,36-49
+server/nest-api/src/modules/onboarding/onboarding.service.ts
+  56945762ed8c76c0 1-204
+server/nest-api/src/modules/auth/dto/reset-password.dto.ts
+  56945762ed8c76c0 1-27
+server/nest-api/src/modules/auth/dto/register-phone.dto.ts
+  56945762ed8c76c0 1-32
+server/nest-api/src/modules/auth/dto/request-reset.dto.ts
+  56945762ed8c76c0 1-10
+web/app/globals.css
+  56945762ed8c76c0 14-19
+server/nest-api/src/common/redis/redis.module.ts
+  56945762ed8c76c0 1-9
+web/next-env.d.ts
+  56945762ed8c76c0 1-5
+web/components/ui/skeleton.tsx
+  56945762ed8c76c0 1-66
+web/app/(auth)/login/page.tsx
+  56945762ed8c76c0 3,5,115-124
+server/nest-api/src/modules/auth/dto/request-email-reset.dto.ts
+  56945762ed8c76c0 1-7
+web/app/(auth)/forgot-password/page.tsx
+  56945762ed8c76c0 1-97
+server/nest-api/src/modules/assignments/entities/submission.entity.ts
+  56945762ed8c76c0 39-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "288ca9c5140aa6f9af1003757d240aaa3cfa1094",
+  "prompts": {
+    "56945762ed8c76c0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c43add55-b9f2-431b-aa18-cdb082dbd7fe",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 25072,
+      "total_deletions": 2107,
+      "accepted_lines": 28861,
+      "overriden_lines": 16
+    }
+  }
+}
