@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SpeakPro · favicon 简化版（对齐 design Section 03 · FAVICON · 32） -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#B54A25"/>
+  <text x="32" y="48" text-anchor="middle" fill="#FBF8F2"
+        font-family="'Fraunces'" font-size="54"
+        font-style="italic" font-weight="500">S</text>
+</svg>

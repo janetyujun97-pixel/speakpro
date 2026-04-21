@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SpeakPro 品牌主色 sienna · 用作 adaptive icon 背景层 -->
+<resources>
+    <color name="ic_launcher_background">#B54A25</color>
+</resources>

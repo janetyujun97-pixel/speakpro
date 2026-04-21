@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SpeakPro · 方案 A · CLASSIC — 方形版（无圆角 mask），供 App Store 1024 无透明用 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C85A32"/>
+      <stop offset="1" stop-color="#9A3E1D"/>
+    </linearGradient>
+    <radialGradient id="bgGlow2" cx="0.3" cy="0.25" r="0.9">
+      <stop offset="0" stop-color="rgba(255,220,190,0.35)"/>
+      <stop offset="1" stop-color="rgba(255,220,190,0)"/>
+    </radialGradient>
+    <pattern id="dots2" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.1" fill="#FBF8F2"/>
+    </pattern>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bgGrad2)"/>
+  <rect width="512" height="512" fill="url(#bgGlow2)"/>
+  <g opacity="0.18">
+    <rect width="512" height="512" fill="url(#dots2)"/>
+  </g>
+
+  <text x="34" y="56" fill="rgba(251,248,242,0.55)"
+        font-family="'JetBrains Mono'" font-weight="400"
+        font-size="14" letter-spacing="3.5">SPEAKPRO · No. 042</text>
+  <line x1="34" y1="72" x2="478" y2="72" stroke="rgba(251,248,242,0.35)" stroke-width="1"/>
+
+  <text x="256" y="300" text-anchor="middle" fill="#FBF8F2"
+        font-family="'Fraunces'" font-size="320"
+        font-style="italic" font-weight="400">S</text>
+
+  <g transform="translate(328, 172)" stroke="#FBF8F2" stroke-width="6"
+     stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="-20" y="-46" width="40" height="62" rx="20" ry="20" fill="#FBF8F2" stroke="none"/>
+    <line x1="-9" y1="-30" x2="9" y2="-30" stroke="#B54A25" stroke-width="3"/>
+    <line x1="-9" y1="-20" x2="9" y2="-20" stroke="#B54A25" stroke-width="3"/>
+    <line x1="-9" y1="-10" x2="9" y2="-10" stroke="#B54A25" stroke-width="3"/>
+    <path d="M-32 5 A32 32 0 0 0 32 5" />
+    <line x1="0" y1="32" x2="0" y2="52"/>
+    <line x1="-16" y1="52" x2="16" y2="52"/>
+  </g>
+
+  <line x1="192" y1="402" x2="320" y2="402" stroke="#FBF8F2" stroke-width="1.5" opacity="0.8"/>
+  <text x="256" y="438" text-anchor="middle" fill="#FBF8F2" opacity="0.85"
+        font-family="'Fraunces'" font-size="22" font-style="italic">peakPro</text>
+  <text x="256" y="474" text-anchor="middle" fill="rgba(251,248,242,0.55)"
+        font-family="'JetBrains Mono'" font-weight="400"
+        font-size="13" letter-spacing="5">· SPEAK WELL ·</text>
+</svg>

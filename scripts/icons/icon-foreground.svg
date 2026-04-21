@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Android adaptive icon foreground（只包含符号，不含背景）— 画布 108×108 dp 等价 432px，
+     安全区直径 66 dp，图标应居中；这里把 icon-classic 的核心要素（S + 麦）缩放到安全区。 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 432" width="432" height="432">
+  <defs></defs>
+  <g transform="translate(216,216) scale(0.62) translate(-256,-256)">
+    <text x="256" y="300" text-anchor="middle" fill="#FBF8F2"
+          font-family="'Fraunces'" font-size="320"
+          font-style="italic" font-weight="400">S</text>
+
+    <g transform="translate(328, 172)" stroke="#FBF8F2" stroke-width="6"
+       stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <rect x="-20" y="-46" width="40" height="62" rx="20" ry="20" fill="#FBF8F2" stroke="none"/>
+      <line x1="-9" y1="-30" x2="9" y2="-30" stroke="#B54A25" stroke-width="3"/>
+      <line x1="-9" y1="-20" x2="9" y2="-20" stroke="#B54A25" stroke-width="3"/>
+      <line x1="-9" y1="-10" x2="9" y2="-10" stroke="#B54A25" stroke-width="3"/>
+      <path d="M-32 5 A32 32 0 0 0 32 5" />
+      <line x1="0" y1="32" x2="0" y2="52"/>
+      <line x1="-16" y1="52" x2="16" y2="52"/>
+    </g>
+
+    <line x1="192" y1="402" x2="320" y2="402" stroke="#FBF8F2" stroke-width="1.5" opacity="0.8"/>
+    <text x="256" y="438" text-anchor="middle" fill="#FBF8F2" opacity="0.85"
+          font-family="'Fraunces'" font-size="22" font-style="italic">peakPro</text>
+  </g>
+</svg>
