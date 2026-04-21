@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import {
+  Eyebrow,
+  Serif,
+  Mono,
+  Chip,
+  HairlineBtn,
+  SectionRule,
+} from "@/components/editorial/primitives";
+
+// ── Types ────────────────────────────────────────────────────────────
 
 interface ClassOption {
   id: string;
@@ -22,22 +30,28 @@ interface QuestionOption {
   promptText: string;
 }
 
+// ── Page ─────────────────────────────────────────────────────────────
+
 export default function NewAssignmentPage() {
   const router = useRouter();
+
+  // 业务状态
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [classId, setClassId] = useState("");
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState("");
 
+  // 选项
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [questions, setQuestions] = useState<QuestionOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadOptions = async () => {
+    (async () => {
       try {
         const [classesData, questionsData] = await Promise.all([
           api.get<ClassOption[]>("/classes"),
@@ -45,13 +59,12 @@ export default function NewAssignmentPage() {
         ]);
         setClasses(classesData);
         setQuestions(questionsData);
-      } catch (err: unknown) {
+      } catch (err) {
         setError(err instanceof Error ? err.message : "加载数据失败");
       } finally {
         setLoadingOptions(false);
       }
-    };
-    loadOptions();
+    })();
   }, []);
 
   const toggleQuestion = (id: string) => {
@@ -72,7 +85,6 @@ export default function NewAssignmentPage() {
     }
     setSubmitting(true);
     setError("");
-
     try {
       await api.post("/assignments", {
         title,
@@ -82,143 +94,198 @@ export default function NewAssignmentPage() {
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       });
       router.push("/assignments");
-    } catch (err: unknown) {
+    } catch (err) {
       setError(err instanceof Error ? err.message : "创建作业失败");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loadingOptions) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-primary">创建作业</h1>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">加载数据...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-primary">创建作业</h1>
+    <div className="mx-auto max-w-3xl">
+      {/* 顶部标题条 */}
+      <SectionRule
+        label="作业信息 · NEW"
+        right={
+          <Link href="/assignments">
+            <HairlineBtn
+              leftIcon={<ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+            >
+              返回列表
+            </HairlineBtn>
+          </Link>
+        }
+        className="mb-8"
+      />
 
-      <Card className="max-w-2xl">
-        <form onSubmit={handleSubmit}>
-          <CardHeader>
-            <CardTitle>作业信息</CardTitle>
-          </CardHeader>
+      {/* 错误条 */}
+      {error && (
+        <div
+          className="mb-6 border-l-2 border-accent bg-ivory px-4 py-3 text-[13px]"
+          style={{ color: "var(--accent)" }}
+        >
+          {error}
+        </div>
+      )}
 
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-lg border border-data-red/20 bg-data-red/5 p-3 text-sm text-data-red">
-                {error}
-              </div>
-            )}
+      {loadingOptions ? (
+        <div className="py-20 text-center">
+          <Mono size={11}>— 加载数据中 —</Mono>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-7">
+          {/* 标题 */}
+          <Field label="标题">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="如：Part 3 追问练习 × 3 题"
+              required
+              className="w-full border-0 border-b border-ink bg-transparent pb-1 font-serif text-[20px] text-ink outline-none placeholder:text-muted-2"
+              style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+            />
+          </Field>
 
-            {/* 标题 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">标题</label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="作业标题"
-                required
-              />
-            </div>
+          {/* 描述 */}
+          <Field label="描述">
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="作业说明（可选）…"
+              rows={3}
+              className="w-full resize-y border border-line bg-ivory p-3 text-[12px] text-ink outline-none placeholder:text-muted-2"
+              style={{ borderRadius: 2, minHeight: 72 }}
+            />
+          </Field>
 
-            {/* 描述 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">描述</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="作业描述（可选）"
-                rows={3}
-                className="flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-
-            {/* 班级 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">班级</label>
+          {/* 班级 + 截止日期 */}
+          <div className="grid grid-cols-2 gap-8">
+            <Field label="班级">
               <select
                 value={classId}
                 onChange={(e) => setClassId(e.target.value)}
                 required
-                className="flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full border border-line bg-ivory px-3 py-2 text-[12px] text-ink outline-none"
               >
                 <option value="">请选择班级</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.examType})
+                    {c.name}（{c.examType}）
                   </option>
                 ))}
               </select>
-            </div>
+            </Field>
 
-            {/* 截止日期 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">截止日期</label>
-              <Input
-                type="date"
+            <Field label="截止日期">
+              <input
+                type="datetime-local"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+                className="w-full border border-line bg-ivory px-3 py-2 font-mono text-[12px] text-ink outline-none"
               />
-            </div>
+            </Field>
+          </div>
 
-            {/* 题目选择 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">
-                选择题目 ({selectedQuestionIds.length} 已选)
-              </label>
-              {questions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">暂无可用题目，请先在题库中创建题目</p>
-              ) : (
-                <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-border p-3">
-                  {questions.map((q) => (
+          {/* 题目选择 */}
+          <div>
+            <div className="mb-3 flex items-baseline justify-between">
+              <Eyebrow>选择题目</Eyebrow>
+              <Mono size={10}>{selectedQuestionIds.length} / {questions.length} 已选</Mono>
+            </div>
+            {questions.length === 0 ? (
+              <div className="border border-line bg-ivory py-10 text-center">
+                <Mono size={11}>— 暂无题目，请先在题库中创建 —</Mono>
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto border border-line bg-ivory">
+                {questions.map((q, i) => {
+                  const selected = selectedQuestionIds.includes(q.id);
+                  return (
                     <label
                       key={q.id}
-                      className="flex cursor-pointer items-start gap-3 rounded-lg p-2 hover:bg-muted/50"
+                      className="flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-bg-soft/60"
+                      style={{
+                        borderBottom:
+                          i < questions.length - 1
+                            ? "1px solid var(--line-soft)"
+                            : 0,
+                        background: selected ? "var(--bg-soft)" : "transparent",
+                      }}
                     >
                       <input
                         type="checkbox"
-                        checked={selectedQuestionIds.includes(q.id)}
+                        checked={selected}
                         onChange={() => toggleQuestion(q.id)}
-                        className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-ring"
+                        className="mt-1 h-3.5 w-3.5 accent-ink"
                       />
+                      <Serif
+                        size={15}
+                        italic
+                        color={selected ? "var(--accent)" : "var(--muted-2)"}
+                        style={{ width: 32, marginTop: 2 }}
+                      >
+                        {String(i + 1).padStart(2, "0")}
+                      </Serif>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-primary">
+                        <div className="flex items-center gap-2">
+                          <Chip tone="muted">{q.examType}</Chip>
+                          <Chip tone="muted">{q.section}</Chip>
+                        </div>
+                        <div className="mt-1.5 text-[13px] font-medium text-ink">
                           {q.topic || q.promptText}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {q.examType} / {q.section}
-                        </p>
+                        </div>
+                        {q.topic && q.promptText && (
+                          <div className="mt-0.5 line-clamp-2 text-[11px] text-muted">
+                            {q.promptText}
+                          </div>
+                        )}
                       </div>
                     </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-          <CardFooter className="gap-3">
-            <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              创建作业
-            </Button>
-            <Button
+          {/* 操作 */}
+          <div className="flex items-center gap-3 border-t border-line pt-6">
+            <HairlineBtn
               type="button"
-              variant="outline"
               onClick={() => router.push("/assignments")}
             >
               取消
-            </Button>
-          </CardFooter>
+            </HairlineBtn>
+            <div className="flex-1" />
+            <HairlineBtn
+              primary
+              type="submit"
+              disabled={submitting}
+              rightIcon={
+                <ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />
+              }
+            >
+              {submitting ? "创建中…" : "创建作业"}
+            </HairlineBtn>
+          </div>
         </form>
-      </Card>
+      )}
+    </div>
+  );
+}
+
+// ── helpers ──────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Eyebrow>{label}</Eyebrow>
+      <div>{children}</div>
     </div>
   );
 }

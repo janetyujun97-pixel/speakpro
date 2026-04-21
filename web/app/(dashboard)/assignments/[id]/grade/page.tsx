@@ -1,13 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { Play, Pause, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { AudioPlayer } from "@/components/grading/audio-player";
-import { TranscriptViewer, type TranscriptSegment } from "@/components/grading/transcript-viewer";
-import { ScoreAdjuster, type ScoreCategory } from "@/components/grading/score-adjuster";
+import {
+  Eyebrow,
+  Serif,
+  Numeral,
+  Mono,
+  Chip,
+  HairlineBtn,
+  type ChipTone,
+} from "@/components/editorial/primitives";
 
-// ---- 类型定义 ----
+// ── 类型定义 ────────────────────────────────────────────────────────
 
 interface Assignment {
   id: string;
@@ -28,73 +35,105 @@ interface Submission {
   gradedAt: string | null;
 }
 
+// JSONB 子结构（与 go-services/internal/model/types.go 对齐）
+interface PronunciationScore {
+  overall?: number;
+  score?: number;
+  fluency?: number;
+  integrity?: number;
+  stress?: number;
+  intonation?: number;
+}
+interface FluencySubScore {
+  score?: number;
+  overall?: number;
+  pace?: number;
+  fillers?: number;
+  pauses?: Array<{ time?: number; duration?: number }>;
+}
+interface GrammarSubScore {
+  score?: number;
+  overall?: number;
+  errors?: Array<{ text?: string; type?: string; suggestion?: string }>;
+  corrections?: Array<{ from?: string; to?: string } | string>;
+}
+interface ContentSubScore {
+  score?: number;
+  overall?: number;
+  relevance?: number;
+  vocabulary?: number;
+  coherence?: number;
+}
+
 interface PracticeSession {
   id: string;
   mode: string;
   audioUrl?: string;
   transcript?: string;
   overallScore?: number;
-  pronunciationScore?: { overall?: number; score?: number };
-  fluencyScore?: { overall?: number; score?: number };
-  grammarScore?: { overall?: number; score?: number };
-  contentScore?: { overall?: number; score?: number };
+  pronunciationScore?: PronunciationScore;
+  fluencyScore?: FluencySubScore;
+  grammarScore?: GrammarSubScore;
+  contentScore?: ContentSubScore;
   aiFeedback?: string;
   question?: { promptText?: string; examType?: string; section?: string };
   createdAt: string;
 }
 
-// ---- 工具函数 ----
+// ── 工具 ───────────────────────────────────────────────────────────
 
-/** 从 transcript 文本生成 TranscriptSegment 数组 */
-function parseTranscript(transcript?: string): TranscriptSegment[] {
-  if (!transcript) return [];
-  // 简单处理：整段作为学生发言
-  const words = transcript.split(/\s+/).filter(Boolean).map((text) => ({ text }));
-  if (words.length === 0) return [];
-  return [{ speaker: "student" as const, timestamp: "0:00", words }];
+const getScore = (obj?: { overall?: number; score?: number }) =>
+  obj?.overall ?? obj?.score ?? 0;
+
+/** 0–100 → 0–9（雅思风格展示） */
+const to9 = (v: number) => ((v / 100) * 9).toFixed(1);
+
+function formatTime(seconds: number) {
+  if (!seconds || !isFinite(seconds)) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-/** 从 session 提取 AI 评分 categories */
-function buildScoreCategories(session: PracticeSession): ScoreCategory[] {
-  const getScore = (obj?: { overall?: number; score?: number }) =>
-    obj?.overall ?? obj?.score ?? 0;
-
-  return [
-    { label: "发音准确度", key: "pronunciation", aiScore: getScore(session.pronunciationScore), maxScore: 100 },
-    { label: "流利度", key: "fluency", aiScore: getScore(session.fluencyScore), maxScore: 100 },
-    { label: "语法正确性", key: "grammar", aiScore: getScore(session.grammarScore), maxScore: 100 },
-    { label: "内容相关性", key: "content", aiScore: getScore(session.contentScore), maxScore: 100 },
-  ];
+function formatDate(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${String(
+    d.getHours()
+  ).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-// ---- 主组件 ----
+// ── 主组件 ─────────────────────────────────────────────────────────
 
 export default function GradePage() {
   const params = useParams();
   const assignmentId = params.id as string;
 
   const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] =
+    useState<Submission | null>(null);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<PracticeSession | null>(null);
+  const [selectedSession, setSelectedSession] =
+    useState<PracticeSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [grading, setGrading] = useState(false);
 
-  // 教师评分
-  const [teacherScore, setTeacherScore] = useState(0);
+  const [teacherScore, setTeacherScore] = useState(70);
   const [comment, setComment] = useState("");
 
-  // 加载作业
   useEffect(() => {
     loadAssignment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assignmentId]);
 
   async function loadAssignment() {
     try {
       const data = await api.get<Assignment>(`/assignments/${assignmentId}`);
       setAssignment(data);
-      const firstPending = data.submissions?.find((s) => s.status === "submitted");
+      const firstPending = data.submissions?.find(
+        (s) => s.status === "submitted"
+      );
       if (firstPending) selectSubmission(firstPending);
     } catch (err) {
       console.error("加载作业失败:", err);
@@ -103,7 +142,6 @@ export default function GradePage() {
     }
   }
 
-  // 选中学生提交
   async function selectSubmission(sub: Submission) {
     setSelectedSubmission(sub);
     setTeacherScore(sub.teacherScore ?? 70);
@@ -111,13 +149,13 @@ export default function GradePage() {
     setSelectedSession(null);
     setSessions([]);
 
-    // 批量加载练习 sessions
     if (sub.sessionIds?.length > 0) {
       setSessionsLoading(true);
       try {
-        const data = await api.post<PracticeSession[]>("/practice/sessions/batch", {
-          sessionIds: sub.sessionIds,
-        });
+        const data = await api.post<PracticeSession[]>(
+          "/practice/sessions/batch",
+          { sessionIds: sub.sessionIds }
+        );
         setSessions(data);
         if (data.length > 0) setSelectedSession(data[0]);
       } catch (err) {
@@ -128,7 +166,6 @@ export default function GradePage() {
     }
   }
 
-  // 提交评分
   async function handleGrade() {
     if (!selectedSubmission) return;
     setGrading(true);
@@ -148,201 +185,641 @@ export default function GradePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse space-y-2 text-center">
-          <div className="h-4 w-32 bg-gray-200 rounded mx-auto" />
-          <p className="text-gray-400 text-sm">加载中...</p>
-        </div>
+      <div className="py-20 text-center">
+        <Mono size={11}>— 加载中 —</Mono>
       </div>
     );
   }
 
   if (!assignment) {
-    return <div className="text-center py-16 text-gray-400">作业不存在</div>;
+    return (
+      <div className="py-20 text-center">
+        <Mono size={11}>— 作业不存在 —</Mono>
+      </div>
+    );
   }
 
-  const submissions = assignment.submissions || [];
-  const submittedSubs = submissions.filter((s) => s.status !== "pending");
-  const gradedCount = submissions.filter((s) => s.status === "graded").length;
+  const submittedSubs = (assignment.submissions || []).filter(
+    (s) => s.status !== "pending"
+  );
+  const gradedCount = (assignment.submissions || []).filter(
+    (s) => s.status === "graded"
+  ).length;
+
+  const curIdx = selectedSubmission
+    ? submittedSubs.findIndex((s) => s.id === selectedSubmission.id)
+    : -1;
+  const hasPrev = curIdx > 0;
+  const hasNext = curIdx >= 0 && curIdx < submittedSubs.length - 1;
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-120px)]">
-      {/* 左侧：提交列表 */}
-      <div className="w-72 shrink-0 bg-white rounded-xl shadow-sm overflow-y-auto">
-        <div className="p-4 border-b">
-          <h2 className="font-bold text-lg">{assignment.title}</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            提交 {submittedSubs.length} 份 · 已批 {gradedCount} 份
-          </p>
+    <div className="grid items-start gap-6" style={{ gridTemplateColumns: "260px 1fr" }}>
+      {/* ── 队列 ─────────────────────────────────── */}
+      <aside>
+        <div className="mb-2 flex items-baseline justify-between">
+          <Eyebrow>队列 · QUEUE</Eyebrow>
+          <Mono size={10}>
+            {submittedSubs.length}
+            {gradedCount > 0 ? ` · 已批 ${gradedCount}` : ""}
+          </Mono>
         </div>
-        <div className="divide-y">
+        <div className="border-t border-line">
           {submittedSubs.length === 0 ? (
-            <p className="p-4 text-center text-gray-400 text-sm">暂无学生提交</p>
+            <div className="py-8 text-center">
+              <Mono size={10}>— 暂无学生提交 —</Mono>
+            </div>
           ) : (
-            submittedSubs.map((sub) => (
-              <button
-                key={sub.id}
-                onClick={() => selectSubmission(sub)}
-                className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                  selectedSubmission?.id === sub.id
-                    ? "bg-blue-50 border-l-4 border-blue-600"
-                    : ""
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">
-                    {sub.student?.name || sub.studentId.slice(0, 8)}
-                  </span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      sub.status === "graded"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
+            submittedSubs.map((sub, i) => {
+              const on = selectedSubmission?.id === sub.id;
+              return (
+                <button
+                  key={sub.id}
+                  onClick={() => selectSubmission(sub)}
+                  className="flex w-full items-center gap-2.5 border-b border-line px-3 py-3 text-left transition-colors"
+                  style={{
+                    background: on ? "var(--bg-soft)" : "transparent",
+                    borderLeft: `2px solid ${on ? "var(--accent)" : "transparent"}`,
+                  }}
+                >
+                  <Serif
+                    size={13}
+                    italic
+                    color={on ? "var(--accent)" : "var(--muted-2)"}
                   >
-                    {sub.status === "graded" ? `${sub.teacherScore}分` : "待批"}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  {sub.sessionIds?.length || 0} 个练习 ·{" "}
-                  {sub.submittedAt
-                    ? new Date(sub.submittedAt).toLocaleDateString()
-                    : ""}
-                </p>
-              </button>
-            ))
+                    {String(i + 1).padStart(2, "0")}
+                  </Serif>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12px] font-medium text-ink truncate">
+                      {sub.student?.name || sub.studentId.slice(0, 8)}
+                    </div>
+                    <Mono size={9}>
+                      {sub.sessionIds?.length || 0} 个练习 ·{" "}
+                      {sub.submittedAt
+                        ? new Date(sub.submittedAt).toLocaleDateString("zh-CN")
+                        : "—"}
+                    </Mono>
+                  </div>
+                  {sub.status === "graded" && sub.teacherScore != null ? (
+                    <Numeral size={16} color="var(--muted)">
+                      {sub.teacherScore}
+                    </Numeral>
+                  ) : (
+                    <Chip tone="warn">待批</Chip>
+                  )}
+                </button>
+              );
+            })
           )}
         </div>
-      </div>
+      </aside>
 
-      {/* 右侧：批改详情 */}
-      <div className="flex-1 overflow-y-auto space-y-4">
+      {/* ── 批改面板 ─────────────────────────────── */}
+      <div className="border border-line bg-ivory">
         {selectedSubmission ? (
           <>
-            {/* 学生信息 + 会话选择 */}
-            <div className="bg-white rounded-xl shadow-sm p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold">
-                  {selectedSubmission.student?.name || "学生"} 的提交
-                </h3>
-                <span className="text-sm text-gray-400">
-                  {sessions.length} 个练习会话
-                </span>
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-line px-6 py-5">
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 flex items-center gap-2">
+                  <Chip tone="accent">
+                    {selectedSession?.question?.section ||
+                      selectedSession?.mode ||
+                      "作业提交"}
+                  </Chip>
+                  <Mono size={10}>
+                    SUBMITTED · {formatDate(selectedSubmission.submittedAt)}
+                  </Mono>
+                </div>
+                <Serif size={24}>
+                  {selectedSession?.question?.promptText || assignment.title}
+                </Serif>
+                <div className="mt-1.5 text-[12px] text-muted">
+                  学生 ·{" "}
+                  <span className="font-semibold text-ink">
+                    {selectedSubmission.student?.name ||
+                      selectedSubmission.studentId.slice(0, 8)}
+                  </span>
+                  {selectedSession && (
+                    <>
+                      {" "}
+                      · 时长{" "}
+                      <span className="text-ink">
+                        {formatTime(
+                          /* 后端暂无 duration 字段，占位 */ 0
+                        )}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
+              <div className="flex gap-2">
+                <HairlineBtn
+                  disabled={!hasPrev}
+                  onClick={() => hasPrev && selectSubmission(submittedSubs[curIdx - 1])}
+                  leftIcon={<ChevronLeft className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+                  style={{ opacity: hasPrev ? 1 : 0.4 }}
+                >
+                  上一份
+                </HairlineBtn>
+                <HairlineBtn
+                  disabled={!hasNext}
+                  onClick={() => hasNext && selectSubmission(submittedSubs[curIdx + 1])}
+                  rightIcon={<ChevronRight className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+                  style={{ opacity: hasNext ? 1 : 0.4 }}
+                >
+                  下一份
+                </HairlineBtn>
+              </div>
+            </div>
 
-              {/* 会话选择 tabs */}
-              {sessions.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {sessions.map((s, i) => (
+            {sessionsLoading && (
+              <div className="border-b border-line px-6 py-3 text-center">
+                <Mono size={11}>加载练习数据…</Mono>
+              </div>
+            )}
+
+            {/* 会话切换（多练习时显示） */}
+            {sessions.length > 1 && (
+              <div className="flex flex-wrap gap-2 border-b border-line px-6 py-3">
+                <Eyebrow>练习</Eyebrow>
+                {sessions.map((s, i) => {
+                  const on = selectedSession?.id === s.id;
+                  return (
                     <button
                       key={s.id}
                       onClick={() => setSelectedSession(s)}
-                      className={`px-3 py-1.5 text-xs rounded-lg whitespace-nowrap transition-colors ${
-                        selectedSession?.id === s.id
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
+                      className="border border-line px-2.5 py-1 text-[11px] transition-colors"
+                      style={{
+                        background: on ? "var(--ink)" : "transparent",
+                        color: on ? "var(--ivory)" : "var(--ink)",
+                        borderColor: on ? "var(--ink)" : "var(--line)",
+                      }}
                     >
-                      练习 #{i + 1}
-                      {s.overallScore != null && ` (${s.overallScore}分)`}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {sessionsLoading && (
-                <p className="text-sm text-gray-400 animate-pulse mt-2">加载练习数据...</p>
-              )}
-            </div>
-
-            {/* 选中的会话详情 */}
-            {selectedSession && (
-              <>
-                {/* 题目信息 */}
-                {selectedSession.question && (
-                  <div className="bg-white rounded-xl shadow-sm p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                        {selectedSession.question.examType}
-                      </span>
-                      {selectedSession.question.section && (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                          {selectedSession.question.section}
-                        </span>
+                      #{i + 1}
+                      {s.overallScore != null && (
+                        <span className="ml-1 opacity-70">· {to9(s.overallScore)}</span>
                       )}
-                      <span className="text-xs text-gray-400">
-                        {selectedSession.mode}
-                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {selectedSession ? (
+              <>
+                {/* 音频 */}
+                <AudioBlock src={selectedSession.audioUrl} />
+
+                {/* Transcript + Scoring 双列 */}
+                <div
+                  className="grid"
+                  style={{ gridTemplateColumns: "1.3fr 1fr" }}
+                >
+                  {/* 转写 */}
+                  <div
+                    className="px-6 py-5"
+                    style={{ borderRight: "1px solid var(--line)" }}
+                  >
+                    <Eyebrow>转写 · TRANSCRIPT</Eyebrow>
+                    <div
+                      className="mt-3.5 font-serif text-[15px] leading-[1.75] text-ink"
+                      style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+                    >
+                      {selectedSession.transcript || (
+                        <Mono size={11}>— 暂无转写 —</Mono>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-700">
-                      {selectedSession.question.promptText}
-                    </p>
                   </div>
-                )}
 
-                {/* 音频播放器 */}
-                <AudioPlayer src={selectedSession.audioUrl} />
-
-                {/* 转写文本 */}
-                <TranscriptViewer
-                  segments={parseTranscript(selectedSession.transcript)}
-                />
+                  {/* 评分 */}
+                  <div className="px-6 py-5">
+                    <ScorePanel
+                      session={selectedSession}
+                      teacherScore={teacherScore}
+                      onChangeScore={setTeacherScore}
+                      comment={comment}
+                      onChangeComment={setComment}
+                      grading={grading}
+                      alreadyGraded={selectedSubmission.status === "graded"}
+                      onSubmit={handleGrade}
+                    />
+                  </div>
+                </div>
 
                 {/* AI 反馈 */}
                 {selectedSession.aiFeedback && (
-                  <div className="bg-white rounded-xl border border-border p-4 space-y-2">
-                    <h3 className="font-semibold text-primary">AI 反馈</h3>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  <div className="border-t border-line px-6 py-5">
+                    <Eyebrow>AI 反馈</Eyebrow>
+                    <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-ink">
                       {selectedSession.aiFeedback}
                     </p>
                   </div>
                 )}
-
-                {/* 维度评分调节 */}
-                <ScoreAdjuster
-                  categories={buildScoreCategories(selectedSession)}
-                  onScoresChange={(_scores, total) => setTeacherScore(total)}
-                />
               </>
+            ) : (
+              !sessionsLoading && (
+                <div className="py-16 text-center">
+                  <Mono size={11}>— 该提交暂无练习数据 —</Mono>
+                </div>
+              )
             )}
-
-            {/* 教师评语 + 提交 */}
-            <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
-              <h4 className="font-medium text-gray-700">教师评语</h4>
-
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-500">综合评分</span>
-                <span className="text-3xl font-bold text-blue-600">{teacherScore}</span>
-                <span className="text-sm text-gray-400">/ 100</span>
-              </div>
-
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={3}
-                placeholder="给学生写一些鼓励或改进建议..."
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-
-              <button
-                onClick={handleGrade}
-                disabled={grading}
-                className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
-              >
-                {grading
-                  ? "提交中..."
-                  : selectedSubmission.status === "graded"
-                  ? "更新评分"
-                  : "提交评分"}
-              </button>
-            </div>
           </>
         ) : (
-          <div className="flex items-center justify-center h-full bg-white rounded-xl shadow-sm text-gray-400">
-            <p>请从左侧选择一个学生提交进行批改</p>
+          <div className="py-20 text-center">
+            <Mono size={11}>— 请从左侧选择一份提交进行批改 —</Mono>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── 音频块（内嵌 play/pause + waveform bars + 速度） ────────────────
+
+function AudioBlock({ src }: { src?: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [rate, setRate] = useState(1);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onTime = () => setCurrent(a.currentTime);
+    const onDur = () => setDuration(a.duration || 0);
+    const onEnd = () => setPlaying(false);
+    a.addEventListener("timeupdate", onTime);
+    a.addEventListener("durationchange", onDur);
+    a.addEventListener("ended", onEnd);
+    return () => {
+      a.removeEventListener("timeupdate", onTime);
+      a.removeEventListener("durationchange", onDur);
+      a.removeEventListener("ended", onEnd);
+    };
+  }, [src]);
+
+  useEffect(() => {
+    setCurrent(0);
+    setPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, [src]);
+
+  const toggle = useCallback(() => {
+    const a = audioRef.current;
+    if (!a || !src) return;
+    if (playing) a.pause();
+    else a.play();
+    setPlaying(!playing);
+  }, [playing, src]);
+
+  const changeRate = (r: number) => {
+    setRate(r);
+    if (audioRef.current) audioRef.current.playbackRate = r;
+  };
+
+  // 生成稳定的波形高度（基于 index 的伪随机，不随 render 变化）
+  const bars = Array.from({ length: 80 }, (_, i) => {
+    const h = 8 + Math.abs(Math.sin(i * 0.5 + Math.cos(i * 0.3) * 2)) * 32;
+    return h;
+  });
+  const played = duration > 0 ? (current / duration) * 80 : 0;
+
+  return (
+    <div className="border-b border-line px-6 py-5">
+      {src && <audio ref={audioRef} src={src} preload="metadata" />}
+      <div className="flex items-center gap-3.5">
+        <button
+          onClick={toggle}
+          disabled={!src}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+          style={{ background: "var(--ink)", color: "var(--ivory)" }}
+          aria-label={playing ? "暂停" : "播放"}
+        >
+          {playing ? (
+            <Pause className="h-[16px] w-[16px]" fill="currentColor" />
+          ) : (
+            <Play className="ml-0.5 h-[16px] w-[16px]" fill="currentColor" />
+          )}
+        </button>
+
+        <div className="flex-1">
+          <div className="flex h-11 items-center gap-[2px]">
+            {bars.map((h, i) => (
+              <div
+                key={i}
+                className="w-[3px] shrink-0"
+                style={{
+                  height: h,
+                  background: i < played ? "var(--accent)" : "var(--line)",
+                }}
+              />
+            ))}
+          </div>
+          <div className="mt-1.5 flex justify-between">
+            <Mono size={10} color="var(--ink)">
+              {formatTime(current)}
+            </Mono>
+            <Mono size={10}>— {formatTime(duration)} —</Mono>
+          </div>
+        </div>
+
+        <div className="flex gap-1.5">
+          {[0.75, 1, 1.25].map((r) => {
+            const on = rate === r;
+            return (
+              <button
+                key={r}
+                onClick={() => changeRate(r)}
+                className="border border-line px-2 py-1 font-mono text-[10px] transition-colors"
+                style={{
+                  background: on ? "var(--ink)" : "transparent",
+                  color: on ? "var(--ivory)" : "var(--ink)",
+                }}
+              >
+                {r}×
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 评分面板（综合分 + 4 分项 + 评语 + 提交） ─────────────────────
+
+function ScorePanel({
+  session,
+  teacherScore,
+  onChangeScore,
+  comment,
+  onChangeComment,
+  grading,
+  alreadyGraded,
+  onSubmit,
+}: {
+  session: PracticeSession;
+  teacherScore: number;
+  onChangeScore: (n: number) => void;
+  comment: string;
+  onChangeComment: (v: string) => void;
+  grading: boolean;
+  alreadyGraded: boolean;
+  onSubmit: () => void;
+}) {
+  // 子维度 → 在展开时显示细分详情
+  const dims: Array<{
+    label: string;
+    key: "pronunciation" | "fluency" | "grammar" | "content";
+    value: number;
+    details?: React.ReactNode;
+  }> = [
+    {
+      label: "发音 Pron.",
+      key: "pronunciation",
+      value: getScore(session.pronunciationScore),
+      details: <PronunciationDetails s={session.pronunciationScore} />,
+    },
+    {
+      label: "流利度 Flu.",
+      key: "fluency",
+      value: getScore(session.fluencyScore),
+      details: <FluencyDetails s={session.fluencyScore} />,
+    },
+    {
+      label: "语法 Gram.",
+      key: "grammar",
+      value: getScore(session.grammarScore),
+      details: <GrammarDetails s={session.grammarScore} />,
+    },
+    {
+      label: "内容 Con.",
+      key: "content",
+      value: getScore(session.contentScore),
+      details: <ContentDetails s={session.contentScore} />,
+    },
+  ];
+
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const overall9 = session.overallScore != null ? to9(session.overallScore) : "—";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <Eyebrow>AI 评分 · 可调整</Eyebrow>
+        <Mono size={10}>TENCENT SOE</Mono>
+      </div>
+
+      {/* 综合分卡片 */}
+      <div
+        className="mt-3 px-4 pb-3.5 pt-4"
+        style={{
+          background: "var(--bg-soft)",
+          border: "1px solid var(--line)",
+        }}
+      >
+        <div className="flex items-baseline justify-between">
+          <Eyebrow>综合分</Eyebrow>
+          <Mono size={10}>/ 9.0</Mono>
+        </div>
+        <div className="mt-1">
+          <Numeral size={54} color="var(--accent)">
+            {overall9}
+          </Numeral>
+        </div>
+      </div>
+
+      {/* 4 分项 */}
+      <div className="mt-4">
+        {dims.map((d) => {
+          const v9 = to9(d.value);
+          const pct = Math.max(0, Math.min(100, d.value));
+          const on = expanded === d.key;
+          return (
+            <div key={d.key} className="border-b border-line-soft py-2.5">
+              <button
+                onClick={() => setExpanded(on ? null : d.key)}
+                className="flex w-full items-center justify-between"
+              >
+                <span className="text-[12px] text-ink">{d.label}</span>
+                <Numeral size={16}>{v9}</Numeral>
+              </button>
+              <div
+                className="relative mt-1.5"
+                style={{ height: 2, background: "var(--line-soft)" }}
+              >
+                <div
+                  className="absolute inset-y-0 left-0"
+                  style={{ width: `${pct}%`, background: "var(--ink)" }}
+                />
+              </div>
+              {on && d.details && (
+                <div className="mt-2 text-[11px] text-muted">{d.details}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 教师批注 */}
+      <div className="mt-4">
+        <Eyebrow>教师批注</Eyebrow>
+        <textarea
+          value={comment}
+          onChange={(e) => onChangeComment(e.target.value)}
+          placeholder="添加批注或鼓励…"
+          rows={3}
+          className="mt-2 w-full resize-y border border-line bg-ivory p-3 text-[12px] text-ink outline-none placeholder:text-muted-2"
+          style={{ borderRadius: 2, minHeight: 70 }}
+        />
+      </div>
+
+      {/* 综合评分可调（兼容旧 0-100 teacherScore） */}
+      <div className="mt-3">
+        <div className="flex items-center justify-between">
+          <Eyebrow>教师综合分</Eyebrow>
+          <Numeral size={20} color="var(--ink)">
+            {teacherScore}
+          </Numeral>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={teacherScore}
+          onChange={(e) => onChangeScore(Number(e.target.value))}
+          className="mt-1.5 w-full accent-ink"
+        />
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="mt-4 flex gap-2">
+        <HairlineBtn style={{ flex: 1, justifyContent: "center" }}>驳回</HairlineBtn>
+        <HairlineBtn
+          primary
+          disabled={grading}
+          onClick={onSubmit}
+          style={{ flex: 2, justifyContent: "center" }}
+          rightIcon={<ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+        >
+          {grading ? "提交中…" : alreadyGraded ? "更新评分" : "确认并发布"}
+        </HairlineBtn>
+      </div>
+    </div>
+  );
+}
+
+// ── 细分详情小组件（沿用上一轮 SOE 展示逻辑，仅换皮） ──────────────
+
+function MiniBar({ label, value }: { label: string; value?: number }) {
+  if (value == null) return null;
+  const v = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-14 shrink-0 text-muted">{label}</span>
+      <div
+        className="relative flex-1"
+        style={{ height: 2, background: "var(--line-soft)" }}
+      >
+        <div
+          className="absolute inset-y-0 left-0"
+          style={{ width: `${v}%`, background: "var(--accent)" }}
+        />
+      </div>
+      <span className="w-8 text-right font-medium text-ink">{v}</span>
+    </div>
+  );
+}
+
+function PronunciationDetails({ s }: { s?: PronunciationScore }) {
+  if (!s) return <span className="text-muted-2">无细分数据</span>;
+  const has = s.fluency != null || s.integrity != null || s.stress != null || s.intonation != null;
+  if (!has) return <span className="text-muted-2">腾讯 SOE 未返回细分字段</span>;
+  return (
+    <div className="space-y-1.5">
+      <MiniBar label="流利度" value={s.fluency} />
+      <MiniBar label="完整度" value={s.integrity} />
+      <MiniBar label="重音" value={s.stress} />
+      <MiniBar label="语调" value={s.intonation} />
+    </div>
+  );
+}
+
+function FluencyDetails({ s }: { s?: FluencySubScore }) {
+  if (!s) return <span className="text-muted-2">无细分数据</span>;
+  const pauses = s.pauses || [];
+  if (s.pace == null && s.fillers == null && pauses.length === 0) {
+    return <span className="text-muted-2">暂无流利度细分</span>;
+  }
+  return (
+    <div className="space-y-1.5">
+      {s.pace != null && (
+        <div>
+          <span className="text-muted">语速：</span>
+          <span className="font-medium text-ink">{s.pace.toFixed(0)} 词/分钟</span>
+        </div>
+      )}
+      {s.fillers != null && (
+        <div>
+          <span className="text-muted">填充词次数：</span>
+          <span className="font-medium text-ink">{s.fillers}</span>
+        </div>
+      )}
+      {pauses.length > 0 && (
+        <div>
+          <p className="mb-1 text-muted">停顿 {pauses.length} 处</p>
+          <ul className="max-h-24 space-y-0.5 overflow-y-auto">
+            {pauses.slice(0, 10).map((p, i) => (
+              <li key={i} className="text-muted">
+                · {p.time != null ? `${p.time.toFixed(1)}s` : "?"}，持续{" "}
+                {p.duration != null ? `${p.duration.toFixed(2)}s` : "?"}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GrammarDetails({ s }: { s?: GrammarSubScore }) {
+  if (!s) return <span className="text-muted-2">无细分数据</span>;
+  const errors = s.errors || [];
+  if (errors.length === 0) return <span className="text-muted-2">未发现语法错误</span>;
+  return (
+    <ul className="max-h-40 space-y-1.5 overflow-y-auto">
+      {errors.map((e, i) => (
+        <li key={i} className="border-l-2 pl-2" style={{ borderColor: "var(--gold)" }}>
+          <div>
+            <Chip tone="warn" style={{ marginRight: 6 }}>
+              {e.type || "错误"}
+            </Chip>
+            <span className="text-ink">{e.text}</span>
+          </div>
+          {e.suggestion && (
+            <div className="mt-0.5 text-muted">建议：{e.suggestion}</div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ContentDetails({ s }: { s?: ContentSubScore }) {
+  if (!s) return <span className="text-muted-2">无细分数据</span>;
+  if (s.relevance == null && s.vocabulary == null && s.coherence == null) {
+    return <span className="text-muted-2">暂无内容细分</span>;
+  }
+  return (
+    <div className="space-y-1.5">
+      <MiniBar label="相关性" value={s.relevance} />
+      <MiniBar label="词汇" value={s.vocabulary} />
+      <MiniBar label="连贯性" value={s.coherence} />
     </div>
   );
 }

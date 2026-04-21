@@ -2,28 +2,104 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ────────────────────────────────────────────────────────────────
+   Editorial design tokens — 与 design/SpeakPro Admin/index.html 对齐
+   主题切换：改下面 :root 下的 6 个颜色变量即可（未来若加 ivory/dark）
+   ──────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #0F172A;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --border: #e2e8f0;
-    --ring: #3B82F6;
+    --bg: #F4EEE3;
+    --bg-soft: #EDE5D6;
+    --ivory: #FBF8F2;
+    --ink: #1C1B18;
+    --ink-2: #2A2723;
+    --muted: #706A5E;
+    --muted-2: #9A9285;
+    --line: rgba(28, 27, 24, 0.12);
+    --line-soft: rgba(28, 27, 24, 0.07);
+    --accent: #B54A25;
+    --accent-soft: rgba(181, 74, 37, 0.08);
+    --moss: #2F4A3A;
+    --moss-soft: rgba(47, 74, 58, 0.08);
+    --gold: #9A7A1F;
+
+    /* 旧 shadcn token 的兼容映射，供尚未迁移的组件使用 */
+    --background: var(--bg);
+    --foreground: var(--ink);
+    --muted-foreground: var(--muted);
+    --border: var(--line);
+    --ring: var(--accent);
+    --primary: var(--ink);
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    color: var(--ink);
+    background: var(--bg);
   }
 
   body {
-    color: var(--foreground);
-    background: var(--background);
+    color: var(--ink);
+    background: var(--bg);
+    font-family: var(--font-inter), "PingFang SC", -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    position: relative;
   }
 
-  * {
-    border-color: var(--border);
+  /* 整页微点阵背景 — 固定、不可交互、仅做纸张质感 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: radial-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+    background-size: 3px 3px;
+    opacity: 0.6;
   }
+  body > * { position: relative; z-index: 1; }
+
+  * { border-color: var(--line); }
+
+  /* 统一滚动条样式 */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(28, 27, 24, 0.12); border-radius: 8px; }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-balance { text-wrap: balance; }
+
+  /* Editorial typography helpers — 对齐 primitives.jsx 的 Eyebrow/Serif/Numeral/Mono */
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--font-inter), sans-serif;
+  }
+
+  .serif {
+    font-family: var(--font-fraunces), "Source Serif Pro", Georgia, serif;
+    font-feature-settings: "ss01";
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  .numeral {
+    font-family: var(--font-fraunces), "Source Serif Pro", Georgia, serif;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-feature-settings: "ss01";
+    letter-spacing: -0.02em;
+    line-height: 0.9;
+  }
+
+  .mono {
+    font-family: var(--font-mono), "SF Mono", ui-monospace, monospace;
+    letter-spacing: 0.05em;
   }
 }

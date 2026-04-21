@@ -2,66 +2,58 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import {
+  Eyebrow,
+  Mono,
+  HairlineBtn,
+  SectionRule,
+} from "@/components/editorial/primitives";
 
 interface QuestionForm {
-  exam_type: string;
+  examType: string;
   section: string;
   topic: string;
-  prompt_text: string;
+  promptText: string;
   difficulty: number;
   tags: string;
 }
 
-const INITIAL_FORM: QuestionForm = {
-  exam_type: "TOEFL",
+const INITIAL: QuestionForm = {
+  examType: "IELTS",
   section: "",
   topic: "",
-  prompt_text: "",
+  promptText: "",
   difficulty: 3,
   tags: "",
 };
 
 export default function NewQuestionPage() {
   const router = useRouter();
-  const [form, setForm] = useState<QuestionForm>(INITIAL_FORM);
+  const [form, setForm] = useState<QuestionForm>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === "difficulty" ? Number(value) : value,
-    }));
-  };
+  const patch = <K extends keyof QuestionForm>(k: K, v: QuestionForm[K]) =>
+    setForm((prev) => ({ ...prev, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-
     try {
-      const payload = {
-        examType: form.exam_type,
+      await api.post("/questions", {
+        examType: form.examType,
         section: form.section,
         topic: form.topic,
-        promptText: form.prompt_text,
+        promptText: form.promptText,
         difficulty: form.difficulty,
-        tags: form.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-      };
-      await api.post("/questions", payload);
-      router.push("/resources/questions");
-    } catch (err: unknown) {
+        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      });
+      router.push("/resources?tab=questions");
+    } catch (err) {
       setError(err instanceof Error ? err.message : "创建题目失败");
     } finally {
       setSubmitting(false);
@@ -69,118 +61,164 @@ export default function NewQuestionPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-primary">新建题目</h1>
-
-      <Card className="max-w-2xl">
-        <form onSubmit={handleSubmit}>
-          <CardHeader>
-            <CardTitle>题目信息</CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-lg border border-data-red/20 bg-data-red/5 p-3 text-sm text-data-red">
-                {error}
-              </div>
-            )}
-
-            {/* 考试类型 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">考试类型</label>
-              <select
-                name="exam_type"
-                value={form.exam_type}
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="TOEFL">TOEFL</option>
-                <option value="IELTS">IELTS</option>
-              </select>
-            </div>
-
-            {/* 题型 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">题型 (Section)</label>
-              <Input
-                name="section"
-                value={form.section}
-                onChange={handleChange}
-                placeholder="例如: Independent Speaking, Task 1"
-                required
-              />
-            </div>
-
-            {/* 话题 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">话题 (Topic)</label>
-              <Input
-                name="topic"
-                value={form.topic}
-                onChange={handleChange}
-                placeholder="例如: Describe your favorite place"
-              />
-            </div>
-
-            {/* 题目内容 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">题目内容</label>
-              <textarea
-                name="prompt_text"
-                value={form.prompt_text}
-                onChange={handleChange}
-                placeholder="请输入完整的题目描述..."
-                required
-                rows={5}
-                className="flex w-full rounded-lg border border-border bg-white px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-
-            {/* 难度 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">难度</label>
-              <select
-                name="difficulty"
-                value={form.difficulty}
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value={1}>1 - 入门</option>
-                <option value={2}>2 - 基础</option>
-                <option value={3}>3 - 中等</option>
-                <option value={4}>4 - 进阶</option>
-                <option value={5}>5 - 挑战</option>
-              </select>
-            </div>
-
-            {/* 标签 */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-primary">标签</label>
-              <Input
-                name="tags"
-                value={form.tags}
-                onChange={handleChange}
-                placeholder="用逗号分隔，例如: 日常, 校园, 社交"
-              />
-              <p className="text-xs text-muted-foreground">多个标签请用英文逗号分隔</p>
-            </div>
-          </CardContent>
-
-          <CardFooter className="gap-3">
-            <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              创建题目
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/resources/questions")}
+    <div className="mx-auto max-w-3xl">
+      <SectionRule
+        className="mb-8"
+        label="题目信息 · NEW"
+        right={
+          <Link href="/resources?tab=questions">
+            <HairlineBtn
+              leftIcon={<ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.3} />}
             >
-              取消
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+              返回题库
+            </HairlineBtn>
+          </Link>
+        }
+      />
+
+      {error && (
+        <div
+          className="mb-6 border-l-2 border-accent bg-ivory px-4 py-3 text-[13px]"
+          style={{ color: "var(--accent)" }}
+        >
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-2 gap-6">
+          <Field label="考试类型">
+            <select
+              value={form.examType}
+              onChange={(e) => patch("examType", e.target.value)}
+              className="w-full border border-line bg-ivory px-3 py-2 text-[12px] text-ink outline-none"
+            >
+              <option value="IELTS">IELTS</option>
+              <option value="TOEFL">TOEFL</option>
+            </select>
+          </Field>
+          <Field label="难度">
+            <select
+              value={form.difficulty}
+              onChange={(e) => patch("difficulty", Number(e.target.value))}
+              className="w-full border border-line bg-ivory px-3 py-2 text-[12px] text-ink outline-none"
+            >
+              {[1, 2, 3, 4, 5].map((d) => (
+                <option key={d} value={d}>
+                  {d} — {["入门", "基础", "中等", "进阶", "挑战"][d - 1]}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <Field label="题型 Section" hint="例如：Part 1 / Part 2 / Part 3 / 朗读 / 跟读 / 模考">
+          <SerifInput
+            value={form.section}
+            onChange={(v) => patch("section", v)}
+            placeholder="Part 2"
+            required
+          />
+        </Field>
+
+        <Field label="话题 Topic" hint="供题库筛选使用，可省略">
+          <SerifInput
+            value={form.topic}
+            onChange={(v) => patch("topic", v)}
+            placeholder="Describe a skill you would like to learn"
+          />
+        </Field>
+
+        <Field label="题目内容">
+          <textarea
+            value={form.promptText}
+            onChange={(e) => patch("promptText", e.target.value)}
+            rows={6}
+            required
+            placeholder="请输入完整的题目描述……"
+            className="w-full resize-y border border-line bg-ivory p-3 font-serif text-[14px] leading-[1.7] text-ink outline-none placeholder:text-muted-2"
+            style={{
+              borderRadius: 2,
+              minHeight: 140,
+              fontVariationSettings: '"opsz" 144, "SOFT" 50',
+            }}
+          />
+        </Field>
+
+        <Field label="标签" hint="多个标签用英文逗号分隔">
+          <SerifInput
+            value={form.tags}
+            onChange={(v) => patch("tags", v)}
+            placeholder="日常, 校园, 社交"
+          />
+        </Field>
+
+        <div className="flex items-center gap-3 border-t border-line pt-6">
+          <HairlineBtn
+            type="button"
+            onClick={() => router.push("/resources?tab=questions")}
+          >
+            取消
+          </HairlineBtn>
+          <div className="flex-1" />
+          <HairlineBtn
+            primary
+            type="submit"
+            disabled={submitting}
+            rightIcon={<ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+          >
+            {submitting ? "创建中…" : "创建题目"}
+          </HairlineBtn>
+        </div>
+      </form>
     </div>
+  );
+}
+
+// ── helpers ─────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <Eyebrow>{label}</Eyebrow>
+      <div className="mt-2">{children}</div>
+      {hint && (
+        <div className="mt-1.5">
+          <Mono size={10}>{hint}</Mono>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SerifInput({
+  value,
+  onChange,
+  placeholder,
+  required,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  required?: boolean;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      required={required}
+      className="w-full border-0 border-b border-ink bg-transparent pb-1.5 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
+      style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+    />
   );
 }

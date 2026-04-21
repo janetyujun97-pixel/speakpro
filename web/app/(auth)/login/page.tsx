@@ -1,14 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { ArrowRight } from "lucide-react";
 import { login } from "@/lib/auth";
+import {
+  Eyebrow,
+  Serif,
+  Mono,
+  HairlineBtn,
+} from "@/components/editorial/primitives";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center"><Mono size={11}>— 加载中 —</Mono></div>}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || "/";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,10 +34,9 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
       await login({ email, password });
-      router.push("/");
+      router.push(from);
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败，请重试");
     } finally {
@@ -30,50 +45,78 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="items-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-xl font-bold text-white">
-          SP
+    <div className="w-full max-w-md border border-line bg-ivory px-10 py-12">
+      {/* Masthead */}
+      <div className="text-center">
+        <Eyebrow>SPEAKPRO · TEACHER</Eyebrow>
+        <div className="mt-2.5 flex items-baseline justify-center gap-2">
+          <Serif size={32} weight={500}>Edition</Serif>
+          <Serif size={32} italic color="var(--accent)">
+            Login
+          </Serif>
         </div>
-        <CardTitle className="text-2xl">SpeakPro 教师后台</CardTitle>
-        <p className="text-sm text-muted-foreground">登录您的教师账号</p>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              邮箱
-            </label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="teacher@speakpro.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+        <div className="mt-1.5">
+          <Mono size={10}>登录您的教师账号</Mono>
+        </div>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="mt-9 space-y-5">
+        <div>
+          <Eyebrow>邮箱</Eyebrow>
+          <input
+            id="email"
+            type="email"
+            placeholder="teacher@speakpro.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            className="mt-2 w-full border-0 border-b border-ink bg-transparent pb-1.5 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
+            style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+          />
+        </div>
+
+        <div>
+          <Eyebrow>密码</Eyebrow>
+          <input
+            id="password"
+            type="password"
+            placeholder="请输入密码"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            className="mt-2 w-full border-0 border-b border-ink bg-transparent pb-1.5 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
+            style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+          />
+        </div>
+
+        {error && (
+          <div
+            className="border-l-2 border-accent bg-bg px-3 py-2 text-[12px]"
+            style={{ color: "var(--accent)" }}
+          >
+            {error}
           </div>
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              密码
-            </label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="请输入密码"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "登录中..." : "登录"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        )}
+
+        <HairlineBtn
+          primary
+          type="submit"
+          disabled={loading}
+          style={{ width: "100%", justifyContent: "center" }}
+          rightIcon={
+            <ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />
+          }
+        >
+          {loading ? "登录中…" : "登录"}
+        </HairlineBtn>
+      </form>
+
+      <div className="mt-8 text-center">
+        <Mono size={9}>EST. 2026 · TEACHING STUDIO</Mono>
+      </div>
+    </div>
   );
 }

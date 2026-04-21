@@ -1,9 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import FileUpload from "@/components/ui/file-upload";
+import {
+  Eyebrow,
+  Mono,
+  HairlineBtn,
+  SectionRule,
+} from "@/components/editorial/primitives";
 
 interface QuestionData {
   id: string;
@@ -34,31 +42,28 @@ export default function EditQuestionPage() {
   const [sampleAudioUrl, setSampleAudioUrl] = useState("");
 
   useEffect(() => {
-    loadQuestion();
+    (async () => {
+      try {
+        const data = await api.get<QuestionData>(`/questions/${questionId}`);
+        setExamType(data.examType || "IELTS");
+        setSection(data.section || "");
+        setTopic(data.topic || "");
+        setPromptText(data.promptText || "");
+        setDifficulty(data.difficulty || 3);
+        setTags((data.tags || []).join(", "));
+        setSampleAudioUrl(data.sampleAudioUrl || "");
+      } catch {
+        setError("加载题目失败");
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [questionId]);
-
-  async function loadQuestion() {
-    try {
-      const data = await api.get<QuestionData>(`/questions/${questionId}`);
-      setExamType(data.examType || "IELTS");
-      setSection(data.section || "");
-      setTopic(data.topic || "");
-      setPromptText(data.promptText || "");
-      setDifficulty(data.difficulty || 3);
-      setTags((data.tags || []).join(", "));
-      setSampleAudioUrl(data.sampleAudioUrl || "");
-      setLoading(false);
-    } catch (err) {
-      setError("加载题目失败");
-      setLoading(false);
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError("");
-
     try {
       await api.put(`/questions/${questionId}`, {
         examType,
@@ -69,165 +74,204 @@ export default function EditQuestionPage() {
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
         sampleAudioUrl: sampleAudioUrl || null,
       });
-      router.push("/resources/questions");
-    } catch (err) {
+      router.push("/resources?tab=questions");
+    } catch {
       setError("保存失败，请重试");
+    } finally {
       setSaving(false);
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">加载中...</p>
+      <div className="py-20 text-center">
+        <Mono size={11}>— 加载中 —</Mono>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">编辑题目</h1>
+    <div className="mx-auto max-w-3xl">
+      <SectionRule
+        className="mb-8"
+        label={
+          <span className="flex items-baseline gap-2">
+            <span>题目信息</span>
+            <Mono size={10}>· EDIT · {questionId.slice(0, 8).toUpperCase()}</Mono>
+          </span>
+        }
+        right={
+          <Link href="/resources?tab=questions">
+            <HairlineBtn
+              leftIcon={<ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+            >
+              返回题库
+            </HairlineBtn>
+          </Link>
+        }
+      />
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+        <div
+          className="mb-6 border-l-2 border-accent bg-ivory px-4 py-3 text-[13px]"
+          style={{ color: "var(--accent)" }}
+        >
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* 考试类型 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            考试类型 *
-          </label>
-          <select
-            value={examType}
-            onChange={(e) => setExamType(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="TOEFL">TOEFL</option>
-            <option value="IELTS">IELTS</option>
-          </select>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-2 gap-6">
+          <Field label="考试类型">
+            <select
+              value={examType}
+              onChange={(e) => setExamType(e.target.value)}
+              className="w-full border border-line bg-ivory px-3 py-2 text-[12px] text-ink outline-none"
+            >
+              <option value="IELTS">IELTS</option>
+              <option value="TOEFL">TOEFL</option>
+            </select>
+          </Field>
+          <Field label="难度">
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(Number(e.target.value))}
+              className="w-full border border-line bg-ivory px-3 py-2 text-[12px] text-ink outline-none"
+            >
+              {[1, 2, 3, 4, 5].map((d) => (
+                <option key={d} value={d}>
+                  {d} — {["入门", "基础", "中等", "进阶", "挑战"][d - 1]}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
 
-        {/* 题型 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            题型 (Section) *
-          </label>
-          <input
-            type="text"
-            value={section}
-            onChange={(e) => setSection(e.target.value)}
-            placeholder="如: Part1, ReadAloud, FollowRead"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+        <Field label="题型 Section">
+          <SerifInput value={section} onChange={setSection} placeholder="Part 2" required />
+        </Field>
 
-        {/* 话题 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            话题 (Topic)
-          </label>
-          <input
-            type="text"
+        <Field label="话题 Topic" hint="供题库筛选使用，可省略">
+          <SerifInput
             value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            onChange={setTopic}
+            placeholder="Describe a skill you would like to learn"
           />
-        </div>
+        </Field>
 
-        {/* 题目内容 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            题目内容 *
-          </label>
+        <Field label="题目内容">
           <textarea
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
-            rows={5}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            rows={6}
             required
+            className="w-full resize-y border border-line bg-ivory p-3 font-serif text-[14px] leading-[1.7] text-ink outline-none"
+            style={{
+              borderRadius: 2,
+              minHeight: 140,
+              fontVariationSettings: '"opsz" 144, "SOFT" 50',
+            }}
           />
-        </div>
+        </Field>
 
-        {/* 难度 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            难度
-          </label>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(Number(e.target.value))}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            {[1, 2, 3, 4, 5].map((d) => (
-              <option key={d} value={d}>
-                {d} - {["入门", "基础", "中等", "进阶", "挑战"][d - 1]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* 标签 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            标签（逗号分隔）
-          </label>
-          <input
-            type="text"
+        <Field label="标签" hint="多个标签用英文逗号分隔">
+          <SerifInput
             value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="如: 日常话题, 环境, 科技"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            onChange={setTags}
+            placeholder="日常, 校园, 社交"
           />
-        </div>
+        </Field>
 
-        {/* 音频样本上传 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            音频样本
-          </label>
-          {sampleAudioUrl && (
-            <div className="mb-2 p-2 bg-gray-50 rounded text-sm text-gray-600 flex items-center justify-between">
-              <span className="truncate">{sampleAudioUrl}</span>
+        <Field label="音频样本" hint="可选，最大 20 MB">
+          {sampleAudioUrl ? (
+            <div className="flex items-center justify-between border border-line bg-ivory px-3 py-2.5">
+              <Mono size={11} color="var(--ink)">
+                {sampleAudioUrl}
+              </Mono>
               <button
                 type="button"
                 onClick={() => setSampleAudioUrl("")}
-                className="text-red-500 text-xs ml-2 shrink-0"
+                className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] transition-colors hover:text-accent"
+                style={{ color: "var(--muted)" }}
               >
+                <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.3} />
                 移除
               </button>
             </div>
+          ) : (
+            <FileUpload
+              accept="audio/*,.mp3,.wav,.m4a"
+              maxSizeMB={20}
+              label="上传音频样本"
+              onUploadComplete={(url: string) => setSampleAudioUrl(url)}
+              onError={(err: string) => setError(err)}
+            />
           )}
-          <FileUpload
-            accept="audio/*,.mp3,.wav,.m4a"
-            maxSizeMB={20}
-            label="上传音频样本（可选）"
-            onUploadComplete={(url) => setSampleAudioUrl(url)}
-            onError={(err) => setError(err)}
-          />
-        </div>
+        </Field>
 
-        {/* 操作按钮 */}
-        <div className="flex gap-3 pt-4">
-          <button
+        <div className="flex items-center gap-3 border-t border-line pt-6">
+          <HairlineBtn type="button" onClick={() => router.back()}>
+            取消
+          </HairlineBtn>
+          <div className="flex-1" />
+          <HairlineBtn
+            primary
             type="submit"
             disabled={saving}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            rightIcon={<ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />}
           >
-            {saving ? "保存中..." : "保存修改"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-6 py-2 border rounded-lg hover:bg-gray-50"
-          >
-            取消
-          </button>
+            {saving ? "保存中…" : "保存修改"}
+          </HairlineBtn>
         </div>
       </form>
     </div>
+  );
+}
+
+// ── helpers ─────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <Eyebrow>{label}</Eyebrow>
+      <div className="mt-2">{children}</div>
+      {hint && (
+        <div className="mt-1.5">
+          <Mono size={10}>{hint}</Mono>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SerifInput({
+  value,
+  onChange,
+  placeholder,
+  required,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  required?: boolean;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      required={required}
+      className="w-full border-0 border-b border-ink bg-transparent pb-1.5 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
+      style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+    />
   );
 }
