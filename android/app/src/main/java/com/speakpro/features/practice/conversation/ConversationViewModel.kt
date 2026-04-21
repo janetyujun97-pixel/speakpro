@@ -1,5 +1,6 @@
 package com.speakpro.features.practice.conversation
 
+import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
@@ -9,6 +10,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.speakpro.core.audio.AudioRecorder
 import com.speakpro.core.network.AudioChunkData
 import com.speakpro.core.network.AudioCompleteData
 import com.speakpro.core.network.Endpoints
@@ -17,12 +19,16 @@ import com.speakpro.core.network.WSClientMessage
 import com.speakpro.core.network.WSServerMessage
 import com.speakpro.core.network.WsMessageParser
 import com.speakpro.core.storage.TokenManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -33,6 +39,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 /**
  * 对话消息模型
@@ -60,11 +67,16 @@ data class ChatMessage(
  * 5. 录音结束后发送 audio_complete
  * 6. 接收考官回复、评分更新
  */
-class ConversationViewModel : ViewModel() {
+@HiltViewModel
+class ConversationViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+) : ViewModel() {
 
     companion object {
         private const val TAG = "ConversationVM"
     }
+
+    private val audioRecorder = AudioRecorder(context)
 
     // ── UI 状态 ──
 
@@ -98,8 +110,9 @@ class ConversationViewModel : ViewModel() {
     private val _playingMessageId = MutableStateFlow<String?>(null)
     val playingMessageId: StateFlow<String?> = _playingMessageId.asStateFlow()
 
-    private val _waveformData = MutableStateFlow<List<Float>>(emptyList())
-    val waveformData: StateFlow<List<Float>> = _waveformData.asStateFlow()
+    /** 录音实时波形 —— 直接接 AudioRecorder */
+    val waveformData: StateFlow<List<Float>> = audioRecorder.waveformData
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // ── 配置 ──
 
@@ -327,24 +340,65 @@ class ConversationViewModel : ViewModel() {
 
     fun startRecording() {
         if (_isRecording.value) return
+        if (!audioRecorder.hasRecordPermission()) {
+            _errorMessage.value = "未授予麦克风权限，请在系统设置中开启"
+            return
+        }
         _errorMessage.value = null
         audioSequence = 0
         recordingStartTime = System.currentTimeMillis()
-        _isRecording.value = true
-        // 模拟波形（实际项目中由 AudioRecorder 提供）
-        generateFakeWaveform()
+
+        // 每当 AudioRecorder 产出一帧 PCM 就 base64 化推到 WebSocket audio_chunk
+        audioRecorder.onAudioBuffer = { pcmChunk ->
+            webSocket?.let { ws ->
+                val b64 = Base64.encodeToString(pcmChunk, Base64.NO_WRAP)
+                val msg = WSClientMessage(
+                    type = WSClientMessage.TYPE_AUDIO_CHUNK,
+                    data = AudioChunkData(
+                        sequence = audioSequence++,
+                        audioB64 = b64,
+                        isFinal = false,
+                    ),
+                )
+                ws.send(gson.toJson(msg))
+            }
+        }
+
+        try {
+            audioRecorder.startRecording()
+            _isRecording.value = true
+        } catch (e: SecurityException) {
+            audioRecorder.onAudioBuffer = null
+            _errorMessage.value = "未授予麦克风权限，请在系统设置中开启"
+        } catch (e: Exception) {
+            Log.e(TAG, "启动录音失败", e)
+            audioRecorder.onAudioBuffer = null
+            _errorMessage.value = "启动录音失败: ${e.localizedMessage ?: "未知错误"}"
+        }
     }
 
     fun stopAndSendAudio() {
         if (!_isRecording.value) return
         _isRecording.value = false
-        _waveformData.value = emptyList()
+
+        // 停止录音 —— 后面不会再有 audio_chunk 回调
+        val wavFile = audioRecorder.stopRecording()
+        audioRecorder.onAudioBuffer = null
 
         val duration = (System.currentTimeMillis() - recordingStartTime) / 1000.0
+
+        // 读回 WAV 附到消息上，便于后续点击回放
+        val audioBytes = try {
+            wavFile?.readBytes()
+        } catch (e: Exception) {
+            Log.w(TAG, "读取录音文件失败", e)
+            null
+        }
 
         _messages.value = _messages.value + ChatMessage(
             text = "[语音消息]",
             isExaminer = false,
+            audioData = audioBytes,
             duration = duration,
         )
 
@@ -357,17 +411,6 @@ class ConversationViewModel : ViewModel() {
             webSocket?.send(gson.toJson(msg))
         }
         _processingStatus.value = "正在处理..."
-    }
-
-    /** 模拟波形数据（实际项目应对接 AudioRecorder） */
-    private fun generateFakeWaveform() {
-        viewModelScope.launch {
-            while (_isRecording.value) {
-                val newData = List(50) { (Math.random() * 0.8f + 0.1f).toFloat() }
-                _waveformData.value = newData
-                delay(100)
-            }
-        }
     }
 
     // ── 语音播放 ──
@@ -486,7 +529,10 @@ class ConversationViewModel : ViewModel() {
         timerJob = viewModelScope.launch {
             while (_remainingTime.value > 0) {
                 delay(1000)
-                _remainingTime.value = _remainingTime.value - 1
+                // 评测 / TTS 等服务端处理期间暂停倒计时（_processingStatus 非空即处理中）
+                if (_processingStatus.value.isEmpty()) {
+                    _remainingTime.value = _remainingTime.value - 1
+                }
             }
             endConversation()
         }
@@ -504,5 +550,6 @@ class ConversationViewModel : ViewModel() {
         timerJob?.cancel()
         webSocket?.close(1000, "ViewModel 销毁")
         mediaPlayer?.release()
+        audioRecorder.release()
     }
 }

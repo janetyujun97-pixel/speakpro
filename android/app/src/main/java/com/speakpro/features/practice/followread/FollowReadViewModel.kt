@@ -1,27 +1,35 @@
 package com.speakpro.features.practice.followread
 
+import android.content.Context
 import android.media.MediaPlayer
 import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.speakpro.core.audio.AudioRecorder
 import com.speakpro.core.network.ApiClient
 import com.speakpro.core.network.ApiClient.goRetrofit
 import com.speakpro.core.network.ApiClient.nestRetrofit
 import com.speakpro.core.network.Endpoints
 import com.speakpro.data.models.ApiResponse
 import com.google.gson.annotations.SerializedName
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
 import java.io.File
+import javax.inject.Inject
 
 /**
  * 跟读练习阶段
@@ -49,11 +57,17 @@ data class SentenceScore(
  *
  * 流程：加载句子 → 播放参考音 (TTS) → 录音 → 评测 → 显示结果 → 下一句
  */
-class FollowReadViewModel : ViewModel() {
+@HiltViewModel
+class FollowReadViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+) : ViewModel() {
 
     companion object {
         private const val TAG = "FollowReadVM"
     }
+
+    private val audioRecorder = AudioRecorder(context)
+    private var lastRecording: File? = null
 
     // ── 阶段 ──
 
@@ -115,8 +129,8 @@ class FollowReadViewModel : ViewModel() {
     private val _referenceWaveform = MutableStateFlow<List<Float>>(emptyList())
     val referenceWaveform: StateFlow<List<Float>> = _referenceWaveform.asStateFlow()
 
-    private val _studentWaveform = MutableStateFlow<List<Float>>(emptyList())
-    val studentWaveform: StateFlow<List<Float>> = _studentWaveform.asStateFlow()
+    val studentWaveform: StateFlow<List<Float>> = audioRecorder.waveformData
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // ── 内部数据 ──
 
@@ -177,8 +191,9 @@ class FollowReadViewModel : ViewModel() {
         _intonationScore.value = 0.0
         _fluencyScore.value = 0.0
         _phonemeErrors.value = emptyList()
-        _studentWaveform.value = emptyList()
         _referenceWaveform.value = emptyList()
+        lastRecording?.delete()
+        lastRecording = null
     }
 
     // ── TTS 参考音播放 + 自动过渡 ──
@@ -244,11 +259,26 @@ class FollowReadViewModel : ViewModel() {
             _isPlayingStudent.value = false
             return
         }
+        val wav = lastRecording
+        if (wav == null || !wav.exists()) {
+            _errorMessage.value = "暂无可回放的录音"
+            return
+        }
         _isPlayingStudent.value = true
-        // 模拟播放（实际项目对接录音文件路径）
-        viewModelScope.launch {
-            delay(2000)
-            _isPlayingStudent.value = false
+        viewModelScope.launch(Dispatchers.Main) {
+            try {
+                mediaPlayer?.release()
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(wav.absolutePath)
+                    prepare()
+                    setOnCompletionListener { _isPlayingStudent.value = false }
+                    start()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "录音回放失败", e)
+                _isPlayingStudent.value = false
+                _errorMessage.value = "录音回放失败"
+            }
         }
     }
 
@@ -257,29 +287,43 @@ class FollowReadViewModel : ViewModel() {
     fun startRecording() {
         _hasScore.value = false
         _errorMessage.value = null
-        _studentWaveform.value = emptyList()
-        _isRecording.value = true
-        // 模拟录音波形
-        generateFakeWaveform()
+        try {
+            audioRecorder.startRecording()
+            _isRecording.value = true
+        } catch (e: SecurityException) {
+            _errorMessage.value = "未授予麦克风权限，请在系统设置中开启"
+        } catch (e: Exception) {
+            Log.e(TAG, "启动录音失败", e)
+            _errorMessage.value = "启动录音失败: ${e.localizedMessage ?: "未知错误"}"
+        }
     }
 
     fun stopRecording() {
+        if (!_isRecording.value) return
         _isRecording.value = false
-        _studentWaveform.value = List(60) { (Math.random() * 0.7f + 0.1f).toFloat() }
+        val wav = audioRecorder.stopRecording()
+        lastRecording = wav
+        if (wav == null) {
+            _errorMessage.value = "未录到有效音频"
+            _phase.value = FollowReadPhase.RESULT
+            return
+        }
         _phase.value = FollowReadPhase.EVALUATING
-        evaluateAudio()
+        evaluateAudio(wav)
     }
 
     // ── 评测 ──
 
-    private fun evaluateAudio() {
+    private fun evaluateAudio(wav: File) {
         viewModelScope.launch {
             try {
+                val audioB64 = withContext(Dispatchers.IO) {
+                    Base64.encodeToString(wav.readBytes(), Base64.NO_WRAP)
+                }
                 val api = goRetrofit.create(FollowReadApi::class.java)
-                // 模拟音频数据（实际项目传入真实录音 base64）
                 val resp = api.evaluate(
                     EvalRequestBody(
-                        audioB64 = "",  // 实际项目填充真实数据
+                        audioB64 = audioB64,
                         referenceText = _currentSentence.value,
                     ),
                 )
@@ -342,18 +386,11 @@ class FollowReadViewModel : ViewModel() {
         mediaPlayer = null
     }
 
-    private fun generateFakeWaveform() {
-        viewModelScope.launch {
-            while (_isRecording.value) {
-                _studentWaveform.value = List(60) { (Math.random() * 0.8f + 0.1f).toFloat() }
-                delay(100)
-            }
-        }
-    }
-
     override fun onCleared() {
         super.onCleared()
         mediaPlayer?.release()
+        audioRecorder.release()
+        lastRecording?.delete()
     }
 
     // ── 默认句子 ──
@@ -388,7 +425,9 @@ private data class EvalRequestBody(
 )
 
 private data class EvalResponse(
-    @SerializedName("pronunciation_score") val pronunciationScore: PronScoreResp? = null,
+    // 服务端返回 camelCase（见 assessment.go:145），早期 snake_case 的 @SerializedName 导致解析为 null → 全 0 分
+    @SerializedName(value = "pronunciationScore", alternate = ["pronunciation_score"])
+    val pronunciationScore: PronScoreResp? = null,
 )
 
 private data class PronScoreResp(

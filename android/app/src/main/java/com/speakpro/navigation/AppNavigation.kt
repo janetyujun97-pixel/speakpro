@@ -1,6 +1,7 @@
 package com.speakpro.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
@@ -174,7 +176,12 @@ fun AppNavigation() {
         } else route
     }
 
-    Column {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(com.speakpro.designsystem.theme.SpBackground)
+            .statusBarsPadding(),
+    ) {
         // 全局 offline 横幅：非 connected 时滑入顶部
         OfflineBanner(monitor = networkMonitor)
 
@@ -192,6 +199,10 @@ fun AppNavigation() {
 
             AppRoute.OnboardingGraph -> OnboardingNavGraph(
                 onCompleted = { route = AppRoute.Main },
+                onGoLogin = {
+                    loginViewModel.logout()
+                    route = AppRoute.Auth
+                },
             )
 
             AppRoute.Main -> MainScreen(onLogout = {
@@ -208,7 +219,12 @@ private enum class AppRoute {
 
 /**
  * 登录后先拉一次 /onboarding/status 决定去主界面还是 onboarding 流程。
- * 网络失败时默认进 onboarding（用户可正常完成流程）。
+ *
+ * 分流策略：
+ *   - profile 不存在（老用户 / 没走过 onboarding） → Main，不强制引导
+ *   - profile 存在但 completed=false（中途退出） → OnboardingGraph 继续
+ *   - profile.completed=true → Main
+ *   - 网络失败 → Main（避免老用户被卡在 onboarding）
  */
 @Composable
 private fun OnboardingCheck(
@@ -224,10 +240,14 @@ private fun OnboardingCheck(
     LaunchedEffect(Unit) {
         try {
             val resp = apiService.getOnboardingStatus()
-            if (resp.code == 0 && resp.data?.completed == true) onGoMain()
-            else onStartOnboarding()
+            val data = resp.data
+            if (resp.code == 0 && data?.profile != null && !data.completed) {
+                onStartOnboarding()
+            } else {
+                onGoMain()
+            }
         } catch (_: Exception) {
-            onStartOnboarding()
+            onGoMain()
         }
     }
 

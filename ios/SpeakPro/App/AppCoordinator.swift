@@ -67,8 +67,9 @@ final class AppCoordinator: ObservableObject {
                let user = try? JSONDecoder().decode(UserInfo.self, from: data) {
                 currentUser = user
             }
-            // 登录态存在时，先进 onboarding 查询；hydrate 后决定去哪
-            route = .onboarding
+            // 已有 token：默认进 main，异步查 onboarding_status 决定是否降级到 onboarding
+            route = .main
+            Task { await refreshOnboardingStatusAfterLogin() }
         }
     }
 
@@ -77,17 +78,31 @@ final class AppCoordinator: ObservableObject {
     /// Splash 动画完成后调用
     func splashFinished() {
         if route == .splash {
-            route = (APIClient.shared.accessToken?.isEmpty == false) ? .onboarding : .auth
+            if APIClient.shared.accessToken?.isEmpty == false {
+                // 已登录：默认 main，异步校准 onboarding 状态
+                route = .main
+                selectedTab = .home
+                Task { await refreshOnboardingStatusAfterLogin() }
+            } else {
+                route = .auth
+            }
         }
     }
 
     /// 登录成功（邮箱 / 手机 OTP / Apple）后调用
+    ///
+    /// 分流策略（与 Android OnboardingCheck 对齐）：
+    ///   - profile 不存在（老用户 / 没走过 onboarding）→ 直接进 main
+    ///   - profile 存在但 completed=false（中途退出）→ onboarding 继续
+    ///   - profile.completed=true → main
+    ///   - 网络失败 → main（避免老用户被卡在 onboarding）
+    ///
+    /// 默认先进 main，随后异步校准：仅在"有 profile 但未完成"时降级到 onboarding。
     func completeLogin(user: UserInfo) {
         currentUser = user
         persistUser(user)
-        route = .onboarding
-        // 新用户进入 .onboarding 后，OnboardingCoordinator 里 hydrate 会拉 /onboarding/status，
-        // 若 completed_at != nil，会调 markOnboardingCompleted 切到主界面。
+        route = .main
+        selectedTab = .home
         Task { await refreshOnboardingStatusAfterLogin() }
     }
 
@@ -119,17 +134,20 @@ final class AppCoordinator: ObservableObject {
         }
     }
 
-    /// 登录后立刻问一下 onboarding 状态；若已完成则直接进主界面
+    /// 登录后异步查 onboarding 状态；只有"有 profile 但未完成"时才降级到 onboarding
     private func refreshOnboardingStatusAfterLogin() async {
         do {
             let status = try await APIClient.shared.getOnboardingStatus()
             await MainActor.run {
-                if status.completed {
-                    self.markOnboardingCompleted()
+                if status.profile != nil && !status.completed {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.route = .onboarding
+                    }
                 }
+                // 其他情况（profile=nil 或 completed=true）保持默认 main
             }
         } catch {
-            // 网络失败不阻塞 —— 留在 .onboarding，VM 内部会重新拉
+            // 网络失败不改路由 —— 留在 main（已是默认）
         }
     }
 }

@@ -22,6 +22,7 @@ class App : Application() {
         TokenManager.init(this)
         AudioFileManager.init(this)
         AudioFileManager.initPersistentCache(this)
+        com.speakpro.features.home.HomeStylePreference.init(this)
         setupOfflineUploadQueue()
     }
 

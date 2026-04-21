@@ -45,52 +45,79 @@ func (o *Orchestrator) ReportMisses(userID, sessionID string, items []MissItem) 
 	go o.notebook.RecordMiss(userID, sessionID, items)
 }
 
-// EvaluateAudio 执行完整的音频评测流水线
+// EvaluateAudio 执行完整的音频评测流水线（ASR + 并行 ISE / 语法 / 反馈）
 func (o *Orchestrator) EvaluateAudio(audioData []byte, referenceText string) (*model.AssessmentResult, error) {
-	// 步骤 1: ASR 语音转写
 	transcript, err := o.asr.Recognize(audioData)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("[Orchestrator] ASR 转写完成: %q", transcript)
+	return o.EvaluateWithTranscript(audioData, referenceText, transcript)
+}
 
-	// 步骤 2: 发音评测（ISE 不可用时降级为估算分数）
-	pronScore, err := o.ise.Assess(audioData, referenceText)
-	if err != nil {
-		log.Printf("[Orchestrator] ISE 评测失败，使用降级评分: %v", err)
-		pronScore = &model.PronunciationScore{
-			Overall:    0,
-			Fluency:    0,
-			Integrity:  0,
-			Stress:     0,
-			Intonation: 0,
-			Phonemes:   []model.PhonemeScore{},
+// EvaluateWithTranscript 外部已做过 ASR 的评测（供对话模式下与考官回复并行调用，避免重复 ASR）
+//
+// 并行执行：ISE 发音评测、语法纠错、综合反馈 —— 合计耗时 ≈ max(各步耗时)，而非串行之和。
+func (o *Orchestrator) EvaluateWithTranscript(audioData []byte, referenceText, transcript string) (*model.AssessmentResult, error) {
+	var (
+		wg        sync.WaitGroup
+		pronScore *model.PronunciationScore
+		grammar   *model.GrammarScore
+		feedback  string
+	)
+
+	wg.Add(3)
+
+	// A: ISE 发音评测
+	go func() {
+		defer wg.Done()
+		ps, err := o.ise.Assess(audioData, referenceText)
+		if err != nil {
+			log.Printf("[Orchestrator] ISE 评测失败，使用降级评分: %v", err)
+			ps = &model.PronunciationScore{Phonemes: []model.PhonemeScore{}}
 		}
-	}
+		pronScore = ps
+	}()
 
-	// 步骤 3: AI 语法纠错 + 评分
-	grammarResult, err := o.llm.CorrectGrammar(transcript)
-	if err != nil {
-		log.Printf("[Orchestrator] 语法纠错失败: %v", err)
-		grammarResult = &model.GrammarScore{Score: 0, Errors: []model.GramError{}, Corrections: []string{}}
-	}
+	// B: 语法纠错
+	go func() {
+		defer wg.Done()
+		if transcript == "" {
+			grammar = &model.GrammarScore{Score: 0, Errors: []model.GramError{}, Corrections: []string{}}
+			return
+		}
+		gs, err := o.llm.CorrectGrammar(transcript)
+		if err != nil {
+			log.Printf("[Orchestrator] 语法纠错失败: %v", err)
+			gs = &model.GrammarScore{Score: 0, Errors: []model.GramError{}, Corrections: []string{}}
+		}
+		grammar = gs
+	}()
 
-	// 步骤 4: AI 内容评分 + 综合反馈
-	feedback, err := o.llm.GenerateFeedback(transcript, referenceText, pronScore)
-	if err != nil {
-		log.Printf("[Orchestrator] 反馈生成失败: %v", err)
-		feedback = "AI 反馈暂不可用"
-	}
+	// C: 综合反馈（不依赖 pronScore —— 用 nil 代替以便并行；语气反馈足够）
+	go func() {
+		defer wg.Done()
+		if transcript == "" {
+			feedback = ""
+			return
+		}
+		fb, err := o.llm.GenerateFeedback(transcript, referenceText, nil)
+		if err != nil {
+			log.Printf("[Orchestrator] 反馈生成失败: %v", err)
+			fb = "AI 反馈暂不可用"
+		}
+		feedback = fb
+	}()
 
-	// 组装综合结果
+	wg.Wait()
+
 	result := &model.AssessmentResult{
 		Pronunciation: *pronScore,
-		Grammar:       *grammarResult,
-		Overall:       calculateOverall(pronScore, grammarResult),
+		Grammar:       *grammar,
+		Overall:       calculateOverall(pronScore, grammar),
 		AIFeedback:    feedback,
 		Transcript:    transcript,
 	}
-
 	return result, nil
 }
 

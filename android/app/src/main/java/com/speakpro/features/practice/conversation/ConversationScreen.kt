@@ -50,7 +50,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.speakpro.designsystem.components.RecordButton
 import com.speakpro.designsystem.components.WaveformView
 import com.speakpro.designsystem.theme.SpAccent
@@ -78,8 +84,19 @@ import com.speakpro.designsystem.theme.SpWhite
 @Composable
 fun ConversationScreen(
     onBack: () -> Unit,
-    viewModel: ConversationViewModel = viewModel(),
+    viewModel: ConversationViewModel = hiltViewModel(),
 ) {
+    val ctx = LocalContext.current
+    val micLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.startRecording() }
+    val tryStartRecording: () -> Unit = {
+        val granted = ContextCompat.checkSelfPermission(
+            ctx, Manifest.permission.RECORD_AUDIO,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) viewModel.startRecording()
+        else micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
     val messages by viewModel.messages.collectAsState()
     val isRecording by viewModel.isRecording.collectAsState()
     val isConnecting by viewModel.isConnecting.collectAsState()
@@ -259,11 +276,8 @@ fun ConversationScreen(
             RecordButton(
                 isRecording = isRecording,
                 onClick = {
-                    if (isRecording) {
-                        viewModel.stopAndSendAudio()
-                    } else {
-                        viewModel.startRecording()
-                    }
+                    if (isRecording) viewModel.stopAndSendAudio()
+                    else tryStartRecording()
                 },
                 modifier = Modifier.padding(bottom = 16.dp),
             )

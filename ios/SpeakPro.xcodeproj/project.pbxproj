@@ -46,6 +46,7 @@
 		552EC8866BC0B97F561DC0FE /* PracticeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B3FCD83E184F084DA9F5B4 /* PracticeListView.swift */; };
 		575BEA3F1043FDB34FB315D8 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31D29EE1ADF6466863C666A /* RegisterView.swift */; };
 		577BF56BE2C3CD966796262C /* PracticeReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C27F86499EB11618940D71 /* PracticeReportView.swift */; };
+		59039F1DD1E96E4D96728E8B /* HomeStylePreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = C343B7C567B90BA36EA33644 /* HomeStylePreference.swift */; };
 		5904F89C86F9F829A7611D02 /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 390AD41E896EE6752584E13F /* ProgressView.swift */; };
 		67C1D81E824FC5A190E65ECE /* RecordButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B470E49E4ED79137B5E5411E /* RecordButton.swift */; };
 		67F533E315E46DBC6D041384 /* FollowReadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B06286BF4F08BCE7885D3C09 /* FollowReadView.swift */; };
@@ -172,6 +173,7 @@
 		BDE07306534B4DDD843AFF45 /* OnbDateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnbDateView.swift; sourceTree = "<group>"; };
 		C290C8F6903A8380492843E4 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
 		C31D29EE1ADF6466863C666A /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
+		C343B7C567B90BA36EA33644 /* HomeStylePreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStylePreference.swift; sourceTree = "<group>"; };
 		C5C27F86499EB11618940D71 /* PracticeReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeReportView.swift; sourceTree = "<group>"; };
 		C728F056D183FA0D308768FF /* MockExamResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockExamResultView.swift; sourceTree = "<group>"; };
 		CD0AAB956698C7CD9DB1017B /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
@@ -420,6 +422,7 @@
 		A280D8BBFC03D266A82FC151 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				C343B7C567B90BA36EA33644 /* HomeStylePreference.swift */,
 				E71BABC7C34CE6393AE391E6 /* HomeView.swift */,
 				4430DE1F900A3C1195EA103B /* HomeViewModel.swift */,
 			);
@@ -625,6 +628,7 @@
 				ABD5E902098973520E802904 /* ForgotView.swift in Sources */,
 				038A09EDBAB189712B915FCA /* HistoryTimelineView.swift in Sources */,
 				086493E6D68EA0FA3BDCB20D /* HistoryTimelineViewModel.swift in Sources */,
+				59039F1DD1E96E4D96728E8B /* HomeStylePreference.swift in Sources */,
 				CED2790A4869E92ED7209293 /* HomeView.swift in Sources */,
 				A4F833CCBF6EF305F2222AC7 /* HomeViewModel.swift in Sources */,
 				D15C74EED90D8B49F59F0F27 /* HomeworkDetailView.swift in Sources */,

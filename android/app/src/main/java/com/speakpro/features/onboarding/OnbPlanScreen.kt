@@ -70,30 +70,27 @@ fun OnbPlanScreen(vm: OnboardingViewModel, onDone: () -> Unit) {
             Eyebrow("YOUR PLAN · 07")
             Spacer(Modifier.size(12.dp))
 
-            Text("From", color = SpPrimary, fontFamily = FraunceFamily, fontSize = 30.sp)
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    "baseline",
-                    color = SpMuted,
-                    fontFamily = FraunceFamily,
-                    fontStyle = FontStyle.Italic,
-                    fontSize = 30.sp,
-                )
-                Text(" to ", color = SpPrimary, fontFamily = FraunceFamily, fontSize = 30.sp)
-                Text(
-                    targetLabel(target, examType),
-                    color = SpAccent,
-                    fontFamily = FraunceFamily,
-                    fontStyle = FontStyle.Italic,
-                    fontSize = 30.sp,
-                )
-                Text(
-                    ", ${weeksText(plan)}.",
-                    color = SpPrimary,
-                    fontFamily = FraunceFamily,
-                    fontSize = 30.sp,
-                )
+            // 用 AnnotatedString 合成一段可正常换行的标题，替代 Row 里多 Text 并排的写法
+            val headline = androidx.compose.ui.text.buildAnnotatedString {
+                append("From ")
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = SpMuted, fontStyle = FontStyle.Italic))
+                append("baseline")
+                pop()
+                append(" to ")
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = SpAccent, fontStyle = FontStyle.Italic))
+                append(targetLabel(target, examType))
+                pop()
+                append(", ")
+                append(weeksText(plan))
+                append(".")
             }
+            Text(
+                text = headline,
+                color = SpPrimary,
+                fontFamily = FraunceFamily,
+                fontSize = 30.sp,
+                lineHeight = 36.sp,
+            )
             Spacer(Modifier.size(4.dp))
             Text(
                 subtitleText(target, examType, examDate),

@@ -19,6 +19,7 @@ import androidx.navigation.navArgument
 object AuthRoutes {
     const val GRAPH = "auth_graph"
     const val LOGIN = "auth/login"
+    const val EMAIL = "auth/email"
     const val OTP = "auth/otp/{flow}"
     const val REGISTER = "auth/register"
     const val FORGOT = "auth/forgot"
@@ -68,11 +69,22 @@ fun AuthNavGraph(onAuthenticated: () -> Unit) {
                 onWechatSignIn = {
                     Toast.makeText(ctx, "微信登录敬请期待", Toast.LENGTH_SHORT).show()
                 },
-                onEmailLogin = {
-                    // 简化：用户用邮箱/密码时，直接调用 LoginViewModel 的既有路径
-                    // 实际使用场景里可弹窗收集邮箱/密码；这里先给一个无障碍提示
-                    Toast.makeText(ctx, "请在旧的邮箱登录流程中完成登录", Toast.LENGTH_SHORT).show()
-                },
+                onEmailLogin = { navController.navigate(AuthRoutes.EMAIL) },
+            )
+        }
+
+        composable(AuthRoutes.EMAIL) {
+            // 共享 LOGIN entry 的 LoginViewModel —— 登录成功后上游 isLoggedIn 状态一致
+            val loginVM: LoginViewModel = hiltViewModel(
+                navController.getBackStackEntry(AuthRoutes.LOGIN),
+            )
+            val isLoggedIn by loginVM.isLoggedIn.collectAsState()
+            LaunchedEffect(isLoggedIn) { if (isLoggedIn) onAuthenticated() }
+
+            EmailLoginScreen(
+                vm = loginVM,
+                onBack = { navController.popBackStack() },
+                onGoForgot = { navController.navigate(AuthRoutes.FORGOT) },
             )
         }
 

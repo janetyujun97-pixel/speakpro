@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -217,7 +218,7 @@ func (h *ConversationHandler) runEvaluationPipeline(client *ws.Client, sessionID
 		return
 	}
 
-	// 步骤 1: ASR 语音转写
+	// 步骤 1: ASR 语音转写（两条下游链都依赖 transcript，串行必须）
 	transcript, err := h.asr.Recognize(audioData)
 	if err != nil {
 		log.Printf("[Conversation] ASR 失败: %v", err)
@@ -226,89 +227,103 @@ func (h *ConversationHandler) runEvaluationPipeline(client *ws.Client, sessionID
 		return
 	}
 
-	// 发送转写结果
+	// 立即推转写文本给客户端（让用户尽快看到自己说了什么）
 	_ = client.SendJSON(model.WSServerMessage{
 		Type: model.MsgTypeTranscript,
 		Data: model.TranscriptData{Text: transcript, IsFinal: true},
 	})
-
-	// 记录学生发言到对话历史
 	h.sessionManager.AppendMessage(sessionID, "student", transcript)
 
-	// 步骤 2: 发送评测进度
 	_ = client.SendJSON(model.WSServerMessage{
 		Type: model.MsgTypeProcessing,
 		Data: model.ProcessingData{Step: "evaluating", Message: "正在评测发音..."},
 	})
 
-	// 使用 orchestrator 执行完整评测
 	ref := referenceText
 	if ref == "" {
-		ref = transcript // 如果没有参考文本，用转写结果做自评
+		ref = transcript
 	}
-	result, err := h.orchestrator.EvaluateAudio(audioData, ref)
-	if err != nil {
-		log.Printf("[Conversation] 评测流水线失败: %v", err)
+
+	// 步骤 2: 并行跑两条下游链 —— 评测 ↔ 考官回复生成 —— 把长尾压到 max() 而非串行之和。
+	// 但消息发送顺序保持串行：必须先推 ScoreUpdate（上一句的分数），再推 Examiner（考官下一句），
+	// 否则客户端会先听到考官说话、评分之后才到，用户体验混乱。
+	var wg sync.WaitGroup
+	var evalResult *model.AssessmentResult
+	var evalErr error
+	evalDone := make(chan struct{}) // 关闭即表示 ScoreUpdate 已发送（或评测已失败）
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer close(evalDone)
+		evalResult, evalErr = h.orchestrator.EvaluateWithTranscript(audioData, ref, transcript)
+		if evalErr != nil {
+			log.Printf("[Conversation] 评测流水线失败: %v", evalErr)
+			return
+		}
+		// 评测完成立即发 score_update
+		_ = client.SendJSON(model.WSServerMessage{
+			Type: model.MsgTypeScoreUpdate,
+			Data: model.ScoreUpdateData{
+				Pronunciation: &evalResult.Pronunciation,
+				Grammar:       &evalResult.Grammar,
+				Content:       &evalResult.Content,
+				Overall:       evalResult.Overall,
+				AIFeedback:    evalResult.AIFeedback,
+			},
+		})
+	}()
+
+	if state.Mode == "conversation" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			// 生成考官追问 + TTS（可以和评测完全并行，仅在"发送"这一步等评分）
+			history := h.sessionManager.GetHistory(sessionID)
+			examinerReply, err := h.orchestrator.GenerateExaminerResponse(history, state.ExamType, state.Section)
+			if err != nil {
+				log.Printf("[Conversation] 考官回复生成失败: %v", err)
+				examinerReply = "I see. Can you elaborate on that point?"
+			}
+			h.sessionManager.AppendMessage(sessionID, "examiner", examinerReply)
+
+			var ttsB64 string
+			ttsBytes, ttsErr := h.synthesizeTTS(examinerReply)
+			if ttsErr != nil {
+				log.Printf("[Conversation] TTS 合成失败（降级为纯文本）: %v", ttsErr)
+			} else if len(ttsBytes) > 0 {
+				ttsB64 = base64.StdEncoding.EncodeToString(ttsBytes)
+				log.Printf("[Conversation] TTS 合成成功: %d bytes", len(ttsBytes))
+			}
+
+			// 阻塞直到 ScoreUpdate 已发送，保证客户端先看到评分再听考官
+			<-evalDone
+
+			_ = client.SendJSON(model.WSServerMessage{
+				Type: model.MsgTypeExaminer,
+				Data: model.ExaminerData{
+					Text:        examinerReply,
+					TTSAudioB64: ttsB64,
+				},
+			})
+		}()
+	}
+
+	wg.Wait()
+
+	if evalErr != nil {
 		h.sendError(client, "EVALUATION_FAILED", "评测失败")
 		h.sessionManager.ClearAudioBuffer(sessionID)
 		return
 	}
 
-	// 发送评分更新
-	_ = client.SendJSON(model.WSServerMessage{
-		Type: model.MsgTypeScoreUpdate,
-		Data: model.ScoreUpdateData{
-			Pronunciation: &result.Pronunciation,
-			Grammar:       &result.Grammar,
-			Content:       &result.Content,
-			Overall:       result.Overall,
-			AIFeedback:    result.AIFeedback,
-		},
-	})
+	// 回写评分到 NestJS（异步，不阻塞客户端）
+	go h.callbackScores(sessionID, evalResult)
 
-	// 步骤 3: 如果是对话模式，生成考官追问
-	if state.Mode == "conversation" {
-		_ = client.SendJSON(model.WSServerMessage{
-			Type: model.MsgTypeProcessing,
-			Data: model.ProcessingData{Step: "generating_response", Message: "考官正在思考..."},
-		})
-
-		history := h.sessionManager.GetHistory(sessionID)
-		examinerReply, err := h.orchestrator.GenerateExaminerResponse(history, state.ExamType, state.Section)
-		if err != nil {
-			log.Printf("[Conversation] 考官回复生成失败: %v", err)
-			examinerReply = "I see. Can you elaborate on that point?"
-		}
-
-		// 记录考官回复
-		h.sessionManager.AppendMessage(sessionID, "examiner", examinerReply)
-
-		// TTS 合成考官语音
-		var ttsB64 string
-		ttsBytes, ttsErr := h.synthesizeTTS(examinerReply)
-		if ttsErr != nil {
-			log.Printf("[Conversation] TTS 合成失败（降级为纯文本）: %v", ttsErr)
-		} else if len(ttsBytes) > 0 {
-			ttsB64 = base64.StdEncoding.EncodeToString(ttsBytes)
-			log.Printf("[Conversation] TTS 合成成功: %d bytes", len(ttsBytes))
-		}
-
-		_ = client.SendJSON(model.WSServerMessage{
-			Type: model.MsgTypeExaminer,
-			Data: model.ExaminerData{
-				Text:        examinerReply,
-				TTSAudioB64: ttsB64,
-			},
-		})
-	}
-
-	// 步骤 4: 回写评分到 NestJS（异步，不阻塞客户端）
-	go h.callbackScores(sessionID, result)
-
-	// 清空音频缓冲区，准备下一轮录音
 	h.sessionManager.ClearAudioBuffer(sessionID)
 
-	log.Printf("[Conversation] 评测完成: session=%s, overall=%.1f", sessionID, result.Overall)
+	log.Printf("[Conversation] 评测完成: session=%s, overall=%.1f", sessionID, evalResult.Overall)
 }
 
 // handleTextMessage 处理文本消息（备用）

@@ -1,6 +1,7 @@
 package com.speakpro.features.practice
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,181 +14,314 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.RecordVoiceOver
-import androidx.compose.material.icons.filled.TextSnippet
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.speakpro.designsystem.theme.FraunceFamily
+import com.speakpro.designsystem.theme.InterFamily
 import com.speakpro.designsystem.theme.SpAccent
 import com.speakpro.designsystem.theme.SpBackground
-import com.speakpro.designsystem.theme.SpBodyMedium
-import com.speakpro.designsystem.theme.SpBodySmall
-import com.speakpro.designsystem.theme.SpTextPrimary
-import com.speakpro.designsystem.theme.SpTextSecondary
-import com.speakpro.designsystem.theme.SpTitleLarge
-import com.speakpro.designsystem.theme.SpTitleSmall
-import com.speakpro.designsystem.theme.SpWhite
-import com.speakpro.navigation.Routes
-
-// ── 练习模式定义 ────────────────────────────────
-
-private data class PracticeModeItem(
-    val title: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val route: String,
-)
-
-private val practiceModes = listOf(
-    PracticeModeItem(
-        title = "AI 对话练习",
-        subtitle = "与 AI 考官进行模拟对话，实时评分反馈",
-        icon = Icons.Default.Mic,
-        route = Routes.PRACTICE_CONVERSATION,
-    ),
-    PracticeModeItem(
-        title = "朗读练习",
-        subtitle = "朗读给定文章，评测发音准确度和流利度",
-        icon = Icons.Default.TextSnippet,
-        route = Routes.PRACTICE_READALOUD,
-    ),
-    PracticeModeItem(
-        title = "跟读练习",
-        subtitle = "跟随标准发音逐句练习，对比纠正",
-        icon = Icons.Default.RecordVoiceOver,
-        route = Routes.PRACTICE_FOLLOWREAD,
-    ),
-    PracticeModeItem(
-        title = "模考练习",
-        subtitle = "完整模考流程，还原真实考试体验",
-        icon = Icons.Default.Timer,
-        route = Routes.PRACTICE_MOCKEXAM,
-    ),
-)
+import com.speakpro.designsystem.theme.SpIvory
+import com.speakpro.designsystem.theme.SpLine
+import com.speakpro.designsystem.theme.SpMoss
+import com.speakpro.designsystem.theme.SpMuted
+import com.speakpro.designsystem.theme.SpPrimary
 
 /**
- * 练习列表页 — 对应 iOS PracticeListView
+ * 练习 Tab —— editorial 风格。
+ * 对应 speakpro/components/MoreScreens.jsx · PracticeList。
  */
 @Composable
 fun PracticeListScreen(
     onNavigate: (String) -> Unit,
 ) {
-    LazyColumn(
+    var tab by remember { mutableStateOf("scene") }
+
+    val quickTiles = listOf(
+        QuickTile("朗读", "Reading", "4h ago", streak = 3, route = "practice/readaloud"),
+        QuickTile("跟读", "Shadow", "Yesterday", streak = null, route = "practice/followread"),
+        // 听写 / 复述 暂无对应页面 —— 点击降级到跟读/朗读，后续补实现
+        QuickTile("听写", "Dictation", "—", streak = null, route = "practice/followread"),
+        QuickTile("复述", "Retell", "2d ago", streak = null, route = "practice/readaloud"),
+    )
+
+    val scenes = listOf(
+        Scene("IELTS · Part 1", "日常话题问答", "Daily interview", 24, "基础", SpAccent),
+        Scene("IELTS · Part 2", "Cue Card 独白", "Long turn · 2 min", 18, "中级", SpPrimary),
+        Scene("IELTS · Part 3", "深度讨论", "Two-way discussion", 16, "进阶", SpMoss),
+        Scene("面试 · Interview", "英文面试", "Job interview", 12, "中级", Color(0xFF8A5A2B)),
+        Scene("商务 · Business", "会议与演讲", "Meetings & pitches", 9, "进阶", Color(0xFF5A4A8A)),
+    )
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SpBackground)
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp),
     ) {
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-            Column {
-                Text(
-                    text = "选择练习模式",
-                    style = SpTitleLarge,
-                    color = SpTextPrimary,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "每天坚持练习，口语能力稳步提升",
-                    style = SpBodyMedium,
-                    color = SpTextSecondary,
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+        // masthead
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 12.dp, bottom = 16.dp),
+        ) {
+            Eyebrow("PRACTICE · 练习")
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.Filled.Search, null, tint = SpMuted, modifier = Modifier.size(20.dp))
         }
 
-        items(practiceModes) { mode ->
-            PracticeModeCard(
-                item = mode,
-                onClick = { onNavigate(mode.route) },
+        // hero headline
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            Text("Pick your", color = SpPrimary, fontFamily = FraunceFamily, fontSize = 32.sp)
+            Text(
+                "rhythm today.",
+                color = SpAccent,
+                fontFamily = FraunceFamily,
+                fontStyle = FontStyle.Italic,
+                fontSize = 32.sp,
             )
         }
 
-        item { Spacer(modifier = Modifier.height(32.dp)) }
+        Spacer(Modifier.height(24.dp))
+
+        // quick tiles 2×2
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            Eyebrow("QUICK · 快练 15 分钟")
+            Spacer(Modifier.height(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                quickTiles.chunked(2).forEach { pair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        pair.forEach { q ->
+                            QuickTileCard(
+                                q,
+                                onClick = { onNavigate(q.route) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(22.dp))
+
+        // category tabs
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            listOf("scene" to "场景分类", "level" to "按难度", "topic" to "话题").forEach { (k, l) ->
+                val on = tab == k
+                Column(modifier = Modifier.clickable { tab = k }) {
+                    Text(
+                        l,
+                        color = if (on) SpPrimary else SpMuted,
+                        fontSize = 13.sp,
+                        fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                        modifier = Modifier.padding(vertical = 10.dp),
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(if (on) SpPrimary else Color.Transparent),
+                    )
+                }
+            }
+        }
+        Box(Modifier.padding(horizontal = 24.dp).fillMaxWidth().height(1.dp).background(SpLine))
+
+        // scene rows
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            scenes.forEachIndexed { i, s ->
+                SceneRow(i + 1, s) {
+                    onNavigate("practice/conversation")
+                }
+            }
+        }
+
+        Spacer(Modifier.height(22.dp))
+
+        // dark recommend card
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(SpPrimary)
+                .clickable { onNavigate("practice/conversation") }
+                .padding(16.dp),
+        ) {
+            Text(
+                "✦",
+                color = Color(0xFFD9734A),
+                fontFamily = FraunceFamily,
+                fontStyle = FontStyle.Italic,
+                fontSize = 34.sp,
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Eyebrow("RECOMMENDED · 推荐", SpIvory.copy(alpha = 0.55f))
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "今天建议练 Part 3 深度讨论",
+                    color = SpIvory,
+                    fontFamily = FraunceFamily,
+                    fontSize = 16.sp,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "· 基于昨天的评分，Coherence 有提升空间",
+                    color = SpIvory.copy(alpha = 0.55f),
+                    fontSize = 11.sp,
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                null,
+                tint = SpIvory,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+// ============================================================================
+
+private data class QuickTile(
+    val title: String,
+    val en: String,
+    val last: String,
+    val streak: Int?,
+    val route: String,
+)
+
+private data class Scene(
+    val tag: String, val title: String, val en: String,
+    val count: Int, val lvl: String, val color: Color,
+)
+
+@Composable
+private fun QuickTileCard(q: QuickTile, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(SpIvory)
+            .border(1.dp, SpLine, RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Text(q.title, color = SpPrimary, fontFamily = FraunceFamily, fontSize = 20.sp)
+            Spacer(Modifier.weight(1f))
+            if (q.streak != null) {
+                Text(
+                    "${q.streak}D",
+                    color = SpIvory,
+                    fontSize = 9.sp,
+                    letterSpacing = 1.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .background(SpAccent, RoundedCornerShape(2.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+        }
+        Spacer(Modifier.height(2.dp))
+        Text(
+            q.en,
+            color = SpMuted,
+            fontFamily = FraunceFamily,
+            fontStyle = FontStyle.Italic,
+            fontSize = 10.sp,
+        )
+        Spacer(Modifier.height(16.dp))
+        Text("上次 · ${q.last}", color = SpMuted, fontSize = 10.sp, letterSpacing = 0.5.sp)
     }
 }
 
 @Composable
-private fun PracticeModeCard(
-    item: PracticeModeItem,
-    onClick: () -> Unit,
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SpWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+private fun SceneRow(num: Int, s: Scene, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.Top,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(vertical = 18.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(16.dp),
-        ) {
-            // 图标
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(SpAccent.copy(alpha = 0.1f)),
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = item.title,
-                    tint = SpAccent,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // 文本区域
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(
-                    text = item.title,
-                    style = SpTitleSmall,
-                    color = SpTextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = item.subtitle,
-                    style = SpBodySmall,
-                    color = SpTextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // 箭头
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = SpTextSecondary,
-                modifier = Modifier.size(20.dp),
+        Text(
+            "%02d".format(num),
+            color = SpMuted,
+            fontFamily = FraunceFamily,
+            fontStyle = FontStyle.Italic,
+            fontSize = 26.sp,
+            modifier = Modifier.width(32.dp),
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Eyebrow(s.tag, s.color)
+            Spacer(Modifier.height(6.dp))
+            Text(s.title, color = SpPrimary, fontFamily = FraunceFamily, fontSize = 18.sp)
+            Spacer(Modifier.height(3.dp))
+            Text(
+                s.en,
+                color = SpMuted,
+                fontFamily = FraunceFamily,
+                fontStyle = FontStyle.Italic,
+                fontSize = 11.sp,
             )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("● ${s.count} 题", color = SpMuted, fontSize = 10.sp, letterSpacing = 0.5.sp)
+                Text("● ${s.lvl}", color = SpMuted, fontSize = 10.sp, letterSpacing = 0.5.sp)
+            }
         }
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowForward,
+            null,
+            tint = SpMuted,
+            modifier = Modifier.size(14.dp),
+        )
     }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(SpLine))
+}
+
+@Composable
+private fun Eyebrow(text: String, color: Color = SpMuted) {
+    Text(
+        text.uppercase(),
+        color = color,
+        fontFamily = InterFamily,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 2.2.sp,
+    )
 }

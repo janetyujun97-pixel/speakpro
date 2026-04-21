@@ -62,12 +62,36 @@ fun OnbBaselineRecordingScreen(
     var elapsed by remember { mutableFloatStateOf(0f) }
     val duration = 30f
     var isUploading by remember { mutableStateOf(false) }
+    var permissionDenied by remember { mutableStateOf(false) }
 
-    // Start recording on enter
+    // 权限 launcher —— 未授权时拉系统弹窗
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            try {
+                recorder.startRecording()
+            } catch (e: Exception) {
+                android.util.Log.e("OnbBaseline", "startRecording failed: ${e.message}")
+                permissionDenied = true
+            }
+        } else {
+            permissionDenied = true
+        }
+    }
+
+    // 进屏：检查权限 → 未授权拉弹窗；授权了直接录
     LaunchedEffect(Unit) {
-        try {
-            recorder.startRecording()
-        } catch (_: Exception) { /* surfaced via permissionDenied flow */ }
+        if (recorder.hasRecordPermission()) {
+            try {
+                recorder.startRecording()
+            } catch (e: Exception) {
+                android.util.Log.e("OnbBaseline", "startRecording failed: ${e.message}")
+                permissionDenied = true
+            }
+        } else {
+            permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     // Timer
@@ -173,10 +197,13 @@ fun OnbBaselineRecordingScreen(
             Eyebrow("LIVE · 实时反馈", SpMoss)
             Spacer(Modifier.size(8.dp))
             Text(
-                if (isUploading) "正在上传并分析基线录音…"
-                else if (isRecording) "你正在录音中 · 说出你最近去过的一个地方"
-                else "录音已结束",
-                color = SpPrimary,
+                when {
+                    isUploading -> "正在上传并分析基线录音…"
+                    isRecording -> "你正在录音中 · 说出你最近去过的一个地方"
+                    permissionDenied -> "未获得麦克风权限，请在系统设置里开启"
+                    else -> "录音已结束"
+                },
+                color = if (permissionDenied) SpAccent else SpPrimary,
                 fontSize = 13.sp,
             )
         }
