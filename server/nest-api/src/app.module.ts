@@ -11,6 +11,7 @@ import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { ClassesModule } from './modules/classes/classes.module';
 import { ResourcesModule } from './modules/resources/resources.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { SystemModule } from './modules/system/system.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     ClassesModule,
     ResourcesModule,
     AnalyticsModule,
+    SystemModule,
   ],
   providers: [
     // 全局启用速率限制

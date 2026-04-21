@@ -30,6 +30,10 @@ func (h *AudioHandler) Upload(c *gin.Context) {
 
 	sessionID := c.PostForm("session_id")
 	referenceText := c.PostForm("reference_text")
+	// 可选：按次覆盖 provider（为空则沿用 Go 默认）
+	asrProvider := c.PostForm("asr_provider")
+	iseProvider := c.PostForm("ise_provider")
+	llmProvider := c.PostForm("llm_provider")
 
 	if sessionID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -60,7 +64,7 @@ func (h *AudioHandler) Upload(c *gin.Context) {
 	}
 
 	// 调用 AI 评测流水线（ASR → 发音评测 → 语法纠错 → 综合反馈）
-	result, err := h.orchestrator.EvaluateAudio(audioData, referenceText)
+	result, err := h.orchestrator.EvaluateAudioWithOverrides(audioData, referenceText, asrProvider, iseProvider, llmProvider)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,

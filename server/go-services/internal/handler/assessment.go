@@ -21,6 +21,21 @@ func NewAssessmentHandler(orch *service.Orchestrator, ise service.ISEClient, llm
 	return &AssessmentHandler{orchestrator: orch, ise: ise, llm: llm}
 }
 
+// pickISE / pickLLM 本地封装，优先尝试 orchestrator 的 registry 覆盖
+func (h *AssessmentHandler) pickISE(override string) service.ISEClient {
+	if c := h.orchestrator.PickISE(override); c != nil {
+		return c
+	}
+	return h.ise
+}
+
+func (h *AssessmentHandler) pickLLM(override string) service.LLMClient {
+	if c := h.orchestrator.PickLLM(override); c != nil {
+		return c
+	}
+	return h.llm
+}
+
 // Evaluate 发音评测接口
 // 支持两种格式：
 //   1. multipart form: audio(文件) + reference_text(字符串)
@@ -28,6 +43,8 @@ func NewAssessmentHandler(orch *service.Orchestrator, ise service.ISEClient, llm
 func (h *AssessmentHandler) Evaluate(c *gin.Context) {
 	var audioData []byte
 	var referenceText string
+	// 按次覆盖 ISE（从 JSON 或 form 读取）
+	var iseProvider string
 
 	contentType := c.ContentType()
 	log.Printf("[Assessment] Content-Type: %q", contentType)
@@ -65,6 +82,12 @@ func (h *AssessmentHandler) Evaluate(c *gin.Context) {
 			referenceText = v
 		}
 
+		if v, ok := reqMap["iseProvider"].(string); ok {
+			iseProvider = v
+		} else if v, ok := reqMap["ise_provider"].(string); ok {
+			iseProvider = v
+		}
+
 		if audioB64Str == "" || referenceText == "" {
 			log.Printf("[Assessment] 缺少必填字段: audioB64=%d bytes, referenceText=%q, keys=%v",
 				len(audioB64Str), referenceText, func() []string {
@@ -96,6 +119,7 @@ func (h *AssessmentHandler) Evaluate(c *gin.Context) {
 		}
 
 		referenceText = c.PostForm("reference_text")
+		iseProvider = c.PostForm("ise_provider")
 		if referenceText == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    400,
@@ -126,8 +150,8 @@ func (h *AssessmentHandler) Evaluate(c *gin.Context) {
 
 	log.Printf("[Assessment] 开始评测: audio_size=%d, ref_text=%q", len(audioData), referenceText[:min(50, len(referenceText))])
 
-	// 调用讯飞发音评测
-	pronScore, err := h.ise.Assess(audioData, referenceText)
+	// 发音评测（按覆盖或默认 provider）
+	pronScore, err := h.pickISE(iseProvider).Assess(audioData, referenceText)
 	if err != nil {
 		log.Printf("[Assessment] 评测失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -166,6 +190,9 @@ func (h *AssessmentHandler) FullEvaluate(c *gin.Context) {
 	referenceText := getStringField(reqMap, "referenceText", "reference_text")
 	examType := getStringField(reqMap, "examType", "exam_type")
 	section := getStringField(reqMap, "section", "section")
+	asrProvider := getStringField(reqMap, "asrProvider", "asr_provider")
+	iseProvider := getStringField(reqMap, "iseProvider", "ise_provider")
+	llmProvider := getStringField(reqMap, "llmProvider", "llm_provider")
 
 	if audioB64 == "" || referenceText == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "audioB64 和 referenceText 为必填项"})
@@ -183,7 +210,7 @@ func (h *AssessmentHandler) FullEvaluate(c *gin.Context) {
 
 	log.Printf("[FullEvaluate] 开始: audio=%d bytes, exam=%s, section=%s", len(audioData), examType, section)
 
-	result, err := h.orchestrator.FullEvaluateAudio(audioData, referenceText, examType, section)
+	result, err := h.orchestrator.FullEvaluateAudioWithOverrides(audioData, referenceText, examType, section, asrProvider, iseProvider, llmProvider)
 	if err != nil {
 		log.Printf("[FullEvaluate] 失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": "评测失败: " + err.Error()})
@@ -212,6 +239,7 @@ func (h *AssessmentHandler) Feedback(c *gin.Context) {
 		SessionID     string `json:"session_id"     binding:"required"`
 		Transcript    string `json:"transcript"     binding:"required"`
 		ReferenceText string `json:"reference_text"`
+		LLMProvider   string `json:"llm_provider"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -221,7 +249,8 @@ func (h *AssessmentHandler) Feedback(c *gin.Context) {
 		return
 	}
 
-	grammarScore, err := h.llm.CorrectGrammar(req.Transcript)
+	llm := h.pickLLM(req.LLMProvider)
+	grammarScore, err := llm.CorrectGrammar(req.Transcript)
 	if err != nil {
 		log.Printf("[Assessment] 语法分析失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -231,7 +260,7 @@ func (h *AssessmentHandler) Feedback(c *gin.Context) {
 		return
 	}
 
-	feedback, err := h.llm.GenerateFeedback(req.Transcript, req.ReferenceText, nil)
+	feedback, err := llm.GenerateFeedback(req.Transcript, req.ReferenceText, nil)
 	if err != nil {
 		log.Printf("[Assessment] 生成反馈失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{

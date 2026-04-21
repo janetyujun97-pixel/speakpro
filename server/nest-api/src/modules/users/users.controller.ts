@@ -40,16 +40,37 @@ export class UsersController {
   @Get('settings')
   async getSettings(@Request() req: any) {
     const user = await this.usersService.findById(req.user.sub);
-    return { ttsProvider: (user as any).ttsProvider || 'mimo' };
+    return {
+      asrProvider: user.asrProvider || 'tencent',
+      iseProvider: user.iseProvider || 'tencent',
+      llmProvider: user.llmProvider || 'mimo',
+      ttsProvider: user.ttsProvider || 'mimo',
+    };
   }
 
   @Put('settings')
   async updateSettings(
     @Request() req: any,
-    @Body() data: { ttsProvider?: string },
+    @Body()
+    data: {
+      asrProvider?: string;
+      iseProvider?: string;
+      llmProvider?: string;
+      ttsProvider?: string;
+    },
   ) {
-    if (data.ttsProvider) {
-      await this.usersService.update(req.user.sub, { ttsProvider: data.ttsProvider } as any);
+    const patch: Partial<{
+      asrProvider: string;
+      iseProvider: string;
+      llmProvider: string;
+      ttsProvider: string;
+    }> = {};
+    if (data.asrProvider) patch.asrProvider = data.asrProvider;
+    if (data.iseProvider) patch.iseProvider = data.iseProvider;
+    if (data.llmProvider) patch.llmProvider = data.llmProvider;
+    if (data.ttsProvider) patch.ttsProvider = data.ttsProvider;
+    if (Object.keys(patch).length > 0) {
+      await this.usersService.update(req.user.sub, patch as any);
     }
     return { message: '设置已更新' };
   }

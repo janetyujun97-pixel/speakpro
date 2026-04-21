@@ -29,6 +29,18 @@ export class User {
   @Column({ type: 'text', nullable: true, name: 'avatar_url' })
   avatarUrl: string;
 
+  @Column({ type: 'varchar', length: 20, default: 'tencent', name: 'asr_provider' })
+  asrProvider: string;
+
+  @Column({ type: 'varchar', length: 20, default: 'tencent', name: 'ise_provider' })
+  iseProvider: string;
+
+  @Column({ type: 'varchar', length: 20, default: 'mimo', name: 'llm_provider' })
+  llmProvider: string;
+
+  @Column({ type: 'varchar', length: 20, default: 'mimo', name: 'tts_provider' })
+  ttsProvider: string;
+
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date;
 

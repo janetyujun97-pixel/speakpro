@@ -68,8 +68,16 @@ func main() {
 	log.Printf("AI 服务配置: ASR=%s, ISE=%s, LLM=%s, TTS=%s",
 		cfg.DefaultASRProvider, cfg.DefaultISEProvider, cfg.DefaultLLMProvider, cfg.DefaultTTSProvider)
 
-	// === Orchestrator（使用接口） ===
-	orchestrator := service.NewOrchestrator(asrClient, iseClient, llmClient, fishTTSClient)
+	// === Orchestrator（使用接口 + 原始客户端注册表以支持按次覆盖） ===
+	registry := &service.ProviderRegistry{
+		TencentASR: tencentASR,
+		XunfeiASR:  xunfeiClient,
+		TencentISE: tencentSOE,
+		XunfeiISE:  xunfeiClient,
+		MimoLLM:    mimoLLM,
+		QwenLLM:    qwenClient,
+	}
+	orchestrator := service.NewOrchestrator(asrClient, iseClient, llmClient, fishTTSClient).WithRegistry(registry)
 
 	// WebSocket 管理器
 	hub := ws.NewHub()
