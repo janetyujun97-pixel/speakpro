@@ -1,0 +1,45 @@
+web/components/layout/sidebar.tsx
+  56945762ed8c76c0 5-6,8-12,14-22,24-29,32-38,41-66,69-70,72-82,85-100,102-109,112-116,118,121-122,124-127,130-167,172-202,206
+scripts/icons/icon-classic.svg
+  56945762ed8c76c0 1-67
+android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+  56945762ed8c76c0 1-6
+android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+  56945762ed8c76c0 1-6
+web/components/brand/nav-icons.tsx
+  56945762ed8c76c0 1-90
+scripts/icons/build-icons.mjs
+  56945762ed8c76c0 1-110
+scripts/icons/favicon.svg
+  56945762ed8c76c0 1-8
+scripts/icons/icon-foreground.svg
+  56945762ed8c76c0 1-26
+.gitignore
+  56945762ed8c76c0 64-69
+web/components/brand/logo.tsx
+  56945762ed8c76c0 1-232
+scripts/icons/icon-classic-square.svg
+  56945762ed8c76c0 1-50
+android/app/src/main/res/values/ic_launcher_background.xml
+  56945762ed8c76c0 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "9dc631aeab10862ba6033c222ea30937aa87280c",
+  "prompts": {
+    "56945762ed8c76c0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c43add55-b9f2-431b-aa18-cdb082dbd7fe",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 7699,
+      "total_deletions": 250,
+      "accepted_lines": 12880,
+      "overriden_lines": 0
+    }
+  }
+}
