@@ -14,6 +14,12 @@ import {
   HairlineBtn,
   type ChipTone,
 } from "@/components/editorial/primitives";
+import {
+  EditorialEmptyState,
+  EditorialErrorState,
+  EditorialSkeleton,
+  mapErrorToCode,
+} from "@/components/ui/editorial-states";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -97,25 +103,29 @@ export default function AssignmentsPage() {
   const [items, setItems] = useState<Assignment[]>([]);
   const [classMap, setClassMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [errorObj, setErrorObj] = useState<unknown>(null);
   const [tab, setTab] = useState<TabKey>("all");
   const [page, setPage] = useState(1);
 
+  const fetchAll = async () => {
+    setLoading(true);
+    setErrorObj(null);
+    try {
+      const [assigns, classes] = await Promise.all([
+        api.get<Assignment[]>("/assignments"),
+        api.get<ClassOption[]>("/classes").catch(() => [] as ClassOption[]),
+      ]);
+      setItems(assigns);
+      setClassMap(Object.fromEntries(classes.map((c) => [c.id, c.name])));
+    } catch (err) {
+      setErrorObj(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const [assigns, classes] = await Promise.all([
-          api.get<Assignment[]>("/assignments"),
-          api.get<ClassOption[]>("/classes").catch(() => [] as ClassOption[]),
-        ]);
-        setItems(assigns);
-        setClassMap(Object.fromEntries(classes.map((c) => [c.id, c.name])));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "加载作业列表失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchAll();
   }, []);
 
   const filtered = useMemo(() => {
@@ -129,6 +139,35 @@ export default function AssignmentsPage() {
     (safePage - 1) * PAGE_SIZE,
     safePage * PAGE_SIZE
   );
+
+  // ── 首次加载 / 加载失败 / 真空态 —— 用 editorial-states 整页处理
+  if (loading && items.length === 0) {
+    return <EditorialSkeleton headerTitle="ASSIGNMENTS · 加载中" cardCount={4} />;
+  }
+  if (errorObj) {
+    return (
+      <EditorialErrorState
+        code={mapErrorToCode(errorObj)}
+        onRetry={fetchAll}
+      />
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <EditorialEmptyState
+        eyebrow="NO ASSIGNMENTS · 作业空空"
+        headline="All caught up,"
+        headlineItalic="— for now."
+        message={"还没有布置任何作业。\n创建第一个作业开始教学闭环。"}
+        primaryCTA={{
+          title: "创建作业",
+          onClick: () => router.push("/assignments/new"),
+        }}
+        footer="EMPTY STATE"
+        footerNumber="N° ASSIGN"
+      />
+    );
+  }
 
   return (
     <div>
@@ -171,16 +210,6 @@ export default function AssignmentsPage() {
         </Link>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div
-          className="mb-6 border-l-2 border-accent bg-ivory px-4 py-3 text-[13px]"
-          style={{ color: "var(--accent)" }}
-        >
-          {error}
-        </div>
-      )}
-
       {/* 表格容器 */}
       <div className="rounded-xs border border-line bg-ivory">
         {/* 表头 */}
@@ -202,14 +231,10 @@ export default function AssignmentsPage() {
           )}
         </div>
 
-        {/* 状态：加载 / 空 / 行 */}
-        {loading ? (
+        {/* 筛选 0 行（有数据但当前 Tab 为空）走内联占位 —— 保留表头/工具条可见 */}
+        {filtered.length === 0 ? (
           <div className="py-16 text-center">
-            <Mono size={11}>— 加载中 —</Mono>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <Mono size={11}>— 暂无作业 —</Mono>
+            <Mono size={11}>— 当前筛选无结果 —</Mono>
           </div>
         ) : (
           pageItems.map((a, idx) => {

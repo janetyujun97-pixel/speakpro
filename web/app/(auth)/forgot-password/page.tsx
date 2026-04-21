@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { requestEmailReset } from "@/lib/auth";
+import {
+  Eyebrow,
+  Serif,
+  Mono,
+  HairlineBtn,
+} from "@/components/editorial/primitives";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -31,67 +35,97 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="items-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-xl font-bold text-white">
-          SP
+    <div className="w-full max-w-md border border-line bg-ivory px-10 py-12">
+      {/* Masthead */}
+      <div className="text-center">
+        <Eyebrow>SPEAKPRO · TEACHER</Eyebrow>
+        <div className="mt-2.5 flex items-baseline justify-center gap-2">
+          <Serif size={32} weight={500}>Recover</Serif>
+          <Serif size={32} italic color="var(--accent)">
+            Account
+          </Serif>
         </div>
-        <CardTitle className="text-2xl">找回密码</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          输入注册邮箱，我们会发送重置链接
-        </p>
-      </CardHeader>
-      <CardContent>
-        {sent ? (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-muted p-4 text-sm text-foreground">
-              <p className="font-medium">如果该邮箱已注册，重置链接已发送到：</p>
-              <p className="mt-1 font-mono text-muted-foreground">{email}</p>
-              <p className="mt-3 text-muted-foreground">
-                链接 30 分钟内有效。若未收到，请检查垃圾邮件或重新申请。
-              </p>
+        <div className="mt-1.5">
+          <Mono size={10}>输入注册邮箱，收取重置链接</Mono>
+        </div>
+      </div>
+
+      {sent ? (
+        <div className="mt-9 space-y-5">
+          <div className="border border-line bg-bg-soft p-5">
+            <Eyebrow>已发送 · SENT</Eyebrow>
+            <div className="mt-2.5">
+              <Serif size={17}>如果该邮箱已注册</Serif>
             </div>
-            <Link href="/login">
-              <Button variant="outline" className="w-full">
-                返回登录
-              </Button>
+            <div className="mt-1">
+              <Mono size={12} color="var(--ink)">{email}</Mono>
+            </div>
+            <p className="mt-3 text-[12px] leading-relaxed text-muted">
+              重置链接已发送，30 分钟内有效。若未收到，请检查垃圾邮件或稍后重新申请。
+            </p>
+          </div>
+
+          <Link href="/login" className="block">
+            <HairlineBtn
+              style={{ width: "100%", justifyContent: "center" }}
+              leftIcon={<ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+            >
+              返回登录
+            </HairlineBtn>
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-9 space-y-5">
+          <div>
+            <Eyebrow>邮箱</Eyebrow>
+            <input
+              id="email"
+              type="email"
+              placeholder="teacher@speakpro.com"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-2 w-full border-0 border-b border-ink bg-transparent pb-1.5 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
+              style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+            />
+          </div>
+
+          {error && (
+            <div
+              className="border-l-2 border-accent bg-bg px-3 py-2 text-[12px]"
+              style={{ color: "var(--accent)" }}
+            >
+              {error}
+            </div>
+          )}
+
+          <HairlineBtn
+            primary
+            type="submit"
+            disabled={loading || !isValid}
+            style={{ width: "100%", justifyContent: "center" }}
+            rightIcon={
+              <ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />
+            }
+          >
+            {loading ? "发送中…" : "发送重置链接"}
+          </HairlineBtn>
+
+          <div className="flex justify-between pt-1">
+            <Link href="/login" className="text-[12px] text-muted hover:text-ink transition-colors">
+              ← 返回登录
+            </Link>
+            <Link href="/register" className="text-[12px] text-muted hover:text-ink transition-colors">
+              注册新账号 →
             </Link>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                邮箱
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="teacher@speakpro.com"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !isValid}
-            >
-              {loading ? "发送中..." : "发送重置链接"}
-            </Button>
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <Link href="/login" className="hover:text-foreground underline">
-                返回登录
-              </Link>
-              <Link href="/register" className="hover:text-foreground underline">
-                注册新账号
-              </Link>
-            </div>
-          </form>
-        )}
-      </CardContent>
-    </Card>
+        </form>
+      )}
+
+      <div className="mt-8 text-center">
+        <Mono size={9}>EST. 2026 · TEACHING STUDIO</Mono>
+      </div>
+    </div>
   );
 }

@@ -3,10 +3,28 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { resetEmailPassword } from "@/lib/auth";
+import {
+  Eyebrow,
+  Serif,
+  Mono,
+  HairlineBtn,
+} from "@/components/editorial/primitives";
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="py-20 text-center">
+          <Mono size={11}>— 加载中 —</Mono>
+        </div>
+      }
+    >
+      <ResetPasswordForm />
+    </Suspense>
+  );
+}
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -19,26 +37,48 @@ function ResetPasswordForm() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  const canSubmit =
-    token.length > 0 &&
-    password.length >= 6 &&
-    password === confirm;
+  const canSubmit = token.length > 0 && password.length >= 6 && password === confirm;
 
+  // 链接无效 —— 没有 token 参数
   if (!token) {
     return (
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>链接无效</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            缺少 token 参数。请重新申请重置链接。
+      <div className="w-full max-w-md border border-line bg-ivory px-10 py-12">
+        <div className="text-center">
+          <Eyebrow color="var(--accent)">链接无效 · INVALID</Eyebrow>
+          <div className="mt-2.5">
+            <Serif size={28}>Expired or</Serif>
+          </div>
+          <div>
+            <Serif size={28} italic color="var(--accent)">
+              missing token.
+            </Serif>
+          </div>
+          <p className="mt-4 text-[13px] leading-relaxed text-muted">
+            本次访问缺少有效 token 参数。请从邮件里重新点击最新的重置链接，
+            或重新申请一封新邮件。
           </p>
-          <Link href="/forgot-password">
-            <Button className="w-full">重新申请</Button>
+        </div>
+
+        <div className="mt-7 space-y-2.5">
+          <Link href="/forgot-password" className="block">
+            <HairlineBtn
+              primary
+              style={{ width: "100%", justifyContent: "center" }}
+              rightIcon={<ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+            >
+              重新申请
+            </HairlineBtn>
           </Link>
-        </CardContent>
-      </Card>
+          <Link href="/login" className="block">
+            <HairlineBtn
+              style={{ width: "100%", justifyContent: "center" }}
+              leftIcon={<ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+            >
+              返回登录
+            </HairlineBtn>
+          </Link>
+        </div>
+      </div>
     );
   }
 
@@ -59,83 +99,107 @@ function ResetPasswordForm() {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="items-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-xl font-bold text-white">
-          SP
+    <div className="w-full max-w-md border border-line bg-ivory px-10 py-12">
+      <div className="text-center">
+        <Eyebrow>SPEAKPRO · TEACHER</Eyebrow>
+        <div className="mt-2.5 flex items-baseline justify-center gap-2">
+          <Serif size={32} weight={500}>Set</Serif>
+          <Serif size={32} italic color="var(--accent)">
+            new password.
+          </Serif>
         </div>
-        <CardTitle className="text-2xl">设置新密码</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          为账号设置一个新密码
-        </p>
-      </CardHeader>
-      <CardContent>
-        {done ? (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-green-50 p-4 text-sm text-green-900 dark:bg-green-950/30 dark:text-green-200">
-              <p className="font-medium">密码已更新。</p>
-              <p className="mt-1">正在跳转到登录页…</p>
-            </div>
-            <Link href="/login">
-              <Button variant="outline" className="w-full">
-                立即登录
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                新密码
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="至少 6 位"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="confirm" className="text-sm font-medium">
-                确认密码
-              </label>
-              <Input
-                id="confirm"
-                type="password"
-                placeholder="再次输入新密码"
-                autoComplete="new-password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-                minLength={6}
-              />
-              {confirm.length > 0 && password !== confirm && (
-                <p className="text-xs text-red-500">两次输入的密码不一致</p>
-              )}
-            </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !canSubmit}
-            >
-              {loading ? "更新中..." : "更新密码"}
-            </Button>
-          </form>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+        <div className="mt-1.5">
+          <Mono size={10}>为账号设置一个新密码</Mono>
+        </div>
+      </div>
 
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={<div className="text-sm text-muted-foreground">加载中...</div>}>
-      <ResetPasswordForm />
-    </Suspense>
+      {done ? (
+        <div className="mt-9 space-y-5">
+          <div
+            className="border-l-2 bg-bg-soft px-5 py-4"
+            style={{ borderColor: "var(--moss)" }}
+          >
+            <Eyebrow color="var(--moss)">已更新 · DONE</Eyebrow>
+            <div className="mt-2">
+              <Serif size={17}>密码已更新</Serif>
+            </div>
+            <p className="mt-1.5 text-[12px] text-muted">正在跳转到登录页…</p>
+          </div>
+          <Link href="/login" className="block">
+            <HairlineBtn
+              primary
+              style={{ width: "100%", justifyContent: "center" }}
+              rightIcon={<ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+            >
+              立即登录
+            </HairlineBtn>
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-9 space-y-5">
+          <div>
+            <Eyebrow>新密码</Eyebrow>
+            <input
+              id="password"
+              type="password"
+              placeholder="至少 6 位"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="mt-2 w-full border-0 border-b border-ink bg-transparent pb-1.5 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
+              style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+            />
+          </div>
+
+          <div>
+            <Eyebrow>确认密码</Eyebrow>
+            <input
+              id="confirm"
+              type="password"
+              placeholder="再次输入新密码"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+              minLength={6}
+              className="mt-2 w-full border-0 border-b border-ink bg-transparent pb-1.5 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
+              style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+            />
+            {confirm.length > 0 && password !== confirm && (
+              <div className="mt-1.5">
+                <Mono size={10} color="var(--accent)">两次输入的密码不一致</Mono>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div
+              className="border-l-2 border-accent bg-bg px-3 py-2 text-[12px]"
+              style={{ color: "var(--accent)" }}
+            >
+              {error}
+            </div>
+          )}
+
+          <HairlineBtn
+            primary
+            type="submit"
+            disabled={loading || !canSubmit}
+            style={{ width: "100%", justifyContent: "center" }}
+            rightIcon={
+              <ArrowRight className="h-[13px] w-[13px]" strokeWidth={1.3} />
+            }
+          >
+            {loading ? "更新中…" : "更新密码"}
+          </HairlineBtn>
+        </form>
+      )}
+
+      <div className="mt-8 text-center">
+        <Mono size={9}>EST. 2026 · TEACHING STUDIO</Mono>
+      </div>
+    </div>
   );
 }

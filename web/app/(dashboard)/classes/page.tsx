@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, Filter, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import {
@@ -12,6 +13,12 @@ import {
   Chip,
   HairlineBtn,
 } from "@/components/editorial/primitives";
+import {
+  EditorialEmptyState,
+  EditorialErrorState,
+  EditorialSkeleton,
+  mapErrorToCode,
+} from "@/components/ui/editorial-states";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -35,9 +42,11 @@ const TABS = ["全部", "进行中", "待开班", "已结课"] as const;
 type TabKey = (typeof TABS)[number];
 
 export default function ClassesPage() {
+  const router = useRouter();
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [errorObj, setErrorObj] = useState<unknown>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("全部");
 
   // 新建/编辑表单
@@ -50,10 +59,13 @@ export default function ClassesPage() {
   const [editName, setEditName] = useState("");
 
   const fetchClasses = async () => {
+    setLoading(true);
+    setErrorObj(null);
     try {
       const data = await api.get<ClassItem[]>("/classes");
       setClasses(data);
     } catch (err) {
+      setErrorObj(err);
       setError(err instanceof Error ? err.message : "加载班级列表失败");
     } finally {
       setLoading(false);
@@ -70,6 +82,36 @@ export default function ClassesPage() {
   );
 
   const filtered = classes; // 目前 API 无 status 字段，Tab 视觉保留；未来接入后在此过滤
+
+  // ── 首次加载 / 加载失败 / 真空态 ───────────────────────────────
+  if (loading && classes.length === 0) {
+    return <EditorialSkeleton headerTitle="CLASSES · 加载中" cardCount={3} />;
+  }
+  if (errorObj && classes.length === 0) {
+    return (
+      <EditorialErrorState code={mapErrorToCode(errorObj)} onRetry={fetchClasses} />
+    );
+  }
+  if (classes.length === 0) {
+    return (
+      <EditorialEmptyState
+        eyebrow="NO CLASSES · 班级空空"
+        headline="Start your first"
+        headlineItalic="— class."
+        message={"还没有创建任何班级。\n创建班级后即可邀请学生加入。"}
+        primaryCTA={{
+          title: "新建班级",
+          onClick: () => setShowForm(true),
+        }}
+        secondaryCTA={{
+          title: "查看作业",
+          onClick: () => router.push("/assignments"),
+        }}
+        footer="EMPTY STATE"
+        footerNumber="N° CLASS"
+      />
+    );
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,7 +238,7 @@ export default function ClassesPage() {
         </form>
       )}
 
-      {/* Error banner */}
+      {/* 创建失败等局部错误条（不影响已渲染列表） */}
       {error && (
         <div
           className="mb-6 border-l-2 border-accent bg-ivory px-4 py-3 text-[13px]"
@@ -207,16 +249,9 @@ export default function ClassesPage() {
       )}
 
       {/* List */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-5 w-5 animate-spin text-muted" />
-          <span className="ml-2">
-            <Mono size={11}>加载中...</Mono>
-          </span>
-        </div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="border border-line bg-ivory py-16 text-center">
-          <Mono size={11}>— 暂无班级，点击上方「新建班级」开始 —</Mono>
+          <Mono size={11}>— 当前筛选无结果 —</Mono>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
