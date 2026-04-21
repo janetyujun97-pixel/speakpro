@@ -1,0 +1,41 @@
+server/go-services/internal/handler/assessment.go
+  56945762ed8c76c0 24-38,46-47,85-90,122,153-154,193-195,213,242,252-253,263
+server/go-services/internal/service/orchestrator.go
+  56945762ed8c76c0 19-28,30-34,45-103,105-113,115,122,136,143,166,168-176,180,203,207,224,234,244,260,271
+server/nest-api/src/app.module.ts
+  56945762ed8c76c0 14,45
+server/nest-api/src/modules/system/system.module.ts
+  56945762ed8c76c0 1-7
+server/nest-api/src/modules/users/users.controller.ts
+  56945762ed8c76c0 43-48,54-60,62-73
+server/nest-api/src/modules/users/entities/user.entity.ts
+  56945762ed8c76c0 32-43
+server/database/migrations/004_add_ai_providers.sql
+  56945762ed8c76c0 1-13
+server/go-services/internal/handler/audio.go
+  56945762ed8c76c0 33-36,67
+server/nest-api/src/modules/system/system.controller.ts
+  56945762ed8c76c0 1-35
+server/go-services/cmd/server/main.go
+  56945762ed8c76c0 71-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "2b9145892a345c53ff1b296adff5a105f55b6f69",
+  "prompts": {
+    "56945762ed8c76c0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c43add55-b9f2-431b-aa18-cdb082dbd7fe",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo",
+      "messages": [],
+      "total_additions": 18188,
+      "total_deletions": 4127,
+      "accepted_lines": 10235,
+      "overriden_lines": 0
+    }
+  }
+}
