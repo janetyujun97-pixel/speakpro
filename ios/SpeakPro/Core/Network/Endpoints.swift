@@ -5,14 +5,14 @@ enum Endpoints {
 
     // NestJS CRUD 服务（通过 Nginx 代理，统一用 80 端口）
     #if DEBUG
-    static let baseURL = "http://122.51.170.224/api/v1"
+    static let baseURL = "http://frp6.ccszxc.site:26074/api/v1"
     #else
     static let baseURL = "https://api.speakpro.com/api/v1"
     #endif
 
     // Go AI 服务（通过 Nginx 代理，统一用 80 端口）
     #if DEBUG
-    static let goBaseURL = "http://122.51.170.224/api/v1"
+    static let goBaseURL = "http://frp6.ccszxc.site:26074/api/v1"
     #else
     static let goBaseURL = "https://api.speakpro.com/api/v1"
     #endif

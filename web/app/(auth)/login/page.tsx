@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { login } from "@/lib/auth";
 import {
   Eyebrow,
@@ -27,6 +27,7 @@ function LoginInner() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -79,17 +80,29 @@ function LoginInner() {
 
         <div>
           <Eyebrow>密码</Eyebrow>
-          <input
-            id="password"
-            type="password"
-            placeholder="请输入密码"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            className="mt-2 w-full border-0 border-b border-ink bg-transparent pb-1.5 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
-            style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
-          />
+          <div className="relative mt-2">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="请输入密码"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="w-full border-0 border-b border-ink bg-transparent pb-1.5 pr-7 font-serif text-[18px] text-ink outline-none placeholder:text-muted-2"
+              style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50' }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute bottom-1.5 right-0 text-muted hover:text-ink transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword
+                ? <EyeOff className="h-[16px] w-[16px]" strokeWidth={1.3} />
+                : <Eye className="h-[16px] w-[16px]" strokeWidth={1.3} />}
+            </button>
+          </div>
         </div>
 
         {error && (

@@ -17,7 +17,7 @@ object NetworkModule {
 
     // NestJS 后端基础地址
     // TODO: 生产环境替换为 https://api.speakpro.com/api/v1/
-    private const val BASE_URL = "http://122.51.170.224/api/v1/"
+    private const val BASE_URL = "http://frp6.ccszxc.site:26074/api/v1/"
 
     @Provides
     @Singleton

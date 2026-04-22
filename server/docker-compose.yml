@@ -91,6 +91,15 @@ services:
       - go-services
     restart: unless-stopped
 
+  frpc:
+    image: snowdreamtech/frpc:latest
+    container_name: speakpro-frpc
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
   web:
     build:
       context: ../web
