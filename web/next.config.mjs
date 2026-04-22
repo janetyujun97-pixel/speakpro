@@ -3,6 +3,9 @@ const nextConfig = {
   // 启用压缩
   compress: true,
 
+  // 用于 Docker 镜像产物（只携带必要运行时文件）
+  output: "standalone",
+
   // 图片优化
   images: {
     formats: ["image/avif", "image/webp"],

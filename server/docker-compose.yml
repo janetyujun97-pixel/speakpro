@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: speakpro-postgres
     ports:
       - "5432:5432"
     environment:
@@ -14,10 +15,11 @@ services:
       test: ["CMD-SHELL", "pg_isready -U speakpro"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
+    container_name: speakpro-redis
     ports:
       - "6380:6379"
     volumes:
@@ -26,19 +28,85 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+  nest-api:
+    build:
+      context: ./nest-api
+      dockerfile: Dockerfile
+    container_name: speakpro-nest-api
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # 容器内用服务名覆盖 .env 里的 localhost
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NEST_PORT: 3000
+      CORS_ORIGINS: http://localhost:3001,http://localhost:8888
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  go-services:
+    build:
+      context: ./go-services
+      dockerfile: Dockerfile
+    container_name: speakpro-go-services
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GO_PORT: 8081
+      NEST_API_BASE_URL: http://nest-api:3000/api/v1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nest-api:
+        condition: service_started
+    restart: unless-stopped
 
   nginx:
     image: nginx:alpine
+    container_name: speakpro-nginx
     ports:
       - "8888:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - postgres
-      - redis
-    profiles:
-      - gateway
+      - nest-api
+      - go-services
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      args:
+        # Next.js 客户端访问的 API 网关地址（浏览器端，走 host 映射）
+        NEXT_PUBLIC_API_URL: http://localhost:8888/api/v1
+    container_name: speakpro-web
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8888/api/v1
+    depends_on:
+      - nginx
+    restart: unless-stopped
 
 volumes:
   pgdata:
