@@ -74,3 +74,9 @@ scripts/icons/fonts/Fraunces-BlackItalic.ttf
 scripts/icons/fonts/Fraunces-Italic-VF.ttf
 scripts/icons/fonts/Fraunces-VF.ttf
 scripts/icons/fonts/Fraunces.zip
+
+# Claude Code 工作目录
+.claude/worktrees/
+
+# 设计稿（本地）
+design/
