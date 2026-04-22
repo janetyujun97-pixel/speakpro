@@ -13,7 +13,12 @@
     /* —— PR1 语义名（shadcn 兼容） —— */
     --background: #F4EEE3;
     --foreground: #1C1B18;
-    --muted: #EDE5D6;
+    /* --muted 语义=弱化文字色（与 tailwind.config 的 muted 对齐）。
+       历史版本错把 #EDE5D6（浅米背景）放在这里，导致 editorial 组件里
+       所有 eyebrow / mono / 斜体副标题在米色底上几乎不可见。
+       浅米背景请改用 --bg-soft / --muted-surface。 */
+    --muted: #706A5E;
+    --muted-surface: #EDE5D6;
     --muted-foreground: #706A5E;
     --border: rgba(28, 27, 24, 0.12);
     --ring: #B54A25;

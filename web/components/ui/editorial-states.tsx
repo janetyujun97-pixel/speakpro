@@ -160,7 +160,7 @@ export function EditorialSkeleton({
             className="flex items-center gap-3 rounded-lg border p-4"
             style={{
               borderColor: "var(--border)",
-              background: "var(--muted)",
+              background: "var(--muted-surface)",
               opacity: 1 - i * 0.15,
             }}
           >
