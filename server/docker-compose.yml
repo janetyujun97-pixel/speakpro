@@ -105,14 +105,22 @@ services:
       context: ../web
       dockerfile: Dockerfile
       args:
-        # Next.js 客户端访问的 API 网关地址（浏览器端，走 host 映射）
-        NEXT_PUBLIC_API_URL: http://localhost:8888/api/v1
+        NEXT_PUBLIC_API_URL: http://frp6.ccszxc.site:26074/api/v1
     container_name: speakpro-web
     ports:
       - "3001:3000"
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://localhost:8888/api/v1
+      NEXT_PUBLIC_API_URL: http://frp6.ccszxc.site:26074/api/v1
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
+  frpc:
+    image: snowdreamtech/frpc:latest
+    container_name: speakpro-frpc
+    volumes:
+      - ./frpc/frpc.toml:/etc/frp/frpc.toml:ro
     depends_on:
       - nginx
     restart: unless-stopped

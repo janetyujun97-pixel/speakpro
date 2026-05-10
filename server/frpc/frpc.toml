@@ -1,0 +1,12 @@
+serverAddr = "frp6.ccszxc.site"
+serverPort = 26071
+
+auth.method = "token"
+auth.token = "975220"
+
+[[proxies]]
+name = "speakpro-web"
+type = "tcp"
+localIP = "speakpro-nginx"
+localPort = 80
+remotePort = 26074
