@@ -1,0 +1,28 @@
+web/app/(dashboard)/assignments/new/page.tsx
+  1ab434417c6741d0 43,45-46,61,64-69,97-103,109,194-229
+web/app/(dashboard)/assignments/page.tsx
+  1ab434417c6741d0 97-122,162-205,269
+web/app/(dashboard)/assignments/[id]/grade/page.tsx
+  1ab434417c6741d0 4,6,25-27,120,141-146,148-151,225,237-269,488
+web/app/(dashboard)/classes/[id]/students/page.tsx
+  1ab434417c6741d0 6-12,14-21,36-37,44,46,50,62,70-71,73-75,79-82,87,91-92,97-101,105-109,113-116,119-133,135-143,146-150,152-175,178,180-203,205-210,212-213,217-236,238-240,242-288,291-300
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "863e3aa6fa6c85782f44f1aa08f821d7ecd2f2b2",
+  "prompts": {
+    "1ab434417c6741d0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "76dbfec0-084b-480e-aa4c-86db8c882734",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>",
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1895,
+      "overriden_lines": 0
+    }
+  }
+}
