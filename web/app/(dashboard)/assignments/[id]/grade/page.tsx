@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Play, Pause, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Pause, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 import {
   Eyebrow,
@@ -21,6 +22,9 @@ import { VoiceMemoRecorder } from "@/components/grading/voice-memo-recorder";
 interface Assignment {
   id: string;
   title: string;
+  description?: string;
+  classId?: string;
+  dueDate?: string | null;
   questionIds: string[];
   submissions: Submission[];
 }
@@ -113,6 +117,7 @@ export default function GradePage() {
   const assignmentId = params.id as string;
 
   const [assignment, setAssignment] = useState<Assignment | null>(null);
+  const [className, setClassName] = useState<string>("");
   const [selectedSubmission, setSelectedSubmission] =
     useState<Submission | null>(null);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
@@ -133,8 +138,17 @@ export default function GradePage() {
 
   async function loadAssignment() {
     try {
-      const data = await api.get<Assignment>(`/assignments/${assignmentId}`);
+      const [data, classes] = await Promise.all([
+        api.get<Assignment>(`/assignments/${assignmentId}`),
+        api
+          .get<{ id: string; name: string }[]>("/classes")
+          .catch(() => [] as { id: string; name: string }[]),
+      ]);
       setAssignment(data);
+      if (data.classId) {
+        const cls = classes.find((c) => c.id === data.classId);
+        if (cls) setClassName(cls.name);
+      }
       const firstPending = data.submissions?.find(
         (s) => s.status === "submitted"
       );
@@ -208,6 +222,7 @@ export default function GradePage() {
   const submittedSubs = (assignment.submissions || []).filter(
     (s) => s.status !== "pending"
   );
+  const totalSubs = (assignment.submissions || []).length;
   const gradedCount = (assignment.submissions || []).filter(
     (s) => s.status === "graded"
   ).length;
@@ -219,7 +234,39 @@ export default function GradePage() {
   const hasNext = curIdx >= 0 && curIdx < submittedSubs.length - 1;
 
   return (
-    <div className="grid items-start gap-6" style={{ gridTemplateColumns: "260px 1fr" }}>
+    <div>
+      {/* ── 作业信息头（始终可见） ─────────────────── */}
+      <div className="mb-5 flex items-start justify-between gap-4 border-b border-line pb-5">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5">
+            <Eyebrow>ASSIGNMENT · 批改</Eyebrow>
+          </div>
+          <Serif size={24}>{assignment.title}</Serif>
+          {assignment.description && (
+            <div className="mt-1.5 line-clamp-2 text-[12px] text-muted">
+              {assignment.description}
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {className && <Chip tone="ink">{className}</Chip>}
+            <Chip tone="muted">{assignment.questionIds?.length || 0} 题</Chip>
+            <Mono size={10}>截止 · {formatDate(assignment.dueDate)}</Mono>
+            <Mono size={10}>
+              提交 {submittedSubs.length}/{totalSubs || "—"}
+              {gradedCount > 0 ? ` · 已批 ${gradedCount}` : ""}
+            </Mono>
+          </div>
+        </div>
+        <Link href="/assignments">
+          <HairlineBtn
+            leftIcon={<ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.3} />}
+          >
+            返回列表
+          </HairlineBtn>
+        </Link>
+      </div>
+
+      <div className="grid items-start gap-6" style={{ gridTemplateColumns: "260px 1fr" }}>
       {/* ── 队列 ─────────────────────────────────── */}
       <aside>
         <div className="mb-2 flex items-baseline justify-between">
@@ -437,6 +484,7 @@ export default function GradePage() {
             <Mono size={11}>— 请从左侧选择一份提交进行批改 —</Mono>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

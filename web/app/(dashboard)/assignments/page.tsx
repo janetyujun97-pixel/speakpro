@@ -94,6 +94,32 @@ function formatDue(iso: string) {
   return `${mm}·${dd} ${hh}:${mi}`;
 }
 
+function formatDueFull(iso: string) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const yy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${yy}-${mm}-${dd} ${hh}:${mi}`;
+}
+
+function csvEscape(v: string | number) {
+  const s = String(v ?? "");
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function timestampSlug() {
+  const d = new Date();
+  const yy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${yy}${mm}${dd}-${hh}${mi}`;
+}
+
 // ── 页面 ─────────────────────────────────────────────────────────────
 
 const GRID_COLS = "40px 2.2fr 1fr 1fr 1fr 1fr 0.8fr 80px";
@@ -132,6 +158,50 @@ export default function AssignmentsPage() {
     if (tab === "all") return items;
     return items.filter((a) => deriveStatus(a) === tab);
   }, [items, tab]);
+
+  const handleExport = () => {
+    const tabLabel = TABS.find((t) => t.key === tab)?.label ?? "全部";
+    const headers = [
+      "编号",
+      "标题",
+      "类型",
+      "班级",
+      "截止时间",
+      "提交率",
+      "均分",
+      "状态",
+    ];
+    const rows = filtered.map((a, i) => {
+      const rate = submissionRate(a.submissions);
+      const status = deriveStatus(a);
+      return [
+        String(i + 1).padStart(2, "0"),
+        a.title,
+        `${a.questionIds?.length || 0} 题`,
+        classMap[a.classId] || "—",
+        formatDueFull(a.dueDate),
+        rate.total > 0 ? `${rate.active}/${rate.total}` : "—",
+        "—",
+        STATUS_META[status].label,
+      ];
+    });
+
+    const csv =
+      "\uFEFF" +
+      [headers, ...rows]
+        .map((row) => row.map(csvEscape).join(","))
+        .join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `assignments-${tabLabel}-${timestampSlug()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -196,6 +266,7 @@ export default function AssignmentsPage() {
         })}
         <div className="flex-1" />
         <HairlineBtn
+          onClick={handleExport}
           leftIcon={<Download className="h-[13px] w-[13px]" strokeWidth={1.3} />}
         >
           导出

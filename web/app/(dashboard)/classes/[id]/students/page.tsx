@@ -3,8 +3,22 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { UserPlus, UserMinus, ArrowLeft } from "lucide-react";
+import {
+  UserPlus,
+  UserMinus,
+  ArrowLeft,
+  X,
+  Loader2,
+} from "lucide-react";
 import { api } from "@/lib/api";
+import {
+  Eyebrow,
+  Serif,
+  Numeral,
+  Mono,
+  Chip,
+  HairlineBtn,
+} from "@/components/editorial/primitives";
 
 interface ClassDetail {
   id: string;
@@ -19,16 +33,21 @@ interface Student {
   email: string;
 }
 
+const GRID_COLS = "40px 1.3fr 1fr 120px";
+
 export default function ClassStudentsPage() {
   const { id: classId } = useParams() as { id: string };
   const [classData, setClassData] = useState<ClassDetail | null>(null);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
   async function loadData() {
@@ -40,7 +59,7 @@ export default function ClassStudentsPage() {
       setClassData(cls);
       setAllStudents(students);
     } catch (err) {
-      console.error("加载失败:", err);
+      setError(err instanceof Error ? err.message : "加载失败");
     } finally {
       setLoading(false);
     }
@@ -48,133 +67,237 @@ export default function ClassStudentsPage() {
 
   async function addStudent() {
     if (!selectedStudentId) return;
+    setSubmitting(true);
+    setError("");
     try {
-      await api.post(`/classes/${classId}/students`, { studentId: selectedStudentId });
+      await api.post(`/classes/${classId}/students`, {
+        studentId: selectedStudentId,
+      });
       setSelectedStudentId("");
       setShowAddForm(false);
       await loadData();
-    } catch {
-      alert("添加学生失败");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "添加学生失败");
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function removeStudent(studentId: string, name: string) {
-    if (!confirm(`确认移除学生 ${name}？`)) return;
+    if (!confirm(`确认将 ${name} 移出班级？`)) return;
     try {
       await api.delete(`/classes/${classId}/students/${studentId}`);
       await loadData();
-    } catch {
-      alert("移除学生失败");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "移除学生失败");
     }
   }
 
   if (loading) {
-    return <div className="flex justify-center py-16 text-gray-400">加载中...</div>;
+    return (
+      <div className="py-20 text-center">
+        <Mono size={11}>— 加载中 —</Mono>
+      </div>
+    );
   }
 
   if (!classData) {
-    return <div className="text-center py-16 text-gray-400">班级不存在</div>;
+    return (
+      <div className="py-20 text-center">
+        <Mono size={11}>— 班级不存在 —</Mono>
+      </div>
+    );
   }
 
   const currentStudentIds = new Set(classData.students.map((s) => s.id));
-  const availableStudents = allStudents.filter((s) => !currentStudentIds.has(s.id));
+  const availableStudents = allStudents.filter(
+    (s) => !currentStudentIds.has(s.id)
+  );
+  const studentCount = classData.students.length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/classes" className="text-gray-400 hover:text-gray-600">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-primary">{classData.name}</h1>
-          <p className="text-sm text-gray-500">
-            {classData.examType} · {classData.students.length} 名学生
-          </p>
+    <div>
+      {/* ── 班级标题栏 ─────────────────────────────── */}
+      <div className="mb-5 flex items-start justify-between gap-4 border-b border-line pb-5">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5">
+            <Eyebrow>CLASS · 学生管理</Eyebrow>
+          </div>
+          <Serif size={26}>{classData.name}</Serif>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Chip tone="ink">{classData.examType}</Chip>
+            <Chip tone="muted">{studentCount} 名学生</Chip>
+            <Mono size={10}>
+              CODE · {classData.id.slice(0, 8).toUpperCase()}
+            </Mono>
+          </div>
         </div>
+        <Link href="/classes">
+          <HairlineBtn
+            leftIcon={
+              <ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.3} />
+            }
+          >
+            返回班级
+          </HairlineBtn>
+        </Link>
       </div>
 
-      {/* 操作栏 */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+      {/* ── 错误条 ─────────────────────────────── */}
+      {error && (
+        <div
+          className="mb-5 border-l-2 border-accent bg-ivory px-4 py-3 text-[13px]"
+          style={{ color: "var(--accent)" }}
         >
-          <UserPlus className="h-4 w-4" />
-          添加学生
-        </button>
-      </div>
-
-      {/* 添加学生表单 */}
-      {showAddForm && (
-        <div className="bg-white p-4 rounded-xl shadow-sm flex items-center gap-3">
-          <select
-            value={selectedStudentId}
-            onChange={(e) => setSelectedStudentId(e.target.value)}
-            className="flex-1 px-3 py-2 border rounded-lg text-sm"
-          >
-            <option value="">选择学生...</option>
-            {availableStudents.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.email})
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={addStudent}
-            disabled={!selectedStudentId}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
-          >
-            确认添加
-          </button>
-          <button
-            onClick={() => setShowAddForm(false)}
-            className="px-4 py-2 text-gray-500 hover:text-gray-700 text-sm"
-          >
-            取消
-          </button>
+          {error}
         </div>
       )}
 
-      {/* 学生列表 */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      {/* ── 操作栏 ─────────────────────────────── */}
+      <div className="mb-5 flex items-center gap-3">
+        <Mono size={10}>成员名册 · ROSTER</Mono>
+        <div className="flex-1" />
+        <HairlineBtn
+          primary
+          onClick={() => {
+            setShowAddForm((v) => !v);
+            setSelectedStudentId("");
+          }}
+          leftIcon={
+            showAddForm ? (
+              <X className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            ) : (
+              <UserPlus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            )
+          }
+        >
+          {showAddForm ? "取消" : "添加学生"}
+        </HairlineBtn>
+      </div>
+
+      {/* ── 添加学生表单（内联）─────────────────── */}
+      {showAddForm && (
+        <div className="mb-5 flex flex-wrap items-end gap-4 border border-line bg-ivory p-5">
+          <div className="min-w-[260px] flex-1">
+            <Eyebrow>选择学生</Eyebrow>
+            {availableStudents.length === 0 ? (
+              <div className="mt-2.5">
+                <Mono size={11}>— 全部学生已在本班 —</Mono>
+              </div>
+            ) : (
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="mt-1.5 w-full border border-line bg-ivory px-3 py-2 text-[12px] text-ink outline-none"
+              >
+                <option value="">— 请选择 —</option>
+                {availableStudents.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}（{s.email}）
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <HairlineBtn
+            primary
+            onClick={addStudent}
+            disabled={!selectedStudentId || submitting}
+            leftIcon={
+              submitting ? (
+                <Loader2 className="h-[13px] w-[13px] animate-spin" />
+              ) : undefined
+            }
+          >
+            {submitting ? "添加中…" : "确认添加"}
+          </HairlineBtn>
+        </div>
+      )}
+
+      {/* ── 学生列表 ─────────────────────────────── */}
+      <div className="rounded-xs border border-line bg-ivory">
+        {/* 表头 */}
+        <div
+          className="grid items-center gap-2"
+          style={{
+            gridTemplateColumns: GRID_COLS,
+            padding: "14px 22px",
+            background: "var(--bg-soft)",
+            borderBottom: "1px solid var(--line)",
+          }}
+        >
+          {["№", "姓名", "邮箱", ""].map((h, i) => (
+            <Eyebrow key={i} style={{ fontSize: 9 }}>
+              {h}
+            </Eyebrow>
+          ))}
+        </div>
+
+        {/* 行 */}
         {classData.students.length === 0 ? (
-          <p className="p-8 text-center text-gray-400">暂无学生，点击上方按钮添加</p>
+          <div className="py-16 text-center">
+            <Mono size={11}>— 暂无学生，点击右上方"添加学生" —</Mono>
+          </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">姓名</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">邮箱</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {classData.students.map((student) => (
-                <tr key={student.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">
-                    <Link
-                      href={`/classes/${classId}/students/${student.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {student.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{student.email}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => removeStudent(student.id, student.name)}
-                      className="inline-flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs"
-                    >
-                      <UserMinus className="h-3.5 w-3.5" />
-                      移除
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          classData.students.map((student, idx) => (
+            <div
+              key={student.id}
+              className="grid items-center gap-2 transition-colors hover:bg-bg-soft/50"
+              style={{
+                gridTemplateColumns: GRID_COLS,
+                padding: "16px 22px",
+                borderBottom:
+                  idx < classData.students.length - 1
+                    ? "1px solid var(--line)"
+                    : 0,
+              }}
+            >
+              {/* № */}
+              <Serif size={15} italic color="var(--muted-2)">
+                {String(idx + 1).padStart(2, "0")}
+              </Serif>
+
+              {/* 姓名（可点击查看详情） */}
+              <Link
+                href={`/classes/${classId}/students/${student.id}`}
+                className="min-w-0 text-[14px] font-medium text-ink hover:underline"
+              >
+                {student.name}
+              </Link>
+
+              {/* 邮箱 */}
+              <Mono size={11} color="var(--muted)">
+                {student.email}
+              </Mono>
+
+              {/* 移除 */}
+              <div className="text-right">
+                <button
+                  onClick={() => removeStudent(student.id, student.name)}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-muted transition-colors hover:text-accent"
+                  aria-label={`移除 ${student.name}`}
+                >
+                  <UserMinus
+                    className="h-[13px] w-[13px]"
+                    strokeWidth={1.3}
+                  />
+                  移除
+                </button>
+              </div>
+            </div>
+          ))
         )}
       </div>
+
+      {/* 底部统计 */}
+      {studentCount > 0 && (
+        <div className="mt-3.5 flex items-center justify-between">
+          <Mono size={10}>
+            共 <Numeral size={11}>{studentCount}</Numeral> 名学生
+          </Mono>
+          <Mono size={10}>ROSTER · {classData.examType}</Mono>
+        </div>
+      )}
     </div>
   );
 }

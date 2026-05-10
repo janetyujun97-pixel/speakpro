@@ -40,7 +40,10 @@ export default function NewAssignmentPage() {
   const [description, setDescription] = useState("");
   const [classId, setClassId] = useState("");
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  // 截止 · 拆成三段：日期 / 时 / 分，默认 23:59
   const [dueDate, setDueDate] = useState("");
+  const [dueHour, setDueHour] = useState("23");
+  const [dueMinute, setDueMinute] = useState("59");
 
   // 选项
   const [classes, setClasses] = useState<ClassOption[]>([]);
@@ -55,10 +58,15 @@ export default function NewAssignmentPage() {
       try {
         const [classesData, questionsData] = await Promise.all([
           api.get<ClassOption[]>("/classes"),
-          api.get<QuestionOption[]>("/questions"),
+          api.get<QuestionOption[] | { items: QuestionOption[] }>("/questions"),
         ]);
         setClasses(classesData);
-        setQuestions(questionsData);
+        // /questions 返回 { items, total, ... } 分页对象，兼容纯数组
+        setQuestions(
+          Array.isArray(questionsData)
+            ? questionsData
+            : questionsData?.items ?? []
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "加载数据失败");
       } finally {
@@ -86,12 +94,19 @@ export default function NewAssignmentPage() {
     setSubmitting(true);
     setError("");
     try {
+      let dueIso: string | undefined;
+      if (dueDate) {
+        const h = Math.max(0, Math.min(23, parseInt(dueHour || "0", 10) || 0));
+        const m = Math.max(0, Math.min(59, parseInt(dueMinute || "0", 10) || 0));
+        const [y, mo, d] = dueDate.split("-").map((v) => parseInt(v, 10));
+        dueIso = new Date(y, (mo || 1) - 1, d || 1, h, m, 0, 0).toISOString();
+      }
       await api.post("/assignments", {
         title,
         description,
         classId,
         questionIds: selectedQuestionIds,
-        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+        dueDate: dueIso,
       });
       router.push("/assignments");
     } catch (err) {
@@ -176,13 +191,42 @@ export default function NewAssignmentPage() {
               </select>
             </Field>
 
-            <Field label="截止日期">
-              <input
-                type="datetime-local"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full border border-line bg-ivory px-3 py-2 font-mono text-[12px] text-ink outline-none"
-              />
+            <Field label="截止（日期 · 时 · 分）">
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="flex-1 border border-line bg-ivory px-3 py-2 font-mono text-[12px] text-ink outline-none"
+                />
+                <select
+                  value={dueHour}
+                  onChange={(e) => setDueHour(e.target.value)}
+                  disabled={!dueDate}
+                  aria-label="小时"
+                  className="border border-line bg-ivory px-2 py-2 font-mono text-[12px] text-ink outline-none disabled:opacity-40"
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={String(i)}>
+                      {String(i).padStart(2, "0")}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[12px] text-muted">:</span>
+                <select
+                  value={dueMinute}
+                  onChange={(e) => setDueMinute(e.target.value)}
+                  disabled={!dueDate}
+                  aria-label="分钟"
+                  className="border border-line bg-ivory px-2 py-2 font-mono text-[12px] text-ink outline-none disabled:opacity-40"
+                >
+                  {Array.from({ length: 12 }, (_, i) => i * 5).map((v) => (
+                    <option key={v} value={String(v)}>
+                      {String(v).padStart(2, "0")}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </Field>
           </div>
 
