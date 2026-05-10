@@ -1,6 +1,5 @@
 package com.speakpro.features.auth
 
-import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,29 +47,11 @@ fun AuthNavGraph(onAuthenticated: () -> Unit) {
     NavHost(navController = navController, startDestination = AuthRoutes.LOGIN) {
 
         composable(AuthRoutes.LOGIN) {
-            val phoneVM: PhoneAuthViewModel = hiltViewModel()
             val loginVM: LoginViewModel = hiltViewModel()
             val isLoggedIn by loginVM.isLoggedIn.collectAsState()
             LaunchedEffect(isLoggedIn) { if (isLoggedIn) onAuthenticated() }
 
-            LoginScreen(
-                phoneVM = phoneVM,
-                onRequestOtp = {
-                    phoneVM.sendOtp {
-                        navController.navigate(AuthRoutes.otp(AuthRoutes.FLOW_LOGIN))
-                    }
-                },
-                onGoRegister = { navController.navigate(AuthRoutes.REGISTER) },
-                onGoForgot = { navController.navigate(AuthRoutes.FORGOT) },
-                onAppleSignIn = {
-                    // PR2c 未接 Apple SDK（Android 端 Apple 登录用 web OAuth 流，属 follow-up）
-                    Toast.makeText(ctx, "Apple 登录敬请期待", Toast.LENGTH_SHORT).show()
-                },
-                onWechatSignIn = {
-                    Toast.makeText(ctx, "微信登录敬请期待", Toast.LENGTH_SHORT).show()
-                },
-                onEmailLogin = { navController.navigate(AuthRoutes.EMAIL) },
-            )
+            LoginScreen(viewModel = loginVM)
         }
 
         composable(AuthRoutes.EMAIL) {
