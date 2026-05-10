@@ -32,6 +32,11 @@ export class ClassesController {
     return this.classesService.findAll(teacherId);
   }
 
+  @Get(':id')
+  async findById(@Param('id') id: string) {
+    return this.classesService.findById(id);
+  }
+
   @Put(':id')
   async update(@Param('id') id: string, @Body() data: { name?: string; examType?: string }) {
     return this.classesService.update(id, data);
