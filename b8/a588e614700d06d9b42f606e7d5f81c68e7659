@@ -1,0 +1,22 @@
+server/nest-api/src/modules/classes/classes.controller.ts
+  1ab434417c6741d0 35-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "b8a588e614700d06d9b42f606e7d5f81c68e7659",
+  "prompts": {
+    "1ab434417c6741d0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "76dbfec0-084b-480e-aa4c-86db8c882734",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>",
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1900,
+      "overriden_lines": 0
+    }
+  }
+}
