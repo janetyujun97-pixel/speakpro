@@ -1,0 +1,76 @@
+server/nest-api/src/modules/assignments/assignments.controller.ts
+  s_3b64d8e98aab3e::t_40643e77152f30 83
+  s_3b64d8e98aab3e::t_902b1b0dd5de7e 63
+  s_3b64d8e98aab3e::t_7d333e4a91faf2 15-16,19,24
+server/nest-api/src/modules/users/users.service.ts
+  s_3b64d8e98aab3e::t_72bcf6fc95e871 39
+  s_3b64d8e98aab3e::t_ef744f1856169b 1-6,12-19
+  s_3b64d8e98aab3e::t_8f655f92734416 91-197
+server/nest-api/src/modules/classes/classes.service.ts
+  s_3b64d8e98aab3e::t_37aba193df32b8 227-228
+  s_3b64d8e98aab3e::t_b5b4c05ed49e65 69-74,80-81,85-86,89,92-93
+  s_3b64d8e98aab3e::t_730f931d63b1a7 49,57,61-66
+  s_3b64d8e98aab3e::t_378a6bb1f1e6e6 109-110
+  s_3b64d8e98aab3e::t_6d5bf7a7dce613 181-182
+  s_3b64d8e98aab3e::t_f5e0a8635db122 1-5,13-17
+server/nest-api/src/modules/auth/dto/register.dto.ts
+  s_3b64d8e98aab3e::t_47c1a69d5dd622 8-9
+web/app/(dashboard)/admin/teachers/page.tsx
+  s_3b64d8e98aab3e::t_b9401e824f5190 64,107-108,110-111,113,115,117,119,122,124-157,159-167,173,176,180-236
+  s_3b64d8e98aab3e::t_1e20c8f570a6d1 1-63,65-106,109,112,114,116,118,120-121,123,158,168-172,174-175,177-179,237-239
+server/nest-api/src/modules/resources/resources.controller.ts
+  s_3b64d8e98aab3e::t_01edab0e8a3b02 14-15,18,23,31
+  s_3b64d8e98aab3e::t_2b64425f6d3bdb 48
+server/nest-api/src/modules/users/users.controller.ts
+  s_3b64d8e98aab3e::t_014c53dd132c9b 4,6,8,15-22,25,29-30,91-93,95-144
+web/app/(dashboard)/admin/students/page.tsx
+  s_3b64d8e98aab3e::t_77e9c0d55d31d8 1-35,37-73,76,79-80,83-86,88-89,93-96,98-99,101-103,130,132,134,156,177-179
+  s_3b64d8e98aab3e::t_dc2fa17107f6d1 36,74-75,77-78,81-82,87,90-92,97,100,104-129,131,133,135-155,157-176
+server/database/migrations/008_user_status.sql
+  s_3b64d8e98aab3e::t_f6e49943f4fd26 1-9
+server/nest-api/src/modules/users/entities/user.entity.ts
+  s_3b64d8e98aab3e::t_2700e747880ab4 17-20
+server/nest-api/src/modules/auth/auth.service.ts
+  s_3b64d8e98aab3e::t_fdb92ed5e07e12 47
+  s_3b64d8e98aab3e::t_4b194234bebd34 80
+  s_3b64d8e98aab3e::t_5a44c14c7af7ce 335-338
+server/nest-api/src/modules/analytics/analytics.controller.ts
+  s_3b64d8e98aab3e::t_2b24ecdf3079ce 4-5
+  s_3b64d8e98aab3e::t_e284df875cf1fd 30-31,38-39
+web/middleware.ts
+  s_3b64d8e98aab3e::t_579e99bb740efb 60-68
+  s_3b64d8e98aab3e::t_c4c616dd772872 10-26
+server/nest-api/src/modules/classes/classes.controller.ts
+  s_3b64d8e98aab3e::t_e536561622d65b 14-15,17,19-20,24-27
+  s_3b64d8e98aab3e::t_cc5bf39bedd528 45-46,50-55,59-60,68,70,77,79,83-84,88-89,93-94
+server/nest-api/src/modules/users/dto/update-user.dto.ts
+  s_3b64d8e98aab3e::t_1aed3812a32f98 1-40
+web/components/layout/sidebar.tsx
+  s_3b64d8e98aab3e::t_076afce5129a92 39
+  s_3b64d8e98aab3e::t_75c6e6215f62d3 6-16,19,22,26-32,35-38,41,51-54,57-83,86-92,96-103,105-108,110,113,116,118-119,122-123,125
+server/nest-api/src/modules/users/dto/create-user.dto.ts
+  s_3b64d8e98aab3e::t_1fa21df63a45bb 1-27
+web/tsconfig.tsbuildinfo
+  s_3b64d8e98aab3e::t_cf22ee80ce0fe9 1
+server/nest-api/src/modules/questions/questions.controller.ts
+  s_3b64d8e98aab3e::t_9207cb33aff3fe 15-16,20
+  s_3b64d8e98aab3e::t_ef5cfb2ecf01e3 53
+  s_3b64d8e98aab3e::t_f8123c6cdd48d8 68,74
+  s_3b64d8e98aab3e::t_bbf1daa8ee4f78 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "8ef1d0075bfac228ba775d00ce47fa1d89f55305",
+  "prompts": {},
+  "sessions": {
+    "s_3b64d8e98aab3e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9ac80616-42c4-4112-85a8-ad279a335c54",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>"
+    }
+  }
+}
