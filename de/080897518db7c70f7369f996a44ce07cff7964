@@ -1,0 +1,69 @@
+server/go-services/cmd/server/main.go
+  s_6c03566a17f6dd::t_26c8932837b4e7 33
+  s_6c03566a17f6dd::t_2e9bd25cefd3b4 45,47-48
+  s_6c03566a17f6dd::t_b72f236675f00d 76
+server/go-services/internal/config/config.go
+  s_6c03566a17f6dd::t_68f954e6b10862 108
+  s_6c03566a17f6dd::t_5b83c41e0697c6 95
+  s_6c03566a17f6dd::t_b4ab50954f0861 34
+  s_6c03566a17f6dd::t_dfbe33cd2466ee 100-102
+  s_6c03566a17f6dd::t_34064f3ff3840c 57
+  s_6c03566a17f6dd::t_009df744ea1fdb 44-48
+  s_3b64d8e98aab3e::t_30c027b3308b73 96
+server/go-services/internal/service/mimo_tts.go
+  s_6c03566a17f6dd::t_a664bbd4c65ae4 16
+  s_3b64d8e98aab3e::t_4a0449283a8941 75
+  s_6c03566a17f6dd::t_42fcea6ac83865 79,83
+  s_6c03566a17f6dd::t_222311119e4d99 102
+server/.env.example
+  s_3b64d8e98aab3e::t_d3c2d31154897b 34-35
+  s_6c03566a17f6dd::t_8fb05c2eb99e54 32-33,44-45
+  s_6c03566a17f6dd::t_37cee81a82690f 30-31,36-43,46
+server/go-services/internal/service/orchestrator.go
+  s_6c03566a17f6dd::t_bce9eedeea2f31 27
+  s_6c03566a17f6dd::t_7724e48e1ba15a 69-72
+server/nest-api/tsconfig.build.json
+  s_6c03566a17f6dd::t_de2c9b3f03f656 1-4
+server/go-services/Dockerfile
+  s_6c03566a17f6dd::t_2944fcbfa29eeb 3-4
+android/app/src/main/java/com/speakpro/core/network/ApiClient.kt
+  s_6c03566a17f6dd::t_aaa5d96a118ae3 27-28,30-31
+android/app/src/main/java/com/speakpro/core/network/Endpoints.kt
+  s_6c03566a17f6dd::t_4d962e13e2d33f 65
+server/nest-api/Dockerfile
+  s_3b64d8e98aab3e::t_f8f4ec8421d095 1-2,9
+web/app/(dashboard)/settings/page.tsx
+  s_3b64d8e98aab3e::t_78c83c00321608 3,15,27,30,32,40,44,48,51,56,63-64,67-68,72-76,81,84-92,94-101,103-107,112,115-122,124-140
+android/app/src/main/java/com/speakpro/core/network/NetworkModule.kt
+  s_6c03566a17f6dd::t_55b63f9a3d59f8 20
+server/go-services/internal/service/mimo_asr.go
+  s_6c03566a17f6dd::t_a201a196a3a372 1-189
+server/.env.production.example
+  s_3b64d8e98aab3e::t_4f6ee109d80d63 37
+  s_6c03566a17f6dd::t_f186e57c6c980a 36,40
+  s_6c03566a17f6dd::t_cd6f966cc42684 34-35,38-39,41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "de080897518db7c70f7369f996a44ce07cff7964",
+  "prompts": {},
+  "sessions": {
+    "s_3b64d8e98aab3e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9ac80616-42c4-4112-85a8-ad279a335c54",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>"
+    },
+    "s_6c03566a17f6dd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fa607c4f-208e-44c8-8cd3-67c7cb64d550",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>"
+    }
+  }
+}
