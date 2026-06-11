@@ -11,13 +11,16 @@ import {
 } from '@nestjs/common';
 import { ResourcesService } from './resources.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @Controller('resources')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
   @Post('upload-sign')
+  @Roles('teacher', 'admin')
   async getUploadSignature(
     @Body() data: { filename: string; contentType: string },
   ) {
@@ -25,6 +28,7 @@ export class ResourcesController {
   }
 
   @Post()
+  @Roles('teacher', 'admin')
   async create(@Body() data: any, @Request() req: any) {
     return this.resourcesService.create({
       ...data,
@@ -41,6 +45,7 @@ export class ResourcesController {
   }
 
   @Delete(':id')
+  @Roles('teacher', 'admin')
   async delete(@Param('id') id: string) {
     return this.resourcesService.delete(id);
   }

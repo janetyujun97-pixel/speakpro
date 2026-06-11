@@ -12,13 +12,16 @@ import {
 } from '@nestjs/common';
 import { AssignmentsService } from './assignments.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @Controller('assignments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}
 
   @Post()
+  @Roles('teacher', 'admin')
   async create(@Body() data: any, @Request() req: any) {
     return this.assignmentsService.create({
       ...data,
@@ -57,6 +60,7 @@ export class AssignmentsController {
   }
 
   @Put(':id/grade')
+  @Roles('teacher', 'admin')
   async grade(
     @Param('id') id: string,
     @Body()
@@ -76,6 +80,7 @@ export class AssignmentsController {
 
   /** Web 教师后台录完整体语音备注后回写作业 */
   @Patch(':id/teacher-voice')
+  @Roles('teacher', 'admin')
   async updateTeacherVoice(
     @Param('id') id: string,
     @Body() data: { teacherVoiceUrl: string | null },

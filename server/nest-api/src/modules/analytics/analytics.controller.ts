@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller('analytics')
@@ -25,14 +27,16 @@ export class AnalyticsController {
 
   // 运营概览（需认证，仅管理员/教师）
   @Get('overview')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
   async getOverview() {
     return this.analyticsService.getOverview();
   }
 
   // DAU 趋势
   @Get('dau-trend')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
   async getDauTrend() {
     return this.analyticsService.getDauTrend();
   }

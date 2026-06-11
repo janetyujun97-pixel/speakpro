@@ -7,6 +7,23 @@ const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-passwor
 // 登录后不应再访问的路径（如已登录访问 /login 会跳转 Dashboard）
 const AUTH_ONLY_PATHS = ["/login", "/register"];
 
+// 仅管理员可访问的路径前缀（真正的鉴权在后端，这里只做 UX 跳转）
+const ADMIN_PATHS = ["/admin", "/system"];
+
+// 解码 JWT payload 读取 role（不校验签名，仅用于前端路由跳转）
+function readRoleFromToken(token: string): string | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(base64);
+    const data = JSON.parse(json);
+    return data?.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -38,6 +55,15 @@ export function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // 管理员专属路径：非 admin 重定向回首页
+  const isAdminPath = ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  if (isAuthenticated && isAdminPath) {
+    const role = readRoleFromToken(tokenCookie!.value);
+    if (role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   return NextResponse.next();

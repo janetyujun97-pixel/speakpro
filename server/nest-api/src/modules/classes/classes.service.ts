@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Class } from './entities/class.entity';
 import { User } from '../users/entities/user.entity';
 import { PracticeSession } from '../practice/entities/practice-session.entity';
 import { Submission } from '../assignments/entities/submission.entity';
+
+// 调用方身份；admin 可操作任意班级，teacher 仅限自己拥有的班级
+export interface Requester {
+  id: string;
+  role: string;
+}
 
 @Injectable()
 export class ClassesService {
@@ -36,7 +46,7 @@ export class ClassesService {
     return query.getMany();
   }
 
-  async findById(id: string): Promise<Class> {
+  async findById(id: string, requester?: Requester): Promise<Class> {
     const cls = await this.classesRepository.findOne({
       where: { id },
       relations: ['teacher', 'students'],
@@ -44,30 +54,43 @@ export class ClassesService {
     if (!cls) {
       throw new NotFoundException('班级不存在');
     }
+    this.assertOwnership(cls, requester);
     return cls;
   }
 
-  async update(classId: string, data: { name?: string; examType?: string }): Promise<Class> {
-    const cls = await this.findById(classId);
+  // 非管理员只能操作自己拥有的班级
+  private assertOwnership(cls: Class, requester?: Requester) {
+    if (!requester || requester.role === 'admin') return;
+    if (cls.teacherId !== requester.id) {
+      throw new ForbiddenException('无权操作其他教师的班级');
+    }
+  }
+
+  async update(
+    classId: string,
+    data: { name?: string; examType?: string },
+    requester?: Requester,
+  ): Promise<Class> {
+    const cls = await this.findById(classId, requester);
     if (data.name) cls.name = data.name;
     if (data.examType) cls.examType = data.examType as any;
     return this.classesRepository.save(cls);
   }
 
-  async delete(classId: string): Promise<void> {
-    const cls = await this.findById(classId);
+  async delete(classId: string, requester?: Requester): Promise<void> {
+    const cls = await this.findById(classId, requester);
     await this.classesRepository.remove(cls);
   }
 
-  async removeStudent(classId: string, studentId: string): Promise<Class> {
-    const cls = await this.findById(classId);
+  async removeStudent(classId: string, studentId: string, requester?: Requester): Promise<Class> {
+    const cls = await this.findById(classId, requester);
     cls.students = cls.students.filter((s) => s.id !== studentId);
     await this.classesRepository.save(cls);
-    return this.findById(classId);
+    return this.findById(classId, requester);
   }
 
-  async addStudent(classId: string, studentId: string): Promise<Class> {
-    const cls = await this.findById(classId);
+  async addStudent(classId: string, studentId: string, requester?: Requester): Promise<Class> {
+    const cls = await this.findById(classId, requester);
     const student = await this.usersRepository.findOne({ where: { id: studentId } });
     if (!student) {
       throw new NotFoundException('学生不存在');
@@ -83,8 +106,8 @@ export class ClassesService {
     return this.findById(classId);
   }
 
-  async getAnalytics(classId: string) {
-    const cls = await this.findById(classId);
+  async getAnalytics(classId: string, requester?: Requester) {
+    const cls = await this.findById(classId, requester);
     const studentIds = cls.students.map((s) => s.id);
 
     if (studentIds.length === 0) {
@@ -155,8 +178,8 @@ export class ClassesService {
   }
 
   // 成绩趋势（按日期聚合各维度平均分）
-  async getScoreTrends(classId: string, days = 7) {
-    const cls = await this.findById(classId);
+  async getScoreTrends(classId: string, requester?: Requester, days = 7) {
+    const cls = await this.findById(classId, requester);
     const studentIds = cls.students.map((s) => s.id);
     if (studentIds.length === 0) return [];
 
@@ -201,8 +224,8 @@ export class ClassesService {
   }
 
   // 学生排行榜（按平均分降序）
-  async getStudentLeaderboard(classId: string, limit = 10) {
-    const cls = await this.findById(classId);
+  async getStudentLeaderboard(classId: string, requester?: Requester, limit = 10) {
+    const cls = await this.findById(classId, requester);
     if (cls.students.length === 0) return [];
 
     const leaderboard = await Promise.all(

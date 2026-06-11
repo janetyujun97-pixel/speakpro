@@ -14,6 +14,10 @@ export class User {
   @Column({ type: 'varchar', length: 20 })
   role: 'student' | 'teacher' | 'admin';
 
+  // 账号状态：active 正常 / disabled 已禁用（禁用后无法登录）
+  @Column({ type: 'varchar', length: 20, default: 'active' })
+  status: 'active' | 'disabled';
+
   @Column({ type: 'varchar', length: 20, unique: true, nullable: true })
   phone: string;
 

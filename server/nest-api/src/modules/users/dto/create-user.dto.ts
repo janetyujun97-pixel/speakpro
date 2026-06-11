@@ -3,11 +3,11 @@ import {
   IsNotEmpty,
   IsString,
   MinLength,
+  IsIn,
 } from 'class-validator';
 
-// 公开注册仅用于学生（手机 App 自助注册）；教师/管理员一律由管理员后台创建。
-// 故此处不接收 role 字段，避免越权自助注册成 teacher/admin。
-export class RegisterDto {
+// 管理员后台创建账号（教师/学生/管理员）
+export class CreateUserDto {
   @IsString()
   @IsNotEmpty({ message: '姓名不能为空' })
   name: string;
@@ -20,4 +20,8 @@ export class RegisterDto {
   @IsNotEmpty({ message: '密码不能为空' })
   @MinLength(6, { message: '密码长度不能少于6位' })
   password: string;
+
+  @IsString()
+  @IsIn(['student', 'teacher', 'admin'], { message: '角色必须为 student、teacher 或 admin' })
+  role: 'student' | 'teacher' | 'admin';
 }

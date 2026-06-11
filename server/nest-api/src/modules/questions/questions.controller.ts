@@ -12,10 +12,12 @@ import {
 } from '@nestjs/common';
 import { QuestionsService, QuestionFilters } from './questions.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { Question } from './entities/question.entity';
 
 @Controller('questions')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class QuestionsController {
   constructor(private readonly questionsService: QuestionsService) {}
 
@@ -48,11 +50,13 @@ export class QuestionsController {
   }
 
   @Post()
+  @Roles('teacher', 'admin')
   async create(@Body() data: Partial<Question>, @Request() req: any): Promise<Question> {
     return this.questionsService.create({ ...data, createdBy: req.user.sub });
   }
 
   @Put(':id')
+  @Roles('teacher', 'admin')
   async update(
     @Param('id') id: string,
     @Body() data: Partial<Question>,
@@ -61,11 +65,13 @@ export class QuestionsController {
   }
 
   @Delete(':id')
+  @Roles('teacher', 'admin')
   async delete(@Param('id') id: string): Promise<void> {
     return this.questionsService.delete(id);
   }
 
   @Post('import')
+  @Roles('teacher', 'admin')
   async bulkImport(@Body() questions: Partial<Question>[]) {
     return this.questionsService.bulkImport(questions);
   }

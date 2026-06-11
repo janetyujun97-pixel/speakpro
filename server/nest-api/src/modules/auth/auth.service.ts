@@ -44,6 +44,7 @@ interface UserLike {
   role: string;
   password?: string;
   avatarUrl?: string | null;
+  status?: string;
 }
 
 @Injectable()
@@ -76,7 +77,7 @@ export class AuthService {
       name: registerDto.name,
       email: registerDto.email,
       password: hashedPassword,
-      role: registerDto.role || 'student',
+      role: 'student', // 公开注册只产出学生；教师/管理员由管理员后台创建
     });
 
     return this.signResponse(user);
@@ -331,6 +332,10 @@ export class AuthService {
   }
 
   private signResponse(user: UserLike) {
+    // 已禁用账号禁止登录（新注册用户 status 为 undefined/active，不受影响）
+    if (user.status === 'disabled') {
+      throw new UnauthorizedException('账号已被禁用，请联系管理员');
+    }
     const tokens = this.generateTokens(user.id, user.email ?? '', user.role);
     return {
       user: {
