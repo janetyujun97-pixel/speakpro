@@ -24,6 +24,7 @@ type Orchestrator struct {
 
 // ProviderRegistry 保留所有原始 AI 客户端，供按次覆盖时重新组装 fallback 链
 type ProviderRegistry struct {
+	MimoASR    ASRClient
 	TencentASR ASRClient
 	XunfeiASR  ASRClient
 	TencentISE ISEClient
@@ -65,6 +66,10 @@ func (o *Orchestrator) PickASR(override string) ASRClient {
 		return o.asr
 	}
 	switch override {
+	case "mimo":
+		if o.registry.MimoASR != nil && o.registry.TencentASR != nil {
+			return NewFallbackASR(o.registry.MimoASR, o.registry.TencentASR)
+		}
 	case "tencent":
 		if o.registry.TencentASR != nil && o.registry.XunfeiASR != nil {
 			return NewFallbackASR(o.registry.TencentASR, o.registry.XunfeiASR)

@@ -13,7 +13,7 @@ import (
 	"github.com/speakpro/go-services/internal/config"
 )
 
-// MiMoTTSClient 小米 MiMo-V2-TTS 客户端
+// MiMoTTSClient 小米 MiMo TTS 客户端（默认 mimo-v2.5-tts）
 // API 文档: https://platform.xiaomimimo.com/#/docs/usage-guide/speech-synthesis
 type MiMoTTSClient struct {
 	apiKey string
@@ -72,15 +72,15 @@ func (c *MiMoTTSClient) Synthesize(text string, speed float64) ([]byte, error) {
 
 	voice := c.voice
 	if voice == "" {
-		voice = "default_en" // 默认英文女声
+		voice = "Chloe" // 默认英文女声
 	}
 
 	// 构建请求
-	// MiMo TTS 要求 messages 中包含 assistant role
+	// MiMo TTS 要求 messages 中包含 assistant role：user 为风格指令，assistant 为待合成文本
 	reqBody := mimoRequest{
 		Model: c.model,
 		Messages: []mimoMessage{
-			{Role: "user", Content: "请朗读以下内容"},
+			{Role: "user", Content: "Speak in a clear, natural and friendly tone, at a moderate pace."},
 			{Role: "assistant", Content: text},
 		},
 		Audio: &mimoAudio{
@@ -99,8 +99,7 @@ func (c *MiMoTTSClient) Synthesize(text string, speed float64) ([]byte, error) {
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
 
-	// MiMo 使用 Bearer 认证头
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("api-key", c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	log.Printf("[MiMoTTS] 合成请求: text_len=%d, model=%s, voice=%s", len(text), c.model, voice)

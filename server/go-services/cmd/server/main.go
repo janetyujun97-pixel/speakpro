@@ -30,6 +30,7 @@ func main() {
 	tencentASR := service.NewTencentASRClient(cfg)
 	tencentSOE := service.NewTencentSOEClient(cfg)
 	mimoLLM := service.NewMiMoLLMClient(cfg)
+	mimoASR := service.NewMiMoASRClient(cfg)
 
 	// TTS 服务
 	fishTTSClient := service.NewFishTTSClient(cfg)
@@ -41,8 +42,10 @@ func main() {
 	var iseClient service.ISEClient
 	var llmClient service.LLMClient
 
-	// ASR: 腾讯云优先，讯飞回退
+	// ASR: MiMo 优先，腾讯云回退；可通过 DEFAULT_ASR_PROVIDER 切换
 	switch cfg.DefaultASRProvider {
+	case "mimo":
+		asrClient = service.NewFallbackASR(mimoASR, tencentASR)
 	case "tencent":
 		asrClient = service.NewFallbackASR(tencentASR, xunfeiClient)
 	default:
@@ -70,6 +73,7 @@ func main() {
 
 	// === Orchestrator（使用接口 + 原始客户端注册表以支持按次覆盖） ===
 	registry := &service.ProviderRegistry{
+		MimoASR:    mimoASR,
 		TencentASR: tencentASR,
 		XunfeiASR:  xunfeiClient,
 		TencentISE: tencentSOE,

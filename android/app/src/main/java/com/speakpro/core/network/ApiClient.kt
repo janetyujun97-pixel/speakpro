@@ -24,11 +24,11 @@ object ApiClient {
 
     // ========== Base URLs ==========
 
-    /** NestJS 服务基地址（FRP 内网穿透） */
-    private const val NEST_BASE_URL = "http://frp6.ccszxc.site:26074/api/v1/"
+    /** NestJS 服务基地址（线上 HTTPS 网关 learnpark.cn:8443） */
+    private const val NEST_BASE_URL = "https://learnpark.cn:8443/api/v1/"
 
-    /** Go AI 服务基地址（FRP 内网穿透） */
-    private const val GO_BASE_URL = "http://frp6.ccszxc.site:26074/api/v1/"
+    /** Go AI 服务基地址（线上 HTTPS 网关 learnpark.cn:8443） */
+    private const val GO_BASE_URL = "https://learnpark.cn:8443/api/v1/"
 
     // ========== 超时配置 ==========
 

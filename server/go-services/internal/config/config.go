@@ -31,7 +31,7 @@ type Config struct {
 	FishAudioModel   string
 	FishAudioVoiceID string
 
-	// MiMo-V2-TTS（小米）
+	// MiMo TTS（小米）
 	MiMoAPIKey string
 	MiMoModel  string
 	MiMoVoice  string
@@ -41,6 +41,11 @@ type Config struct {
 	MiMoLLMModel   string
 	MiMoLLMEndpoint string
 
+	// MiMo ASR（小米语音识别）
+	MiMoASRAPIKey   string
+	MiMoASRModel    string
+	MiMoASREndpoint string
+
 	// 腾讯云 ASR + SOE
 	TencentSecretID  string
 	TencentSecretKey string
@@ -49,7 +54,7 @@ type Config struct {
 
 	// 默认提供商选择
 	DefaultTTSProvider string // mimo / fish / xunfei
-	DefaultASRProvider string // tencent / xunfei
+	DefaultASRProvider string // mimo / tencent / xunfei
 	DefaultISEProvider string // tencent / xunfei
 	DefaultLLMProvider string // mimo / qwen
 
@@ -87,17 +92,20 @@ func Load() *Config {
 		FishAudioModel:     getEnv("FISH_AUDIO_MODEL", "s2-pro"),
 		FishAudioVoiceID:   getEnv("FISH_AUDIO_VOICE_ID", ""),
 		MiMoAPIKey:         getEnv("MIMO_API_KEY", ""),
-		MiMoModel:          getEnv("MIMO_MODEL", "mimo-v2-tts"),
-		MiMoVoice:          getEnv("MIMO_VOICE", "default_en"),
+		MiMoModel:          getEnv("MIMO_MODEL", "mimo-v2.5-tts"),
+		MiMoVoice:          getEnv("MIMO_VOICE", "Chloe"),
 		MiMoLLMAPIKey:      getEnv("MIMO_LLM_API_KEY", ""),
 		MiMoLLMModel:       getEnv("MIMO_LLM_MODEL", "mimo-llm"),
 		MiMoLLMEndpoint:    getEnv("MIMO_LLM_ENDPOINT", ""),
+		MiMoASRAPIKey:      getEnv("MIMO_ASR_API_KEY", ""),
+		MiMoASRModel:       getEnv("MIMO_ASR_MODEL", "mimo-v2.5-asr"),
+		MiMoASREndpoint:    getEnv("MIMO_ASR_ENDPOINT", ""),
 		TencentSecretID:    getEnv("TENCENT_SECRET_ID", ""),
 		TencentSecretKey:   getEnv("TENCENT_SECRET_KEY", ""),
 		TencentASRAppID:    getEnv("TENCENT_ASR_APP_ID", ""),
 		TencentRegion:      getEnv("TENCENT_REGION", "ap-guangzhou"),
 		DefaultTTSProvider: getEnv("DEFAULT_TTS_PROVIDER", "mimo"),
-		DefaultASRProvider: getEnv("DEFAULT_ASR_PROVIDER", "tencent"),
+		DefaultASRProvider: getEnv("DEFAULT_ASR_PROVIDER", "mimo"),
 		DefaultISEProvider: getEnv("DEFAULT_ISE_PROVIDER", "tencent"),
 		DefaultLLMProvider: getEnv("DEFAULT_LLM_PROVIDER", "mimo"),
 		NestAPIBaseURL:       getEnv("NEST_API_BASE_URL", "http://localhost:3000/api/v1"),
