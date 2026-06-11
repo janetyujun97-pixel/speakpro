@@ -1,0 +1,19 @@
+web/app/(dashboard)/settings/page.tsx
+  s_3b64d8e98aab3e::t_1eea02cb3c9d6b 3,6-56,61,65-67,70,77,79-90,95,98,100,108,112,116,119,124,130-145,147-160,163-170,174-176,181-182,184-194,196-259,261,263-265,270-272,274-295,297-304,306-353
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "611375b5a2d31a9de2225d1a1d47fa50c7227dd0",
+  "prompts": {},
+  "sessions": {
+    "s_3b64d8e98aab3e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9ac80616-42c4-4112-85a8-ad279a335c54",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>"
+    }
+  }
+}
