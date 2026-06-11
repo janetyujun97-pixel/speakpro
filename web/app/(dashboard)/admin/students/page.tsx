@@ -3,6 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { Search, Ban, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
+import {
+  Eyebrow,
+  Serif,
+  Mono,
+  Chip,
+  HairlineBtn,
+} from "@/components/editorial/primitives";
 
 interface ManagedUser {
   id: string;
@@ -70,108 +77,100 @@ export default function AdminStudentsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="mx-auto max-w-4xl">
+      {/* Masthead */}
+      <div className="mb-8 flex items-end justify-between gap-4 border-b border-line pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-primary">学生管理</h1>
-          <p className="mt-1 text-sm text-muted-foreground">共 {total} 名学生 · 学生通过手机 App 自助注册</p>
+          <Eyebrow>管理 · ADMIN</Eyebrow>
+          <div className="mt-1">
+            <Serif size={28}>学生管理</Serif>
+          </div>
+          <div className="mt-1">
+            <Mono size={10}>共 {total} 名学生 · App 自助注册</Mono>
+          </div>
         </div>
         <form onSubmit={onSearch} className="flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 border border-line px-3 py-2">
+            <Search className="h-[14px] w-[14px] text-muted" strokeWidth={1.4} />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="搜索姓名 / 邮箱"
-              className="w-44 bg-transparent text-sm outline-none"
+              className="w-[160px] bg-transparent text-[13px] text-ink outline-none"
             />
           </div>
-          <button type="submit" className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-muted">
-            搜索
-          </button>
+          <HairlineBtn type="submit">搜索</HairlineBtn>
         </form>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="mb-4 border-l-2 border-accent bg-ivory px-4 py-3 text-[13px]" style={{ color: "var(--accent)" }}>
+          {error}
+        </div>
       )}
       {msg && !error && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{msg}</div>
+        <div className="mb-4 border-l-2 bg-ivory px-4 py-3 text-[13px]" style={{ borderColor: "var(--moss)", color: "var(--moss)" }}>
+          {msg}
+        </div>
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-muted-foreground">
-              <th className="px-5 py-3 font-medium">姓名</th>
-              <th className="px-5 py-3 font-medium">邮箱</th>
-              <th className="px-5 py-3 font-medium">状态</th>
-              <th className="px-5 py-3 font-medium">注册时间</th>
-              <th className="px-5 py-3 text-right font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">加载中…</td>
-              </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">暂无学生</td>
-              </tr>
-            ) : (
-              items.map((u) => (
-                <tr key={u.id} className="border-b border-border last:border-b-0 hover:bg-muted/40">
-                  <td className="px-5 py-3 font-medium text-primary">{u.name}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{u.email || "—"}</td>
-                  <td className="px-5 py-3">
-                    {u.status === "active" ? (
-                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">正常</span>
-                    ) : (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">已禁用</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-muted-foreground">
-                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString("zh-CN") : "—"}
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end">
-                      <button
-                        onClick={() => toggleStatus(u)}
-                        title={u.status === "active" ? "禁用" : "启用"}
-                        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-accent"
-                      >
-                        {u.status === "active" ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="border border-line bg-ivory">
+        <div className="grid grid-cols-[1.4fr_2fr_0.9fr_1.1fr_0.8fr] items-center border-b border-line px-5 py-3">
+          <Eyebrow>姓名</Eyebrow>
+          <Eyebrow>邮箱</Eyebrow>
+          <Eyebrow>状态</Eyebrow>
+          <Eyebrow>注册时间</Eyebrow>
+          <Eyebrow>操作</Eyebrow>
+        </div>
+        {loading && items.length === 0 ? (
+          <div className="py-12 text-center"><Mono size={11}>— 加载中 —</Mono></div>
+        ) : items.length === 0 ? (
+          <div className="py-12 text-center"><Mono size={11}>— 暂无学生 —</Mono></div>
+        ) : (
+          items.map((u) => (
+            <div
+              key={u.id}
+              className="grid grid-cols-[1.4fr_2fr_0.9fr_1.1fr_0.8fr] items-center border-b border-line px-5 py-3 last:border-b-0"
+            >
+              <div className="text-[14px] font-medium text-ink">{u.name}</div>
+              <Mono size={11}>{u.email || "—"}</Mono>
+              <div>
+                {u.status === "active" ? <Chip tone="moss">正常</Chip> : <Chip tone="warn">已禁用</Chip>}
+              </div>
+              <Mono size={10}>{u.createdAt ? new Date(u.createdAt).toLocaleDateString("zh-CN") : "—"}</Mono>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => toggleStatus(u)}
+                  title={u.status === "active" ? "禁用" : "启用"}
+                  className="p-1.5 text-muted transition-colors hover:text-accent"
+                >
+                  {u.status === "active" ? <Ban className="h-4 w-4" strokeWidth={1.3} /> : <CheckCircle2 className="h-4 w-4" strokeWidth={1.3} />}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Pagination */}
       <div className="mt-4 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">第 {page} / {totalPages} 页</span>
+        <Mono size={10}>第 {page} / {totalPages} 页</Mono>
         <div className="flex items-center gap-2">
-          <button
+          <HairlineBtn
             onClick={() => page > 1 && fetchList(page - 1, q)}
             disabled={page <= 1}
-            className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-primary transition-colors hover:bg-muted disabled:opacity-40"
+            leftIcon={<ChevronLeft className="h-[13px] w-[13px]" strokeWidth={1.4} />}
           >
-            <ChevronLeft className="h-4 w-4" /> 上一页
-          </button>
-          <button
+            上一页
+          </HairlineBtn>
+          <HairlineBtn
             onClick={() => page < totalPages && fetchList(page + 1, q)}
             disabled={page >= totalPages}
-            className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-primary transition-colors hover:bg-muted disabled:opacity-40"
+            rightIcon={<ChevronRight className="h-[13px] w-[13px]" strokeWidth={1.4} />}
           >
-            下一页 <ChevronRight className="h-4 w-4" />
-          </button>
+            下一页
+          </HairlineBtn>
         </div>
       </div>
     </div>

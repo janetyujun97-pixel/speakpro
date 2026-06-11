@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { Plus, X, Loader2, Ban, CheckCircle2, KeyRound } from "lucide-react";
 import { api } from "@/lib/api";
+import {
+  Eyebrow,
+  Serif,
+  Mono,
+  Chip,
+  HairlineBtn,
+} from "@/components/editorial/primitives";
 
 interface ManagedUser {
   id: string;
@@ -103,136 +110,134 @@ export default function AdminTeachersPage() {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-4xl">
+      {/* Masthead */}
+      <div className="mb-8 flex items-end justify-between border-b border-line pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-primary">教师管理</h1>
-          <p className="mt-1 text-sm text-muted-foreground">共 {total} 名教师 · 教师账号由管理员创建</p>
+          <Eyebrow>管理 · ADMIN</Eyebrow>
+          <div className="mt-1">
+            <Serif size={28}>教师管理</Serif>
+          </div>
+          <div className="mt-1">
+            <Mono size={10}>共 {total} 名教师 · 由管理员创建</Mono>
+          </div>
         </div>
-        <button
+        <HairlineBtn
+          primary
           onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+          leftIcon={
+            showForm ? (
+              <X className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            ) : (
+              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            )
+          }
         >
-          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showForm ? "取消" : "创建教师"}
-        </button>
+        </HairlineBtn>
       </div>
 
       {/* Create form */}
       {showForm && (
-        <form onSubmit={handleCreate} className="mb-6 rounded-xl border border-border bg-white p-6 shadow-sm">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="mb-1 block text-sm text-muted-foreground">姓名</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="如：李老师"
-                required
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm text-muted-foreground">邮箱</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="teacher@example.com"
-                required
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm text-muted-foreground">初始密码</label>
-              <input
-                type="text"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="至少 6 位"
-                required
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
+        <form onSubmit={handleCreate} className="mb-6 flex flex-wrap items-end gap-4 border border-line bg-ivory p-5">
+          <div className="min-w-[150px] flex-1">
+            <Eyebrow>姓名</Eyebrow>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="如：李老师"
+              required
+              className="mt-1.5 w-full border-0 border-b border-ink bg-transparent pb-1 text-[14px] text-ink outline-none"
+            />
           </div>
-          <div className="mt-4 flex justify-end">
-            <button
-              type="submit"
-              disabled={creating}
-              className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
-            >
-              {creating && <Loader2 className="h-4 w-4 animate-spin" />}
-              确认创建
-            </button>
+          <div className="min-w-[200px] flex-1">
+            <Eyebrow>邮箱</Eyebrow>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="teacher@example.com"
+              required
+              className="mt-1.5 w-full border-0 border-b border-ink bg-transparent pb-1 text-[14px] text-ink outline-none"
+            />
           </div>
+          <div className="min-w-[150px] flex-1">
+            <Eyebrow>初始密码</Eyebrow>
+            <input
+              type="text"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="至少 6 位"
+              required
+              className="mt-1.5 w-full border-0 border-b border-ink bg-transparent pb-1 text-[14px] text-ink outline-none"
+            />
+          </div>
+          <HairlineBtn
+            primary
+            type="submit"
+            disabled={creating}
+            leftIcon={creating ? <Loader2 className="h-[13px] w-[13px] animate-spin" /> : undefined}
+          >
+            确认创建
+          </HairlineBtn>
         </form>
       )}
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="mb-4 border-l-2 border-accent bg-ivory px-4 py-3 text-[13px]" style={{ color: "var(--accent)" }}>
+          {error}
+        </div>
       )}
       {msg && !error && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{msg}</div>
+        <div className="mb-4 border-l-2 bg-ivory px-4 py-3 text-[13px]" style={{ borderColor: "var(--moss)", color: "var(--moss)" }}>
+          {msg}
+        </div>
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-muted-foreground">
-              <th className="px-5 py-3 font-medium">姓名</th>
-              <th className="px-5 py-3 font-medium">邮箱</th>
-              <th className="px-5 py-3 font-medium">班级数</th>
-              <th className="px-5 py-3 font-medium">状态</th>
-              <th className="px-5 py-3 text-right font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">加载中…</td>
-              </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">暂无教师，点击右上角创建</td>
-              </tr>
-            ) : (
-              items.map((u) => (
-                <tr key={u.id} className="border-b border-border last:border-b-0 hover:bg-muted/40">
-                  <td className="px-5 py-3 font-medium text-primary">{u.name}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{u.email || "—"}</td>
-                  <td className="px-5 py-3 text-primary">{u.classCount ?? 0}</td>
-                  <td className="px-5 py-3">
-                    {u.status === "active" ? (
-                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">正常</span>
-                    ) : (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">已禁用</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => resetPassword(u)}
-                        title="重置密码"
-                        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-                      >
-                        <KeyRound className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => toggleStatus(u)}
-                        title={u.status === "active" ? "禁用" : "启用"}
-                        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-accent"
-                      >
-                        {u.status === "active" ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="border border-line bg-ivory">
+        <div className="grid grid-cols-[1.4fr_2fr_0.8fr_0.8fr_1fr] items-center border-b border-line px-5 py-3">
+          <Eyebrow>姓名</Eyebrow>
+          <Eyebrow>邮箱</Eyebrow>
+          <Eyebrow>班级数</Eyebrow>
+          <Eyebrow>状态</Eyebrow>
+          <Eyebrow>操作</Eyebrow>
+        </div>
+        {loading && items.length === 0 ? (
+          <div className="py-12 text-center"><Mono size={11}>— 加载中 —</Mono></div>
+        ) : items.length === 0 ? (
+          <div className="py-12 text-center"><Mono size={11}>— 暂无教师，点击右上角创建 —</Mono></div>
+        ) : (
+          items.map((u) => (
+            <div
+              key={u.id}
+              className="grid grid-cols-[1.4fr_2fr_0.8fr_0.8fr_1fr] items-center border-b border-line px-5 py-3 last:border-b-0"
+            >
+              <div className="text-[14px] font-medium text-ink">{u.name}</div>
+              <Mono size={11}>{u.email || "—"}</Mono>
+              <span className="font-mono text-[13px] text-ink">{u.classCount ?? 0}</span>
+              <div>
+                {u.status === "active" ? <Chip tone="moss">正常</Chip> : <Chip tone="warn">已禁用</Chip>}
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => resetPassword(u)}
+                  title="重置密码"
+                  className="p-1.5 text-muted transition-colors hover:text-ink"
+                >
+                  <KeyRound className="h-4 w-4" strokeWidth={1.3} />
+                </button>
+                <button
+                  onClick={() => toggleStatus(u)}
+                  title={u.status === "active" ? "禁用" : "启用"}
+                  className="p-1.5 text-muted transition-colors hover:text-accent"
+                >
+                  {u.status === "active" ? <Ban className="h-4 w-4" strokeWidth={1.3} /> : <CheckCircle2 className="h-4 w-4" strokeWidth={1.3} />}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
