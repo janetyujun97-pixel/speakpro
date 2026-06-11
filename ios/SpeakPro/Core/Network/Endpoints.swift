@@ -3,16 +3,16 @@ import Foundation
 /// API 端点常量
 enum Endpoints {
 
-    // NestJS CRUD 服务（通过 Nginx 代理，统一用 80 端口）
+    // NestJS CRUD 服务（线上 HTTPS 网关 learnpark.cn:8443）
     #if DEBUG
-    static let baseURL = "http://frp6.ccszxc.site:26074/api/v1"
+    static let baseURL = "https://learnpark.cn:8443/api/v1"
     #else
     static let baseURL = "https://api.speakpro.com/api/v1"
     #endif
 
-    // Go AI 服务（通过 Nginx 代理，统一用 80 端口）
+    // Go AI 服务（同一网关；WebSocket 由此自动派生为 wss）
     #if DEBUG
-    static let goBaseURL = "http://frp6.ccszxc.site:26074/api/v1"
+    static let goBaseURL = "https://learnpark.cn:8443/api/v1"
     #else
     static let goBaseURL = "https://api.speakpro.com/api/v1"
     #endif
