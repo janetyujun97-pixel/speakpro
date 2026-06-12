@@ -1,0 +1,29 @@
+android/app/src/main/java/com/speakpro/core/network/ApiClient.kt
+  s_3b64d8e98aab3e::t_18a792ce6c6fe3 94
+android/app/src/main/java/com/speakpro/core/network/NetworkModule.kt
+  s_3b64d8e98aab3e::t_9ef99d240f4826 29
+ios/SpeakPro/Core/Network/APIClient.swift
+  s_3b64d8e98aab3e::t_d3e769bee66eb5 252-268
+  s_3b64d8e98aab3e::t_a0335ba3b62d33 98-107,146-156,177-212
+android/app/src/main/java/com/speakpro/core/network/TokenAuthenticator.kt
+  s_3b64d8e98aab3e::t_c45546ab24cb8a 1-89
+server/nest-api/src/modules/auth/auth.service.ts
+  s_3b64d8e98aab3e::t_daf55895ae1bf1 101,103,107-112
+  s_3b64d8e98aab3e::t_3fc81c511886f9 363-365
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "8495e9dac5df0a9037736b81401620c6bea6c12e",
+  "prompts": {},
+  "sessions": {
+    "s_3b64d8e98aab3e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9ac80616-42c4-4112-85a8-ad279a335c54",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>"
+    }
+  }
+}
