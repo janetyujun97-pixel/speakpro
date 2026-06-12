@@ -1,0 +1,19 @@
+server/go-services/internal/service/tencent_soe.go
+  s_3b64d8e98aab3e::t_a7e96a8c8cb8e9 142-146,149-150,157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "4d82efeca939020a6527981e12a35b3d33625b75",
+  "prompts": {},
+  "sessions": {
+    "s_3b64d8e98aab3e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9ac80616-42c4-4112-85a8-ad279a335c54",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Primo <wangbingqian@youibot.com>"
+    }
+  }
+}
