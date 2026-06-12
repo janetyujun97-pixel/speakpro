@@ -139,17 +139,22 @@ func (c *TencentSOEClient) Assess(audioData []byte, referenceText string) (*mode
 				overall = result.SuggestedScore
 			}
 
+			// 腾讯 SOE 的 PronFluency / PronCompletion 是 0~1 量纲
+			// （PronAccuracy / SuggestedScore 是 0~100），统一换算为百分制
+			fluency := result.PronFluency * 100
+			completion := result.PronCompletion * 100
+
 			finalScore = &model.PronunciationScore{
 				Overall:    overall,
-				Fluency:    result.PronFluency,
-				Integrity:  result.PronCompletion,
+				Fluency:    fluency,
+				Integrity:  completion,
 				Stress:     result.PronAccuracy,
 				Intonation: result.PronAccuracy * 0.95,
 				Phonemes:   []model.PhonemeScore{},
 			}
 
 			log.Printf("[TencentSOE] 评测成功: overall=%.1f, fluency=%.1f, completion=%.1f",
-				overall, result.PronFluency, result.PronCompletion)
+				overall, fluency, completion)
 			break
 		}
 	}
