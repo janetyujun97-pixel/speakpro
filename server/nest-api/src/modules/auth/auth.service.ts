@@ -98,12 +98,18 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string) {
+    let payload: { sub: string };
     try {
-      const payload = this.jwtService.verify(refreshToken);
-      return this.generateTokens(payload.sub, payload.email, payload.role);
+      payload = this.jwtService.verify(refreshToken);
     } catch {
       throw new UnauthorizedException('Refresh Token 无效或已过期');
     }
+    // 取库里最新状态：被禁用的账号不能续期；role/email 以库为准
+    const user = await this.usersService.findById(payload.sub).catch(() => null);
+    if (!user || user.status === 'disabled') {
+      throw new UnauthorizedException('账号不可用，请重新登录');
+    }
+    return this.generateTokens(user.id, user.email ?? '', user.role);
   }
 
   // ==================== 新增：手机 OTP ====================
@@ -354,7 +360,9 @@ export class AuthService {
     const payload = { sub: userId, email, role };
     return {
       accessToken: this.jwtService.sign(payload, { expiresIn: '2h' }),
-      refreshToken: this.jwtService.sign(payload, { expiresIn: '7d' }),
+      // 长效 refresh token + 每次 /auth/refresh 轮换出新一对（滑动续期）：
+      // 只要 180 天内打开过 App 就保持登录，除非主动退出或账号被禁用
+      refreshToken: this.jwtService.sign(payload, { expiresIn: '180d' }),
     };
   }
 }

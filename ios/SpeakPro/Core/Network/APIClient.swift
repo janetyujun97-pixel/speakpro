@@ -95,6 +95,16 @@ final class APIClient {
         body: Encodable? = nil,
         queryItems: [URLQueryItem]? = nil
     ) async throws -> APIResponse<T> {
+        try await send(method, path: path, body: body, queryItems: queryItems, allowRetry: true)
+    }
+
+    private func send<T: Decodable>(
+        _ method: HTTPMethod,
+        path: String,
+        body: Encodable?,
+        queryItems: [URLQueryItem]?,
+        allowRetry: Bool
+    ) async throws -> APIResponse<T> {
 
         // 如果 path 已经是完整 URL（以 http 开头），直接使用；否则拼接 baseURL
         let fullURLString = path.hasPrefix("http") ? path : (baseURL + path)
@@ -133,7 +143,17 @@ final class APIClient {
             if let httpResponse = response as? HTTPURLResponse {
                 switch httpResponse.statusCode {
                 case 401:
-                    // TODO: 尝试刷新 token 后重试
+                    // access token 过期：用 refresh token 换新后重试一次。
+                    // auth 自身的端点（登录/刷新等）401 不触发刷新，避免递归
+                    if allowRetry, !path.contains("/auth/"), refreshToken != nil {
+                        try await refreshCoordinator.run { [weak self] in
+                            try await self?.performTokenRefresh()
+                        }
+                        return try await send(
+                            method, path: path, body: body,
+                            queryItems: queryItems, allowRetry: false
+                        )
+                    }
                     throw APIError.unauthorized
                 case 400..<600:
                     throw APIError.serverError(httpResponse.statusCode, "请求失败")
@@ -152,6 +172,44 @@ final class APIClient {
         } catch {
             throw APIError.networkError(error)
         }
+    }
+
+    // MARK: - Token 刷新（单飞：并发 401 只触发一次刷新）
+
+    private let refreshCoordinator = RefreshCoordinator()
+
+    private struct RefreshedTokens: Decodable {
+        let accessToken: String
+        let refreshToken: String
+    }
+
+    /// 调 /auth/refresh 换新一对 token（服务端每次轮换，滑动续期）。
+    /// refresh token 也失效时清空本地凭证并抛 unauthorized，由 UI 引导重新登录。
+    private func performTokenRefresh() async throws {
+        guard let refresh = refreshToken else { throw APIError.unauthorized }
+
+        guard let url = URL(string: baseURL + Endpoints.Auth.refresh) else {
+            throw APIError.invalidURL
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // 注意：这里不用 snake_case 策略，服务端字段就是 refreshToken
+        req.httpBody = try JSONEncoder().encode(["refreshToken": refresh])
+
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400,
+              let resp = try? decoder.decode(APIResponse<RefreshedTokens>.self, from: data),
+              resp.code == 0, let tokens = resp.data
+        else {
+            // refresh token 失效（180 天未用 / 账号被禁用）→ 清除凭证
+            accessToken = nil
+            refreshToken = nil
+            throw APIError.unauthorized
+        }
+
+        accessToken = tokens.accessToken
+        refreshToken = tokens.refreshToken
     }
 
     // MARK: - Convenience Methods
@@ -188,6 +246,23 @@ final class APIClient {
         _ path: String
     ) async throws -> APIResponse<T> {
         try await request(.delete, path: path)
+    }
+}
+
+// MARK: - Refresh 单飞协调器
+
+/// 串行化 token 刷新：同一时刻只允许一次刷新在途，并发 401 等待并复用同一结果
+private actor RefreshCoordinator {
+    private var inFlight: Task<Void, Error>?
+
+    func run(_ operation: @escaping @Sendable () async throws -> Void) async throws {
+        if let inFlight {
+            return try await inFlight.value
+        }
+        let task = Task { try await operation() }
+        inFlight = task
+        defer { inFlight = nil }
+        try await task.value
     }
 }
 

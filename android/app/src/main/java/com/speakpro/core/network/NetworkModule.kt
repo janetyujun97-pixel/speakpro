@@ -26,6 +26,7 @@ object NetworkModule {
             level = HttpLoggingInterceptor.Level.BODY
         }
         return OkHttpClient.Builder()
+            .authenticator(TokenAuthenticator) // 401 自动刷新 token 并重试
             .addInterceptor(AuthInterceptor())
             .addInterceptor(logging)
             .connectTimeout(30, TimeUnit.SECONDS)

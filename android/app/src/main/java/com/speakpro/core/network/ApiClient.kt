@@ -91,6 +91,7 @@ object ApiClient {
             .connectTimeout(DEFAULT_TIMEOUT_SEC, TimeUnit.SECONDS)
             .readTimeout(DEFAULT_TIMEOUT_SEC, TimeUnit.SECONDS)
             .writeTimeout(DEFAULT_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .authenticator(TokenAuthenticator) // 401 自动刷新 token 并重试
             .addInterceptor(authInterceptor)
             .addInterceptor(timeoutInterceptor)
             .addInterceptor(loggingInterceptor)
